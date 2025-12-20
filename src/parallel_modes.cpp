@@ -11,7 +11,10 @@
 
 namespace qlret {
 
-// Auto-select batch size based on qubit count
+//==============================================================================
+// Batch Size and Mode Selection Heuristics
+//==============================================================================
+
 size_t auto_select_batch_size(size_t num_qubits) {
     unsigned int num_threads = 1;
 #ifdef _OPENMP
@@ -43,100 +46,220 @@ std::string get_workload_class(size_t num_qubits) {
     return "high-workload";
 }
 
-// Auto-select best parallelization mode
 ParallelMode auto_select_mode(size_t num_qubits, size_t depth, size_t rank_estimate) {
+    // Based on benchmarking, BATCH mode with optimized direct gate application
+    // is consistently the fastest. For very small problems, sequential is fine.
     size_t dim = 1ULL << num_qubits;
     
     if (dim < 64) {
         return ParallelMode::SEQUENTIAL;
     }
     
-    if (dim < 256) {
-        return depth > 50 ? ParallelMode::BATCH : ParallelMode::SEQUENTIAL;
-    }
-    
-    // For larger problems, hybrid is usually best
-    if (depth > 20) {
-        return ParallelMode::HYBRID;
-    }
-    
-    return ParallelMode::ROW;
+    // For all larger problems, batch mode is empirically fastest
+    return ParallelMode::BATCH;
 }
+
+//==============================================================================
+// Optimized Parallel Gate Application
+// 
+// KEY INSIGHT: We parallelize WITHIN the efficient direct gate application,
+// NOT by expanding to full 2^n × 2^n space (which is O(4^n) and terrible).
+//
+// All modes use O(2^n × rank) complexity via direct application.
+// The difference is HOW we parallelize the inner loops.
+//==============================================================================
 
 namespace parallel_ops {
 
-// Sequential gate application
+//------------------------------------------------------------------------------
+// Sequential: No parallelization, uses optimized direct application
+//------------------------------------------------------------------------------
 MatrixXcd apply_gate_sequential(const MatrixXcd& L, const GateOp& gate, size_t num_qubits) {
+    // This already uses apply_single_gate_direct / apply_two_qubit_gate_direct
+    // which are O(2^n × rank) - optimal complexity
     return apply_gate_to_L(L, gate, num_qubits);
 }
 
-// Row-parallel gate application
+//------------------------------------------------------------------------------
+// Row-Parallel: Parallelize over row-pairs in direct application
+// For single-qubit gate on qubit q, we process pairs (i, i + 2^q)
+// The parallelization is over the "block" index in the direct method
+//------------------------------------------------------------------------------
 MatrixXcd apply_gate_row_parallel(const MatrixXcd& L, const GateOp& gate, size_t num_qubits) {
-    MatrixXcd U_full;
-    
-    // Get appropriate gate matrix and expand to full space
     if (gate.qubits.size() == 1) {
+        // Single-qubit gate: parallelize over row blocks
         MatrixXcd U = get_single_qubit_gate(gate.type, gate.params);
-        U_full = expand_single_gate(U, gate.qubits[0], num_qubits);
+        size_t dim = L.rows();
+        size_t rank = L.cols();
+        MatrixXcd result = L;
+        
+        size_t target = gate.qubits[0];
+        size_t step = 1ULL << target;
+        
+        // Number of independent pairs to process
+        size_t num_pairs = dim / 2;
+        
+#ifdef _OPENMP
+        #pragma omp parallel for schedule(static)
+#endif
+        for (size_t pair_idx = 0; pair_idx < num_pairs; ++pair_idx) {
+            // Convert pair_idx to actual row indices
+            size_t block = pair_idx / step;
+            size_t offset = pair_idx % step;
+            size_t i0 = block * (2 * step) + offset;
+            size_t i1 = i0 + step;
+            
+            if (i1 >= dim) continue;
+            
+            for (size_t r = 0; r < rank; ++r) {
+                Complex v0 = L(i0, r);
+                Complex v1 = L(i1, r);
+                result(i0, r) = U(0, 0) * v0 + U(0, 1) * v1;
+                result(i1, r) = U(1, 0) * v0 + U(1, 1) * v1;
+            }
+        }
+        return result;
+        
     } else {
+        // Two-qubit gate: more complex but still O(2^n × rank)
         MatrixXcd U = get_two_qubit_gate(gate.type, gate.params);
-        U_full = expand_two_qubit_gate(U, gate.qubits[0], gate.qubits[1], num_qubits);
+        size_t dim = L.rows();
+        size_t rank = L.cols();
+        MatrixXcd result = L;
+        
+        size_t q1 = gate.qubits[0];
+        size_t q2 = gate.qubits[1];
+        size_t qmin = std::min(q1, q2);
+        size_t qmax = std::max(q1, q2);
+        bool swapped = (q1 > q2);
+        
+        size_t step_min = 1ULL << qmin;
+        size_t step_max = 1ULL << qmax;
+        
+        // Count valid base indices (where both qubit bits are 0)
+        std::vector<size_t> base_indices;
+        for (size_t base = 0; base < dim; ++base) {
+            if ((base & step_min) == 0 && (base & step_max) == 0) {
+                base_indices.push_back(base);
+            }
+        }
+        
+#ifdef _OPENMP
+        #pragma omp parallel for schedule(static)
+#endif
+        for (size_t bi = 0; bi < base_indices.size(); ++bi) {
+            size_t base = base_indices[bi];
+            
+            size_t idx[4];
+            idx[0] = base;
+            idx[1] = base | step_min;
+            idx[2] = base | step_max;
+            idx[3] = base | step_min | step_max;
+            
+            if (swapped) std::swap(idx[1], idx[2]);
+            
+            for (size_t r = 0; r < rank; ++r) {
+                Complex v[4];
+                for (int k = 0; k < 4; ++k) v[k] = L(idx[k], r);
+                
+                for (int k = 0; k < 4; ++k) {
+                    result(idx[k], r) = U(k, 0) * v[0] + U(k, 1) * v[1] + 
+                                        U(k, 2) * v[2] + U(k, 3) * v[3];
+                }
+            }
+        }
+        return result;
     }
-    
+}
+
+//------------------------------------------------------------------------------
+// Column-Parallel: Parallelize over rank columns
+// Each column of L is processed independently
+//------------------------------------------------------------------------------
+MatrixXcd apply_gate_column_parallel(const MatrixXcd& L, const GateOp& gate, size_t num_qubits) {
     size_t dim = L.rows();
     size_t rank = L.cols();
-    MatrixXcd L_new(dim, rank);
+    MatrixXcd result(dim, rank);
     
-    // Parallelize over rows
+    if (gate.qubits.size() == 1) {
+        MatrixXcd U = get_single_qubit_gate(gate.type, gate.params);
+        size_t target = gate.qubits[0];
+        size_t step = 1ULL << target;
+        
 #ifdef _OPENMP
-    #pragma omp parallel for schedule(static)
+        #pragma omp parallel for schedule(static)
 #endif
-    for (size_t row = 0; row < dim; ++row) {
-        for (size_t col = 0; col < rank; ++col) {
-            Complex sum = 0;
-            for (size_t k = 0; k < dim; ++k) {
-                sum += U_full(row, k) * L(k, col);
+        for (size_t r = 0; r < rank; ++r) {
+            // Process this column
+            VectorXcd col = L.col(r);
+            VectorXcd new_col = col;
+            
+            for (size_t block = 0; block < dim; block += 2 * step) {
+                for (size_t i = block; i < block + step && i < dim; ++i) {
+                    size_t i0 = i;
+                    size_t i1 = i + step;
+                    if (i1 >= dim) continue;
+                    
+                    Complex v0 = col(i0);
+                    Complex v1 = col(i1);
+                    new_col(i0) = U(0, 0) * v0 + U(0, 1) * v1;
+                    new_col(i1) = U(1, 0) * v0 + U(1, 1) * v1;
+                }
             }
-            L_new(row, col) = sum;
+            result.col(r) = new_col;
+        }
+        
+    } else {
+        MatrixXcd U = get_two_qubit_gate(gate.type, gate.params);
+        size_t q1 = gate.qubits[0];
+        size_t q2 = gate.qubits[1];
+        size_t qmin = std::min(q1, q2);
+        size_t qmax = std::max(q1, q2);
+        bool swapped = (q1 > q2);
+        size_t step_min = 1ULL << qmin;
+        size_t step_max = 1ULL << qmax;
+        
+#ifdef _OPENMP
+        #pragma omp parallel for schedule(static)
+#endif
+        for (size_t r = 0; r < rank; ++r) {
+            VectorXcd col = L.col(r);
+            VectorXcd new_col = col;
+            
+            for (size_t base = 0; base < dim; ++base) {
+                if ((base & step_min) != 0 || (base & step_max) != 0) continue;
+                
+                size_t idx[4];
+                idx[0] = base;
+                idx[1] = base | step_min;
+                idx[2] = base | step_max;
+                idx[3] = base | step_min | step_max;
+                
+                if (swapped) std::swap(idx[1], idx[2]);
+                
+                Complex v[4];
+                for (int k = 0; k < 4; ++k) v[k] = col(idx[k]);
+                
+                for (int k = 0; k < 4; ++k) {
+                    new_col(idx[k]) = U(k, 0) * v[0] + U(k, 1) * v[1] + 
+                                      U(k, 2) * v[2] + U(k, 3) * v[3];
+                }
+            }
+            result.col(r) = new_col;
         }
     }
     
-    return L_new;
-}
-
-// Column-parallel gate application
-MatrixXcd apply_gate_column_parallel(const MatrixXcd& L, const GateOp& gate, size_t num_qubits) {
-    MatrixXcd U_full;
-    
-    // Get appropriate gate matrix and expand to full space
-    if (gate.qubits.size() == 1) {
-        MatrixXcd U = get_single_qubit_gate(gate.type, gate.params);
-        U_full = expand_single_gate(U, gate.qubits[0], num_qubits);
-    } else {
-        MatrixXcd U = get_two_qubit_gate(gate.type, gate.params);
-        U_full = expand_two_qubit_gate(U, gate.qubits[0], gate.qubits[1], num_qubits);
-    }
-    
-    size_t dim = L.rows();
-    size_t rank = L.cols();
-    MatrixXcd L_new(dim, rank);
-    
-    // Parallelize over columns (rank components)
-#ifdef _OPENMP
-    #pragma omp parallel for schedule(static)
-#endif
-    for (size_t col = 0; col < rank; ++col) {
-        L_new.col(col) = U_full * L.col(col);
-    }
-    
-    return L_new;
+    return result;
 }
 
 }  // namespace parallel_ops
 
+//==============================================================================
+// Mode Runners
+//==============================================================================
+
 namespace modes {
 
-// Sequential simulation
 MatrixXcd run_sequential(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -162,7 +285,6 @@ MatrixXcd run_sequential(
     return L;
 }
 
-// Row-parallel simulation
 MatrixXcd run_row_parallel(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -188,7 +310,6 @@ MatrixXcd run_row_parallel(
     return L;
 }
 
-// Column-parallel simulation
 MatrixXcd run_column_parallel(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -214,7 +335,6 @@ MatrixXcd run_column_parallel(
     return L;
 }
 
-// Batch parallel simulation (existing optimized implementation)
 MatrixXcd run_batch_parallel(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -222,6 +342,7 @@ MatrixXcd run_batch_parallel(
     size_t batch_size,
     const SimConfig& config
 ) {
+    // Uses the highly optimized simulator with batched gate application
     return run_simulation_optimized(
         L_init, sequence, num_qubits,
         batch_size, config.do_truncation,
@@ -229,7 +350,6 @@ MatrixXcd run_batch_parallel(
     );
 }
 
-// Hybrid: row parallel for gates + batch organization
 MatrixXcd run_hybrid(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -237,6 +357,7 @@ MatrixXcd run_hybrid(
     size_t batch_size,
     const SimConfig& config
 ) {
+    // Hybrid: batch gates together, apply each with row parallelization
     MatrixXcd L = L_init;
     std::vector<GateOp> gate_batch;
     
@@ -244,7 +365,6 @@ MatrixXcd run_hybrid(
         if (std::holds_alternative<GateOp>(op)) {
             gate_batch.push_back(std::get<GateOp>(op));
             
-            // Apply batch when full
             if (gate_batch.size() >= batch_size) {
                 for (const auto& gate : gate_batch) {
                     L = parallel_ops::apply_gate_row_parallel(L, gate, num_qubits);
@@ -252,7 +372,7 @@ MatrixXcd run_hybrid(
                 gate_batch.clear();
             }
         } else {
-            // Flush remaining gates before noise
+            // Flush gates before noise
             for (const auto& gate : gate_batch) {
                 L = parallel_ops::apply_gate_row_parallel(L, gate, num_qubits);
             }
@@ -267,7 +387,7 @@ MatrixXcd run_hybrid(
         }
     }
     
-    // Apply remaining gates
+    // Flush remaining
     for (const auto& gate : gate_batch) {
         L = parallel_ops::apply_gate_row_parallel(L, gate, num_qubits);
     }
@@ -277,7 +397,10 @@ MatrixXcd run_hybrid(
 
 }  // namespace modes
 
-// Run with specific mode
+//==============================================================================
+// Main Entry Points
+//==============================================================================
+
 ModeResult run_with_mode(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -327,7 +450,6 @@ ModeResult run_with_mode(
     return result;
 }
 
-// Run all modes for comparison
 std::vector<ModeResult> run_all_modes_comparison(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
