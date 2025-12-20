@@ -1,0 +1,25 @@
+# Development Dockerfile - mounts source code
+# Use for rapid iteration without rebuilding image
+
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    libeigen3-dev \
+    libomp-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Don't copy source - it will be mounted
+RUN mkdir -p build
+
+# Build script that compiles and runs with any args
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD ["-n", "8", "-d", "13", "--mode", "auto"]

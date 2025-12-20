@@ -1,97 +1,172 @@
 /**
- * QuantumLRET-Sim - Main Benchmark
- * 
- * Benchmark for n=11 qubits, depth=13 as per README specification.
- * Compares parallel optimized vs naive sequential execution.
+ * QuantumLRET-Sim - Main Program
+ * Multi-mode parallelization with CLI support
  */
+#include "cli_parser.h"
+#include "parallel_modes.h"
+#include "fdm_simulator.h"
+#include "output_formatter.h"
 #include "gates_and_noise.h"
 #include "simulator.h"
 #include "utils.h"
 #include <iostream>
 #include <iomanip>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 using namespace qlret;
 
-int main() {
-    std::cout << "Starting QuantumLRET-Sim..." << std::endl;
-    std::cout.flush();
-    
+int main(int argc, char* argv[]) {
     try {
-    // Smaller circuit for clear visualization
-    const size_t num_qubits = 3;
-    const size_t depth = 5;
-    const double noise_prob = 0.05;  // Lower noise
-    const double truncation_threshold = 1e-4;
-    const bool verbose = false;
-    
-    std::cout << std::string(98, '-') << std::endl;
-    std::cout << "number of qubits: " << num_qubits << std::endl;
-    
-    // Auto-select batch size based on workload
-    size_t batch_size = auto_select_batch_size(num_qubits);
-    std::string workload = get_workload_class(num_qubits);
-    std::cout << "INFO: n=" << num_qubits << " " << workload 
-              << ", batch_size=" << batch_size << std::endl;
-    
-    // Generate random quantum sequence with noise
-    auto sequence = generate_quantum_sequences(num_qubits, depth, true, noise_prob);
-    std::cout << "Generated sequence with total noise perc: " 
-              << std::fixed << std::setprecision(6) 
-              << sequence.total_noise_probability << std::endl;
-    std::cout << "batch size: " << batch_size << std::endl;
-    std::cout << "current time == " << get_current_time_string() << std::endl;
-    
-    // Print circuit diagram (compact - first 60 chars per line)
-    std::cout << "\nCircuit diagram:" << std::endl;
-    print_circuit_diagram(num_qubits, sequence, 0);  // 0 = no wrapping
-    
-    // Create initial |0...0> state
-    MatrixXcd L_init = create_zero_state(num_qubits);
-    
-    // Print header
-    std::cout << "=====================Running LRET simulation for " 
-              << num_qubits << " qubits==========================" << std::endl;
-    
-    // Run optimized parallel simulation
-    Timer parallel_timer;
-    MatrixXcd L_parallel = run_simulation_optimized(
-        L_init, sequence, num_qubits,
-        batch_size, true, verbose, truncation_threshold
-    );
-    double parallel_time = parallel_timer.elapsed_seconds();
-    
-    std::cout << "Simulation Time: " << std::fixed << std::setprecision(3) 
-              << parallel_time << " seconds" << std::endl;
-    std::cout << "Final Rank: " << L_parallel.cols() << std::endl;
-    
-    // Run naive simulation for comparison
-    std::cout << "\nRunning naive (sequential) simulation for comparison..." << std::endl;
-    Timer naive_timer;
-    MatrixXcd L_naive = run_simulation_naive(L_init, sequence, num_qubits, false);
-    double naive_time = naive_timer.elapsed_seconds();
-    
-    std::cout << "Naive Time: " << std::fixed << std::setprecision(3) 
-              << naive_time << " seconds" << std::endl;
-    
-    // Compute speedup
-    if (parallel_time > 0) {
-        double speedup = naive_time / parallel_time;
-        std::cout << "\nSpeed up with batch size " << batch_size << " : " 
-                  << std::fixed << std::setprecision(3) << speedup << std::endl;
-    }
-    
-    // Compute trace distance
-    double trace_dist = compare_L_matrices_trace(L_parallel, L_naive);
-    std::cout << "trace distance: " << std::scientific << std::setprecision(2) 
-              << trace_dist << std::endl;
-    
-    std::cout << std::string(98, '-') << std::endl;
-    
+        // Parse command line
+        CLIOptions opts = parse_arguments(argc, argv);
+        
+        if (opts.show_help) {
+            print_help();
+            return 0;
+        }
+        
+        if (opts.show_version) {
+            print_version();
+            return 0;
+        }
+        
+        // Validate options
+        std::string error;
+        if (!validate_options(opts, error)) {
+            std::cerr << "Error: " << error << std::endl;
+            return 1;
+        }
+        
+        // Configure threading
+        if (opts.num_threads > 0) {
+#ifdef _OPENMP
+            omp_set_num_threads(opts.num_threads);
+#endif
+        }
+        
+        // Setup batch size
+        size_t batch_size = opts.batch_size ? opts.batch_size 
+                                            : auto_select_batch_size(opts.num_qubits);
+        
+        // Generate circuit
+        auto sequence = generate_quantum_sequences(
+            opts.num_qubits, opts.depth, true, opts.noise_prob
+        );
+        double noise_in_circuit = sequence.total_noise_probability;
+        
+        // Print circuit if verbose
+        if (opts.verbose) {
+            std::cout << "Circuit diagram:\n";
+            print_circuit_diagram(opts.num_qubits, sequence, 80);
+            std::cout << "\n";
+        }
+        
+        // Initial state
+        MatrixXcd L_init = create_zero_state(opts.num_qubits);
+        
+        // Simulation config
+        SimConfig config;
+        config.truncation_threshold = opts.truncation_threshold;
+        config.verbose = opts.verbose;
+        config.do_truncation = true;
+        
+        // Check FDM feasibility
+        auto fdm_check = check_fdm_feasibility(
+            opts.num_qubits, opts.fdm_threshold, opts.enable_fdm
+        );
+        
+        std::optional<FDMResult> fdm_result;
+        std::optional<MetricsResult> fdm_metrics;
+        
+        // Run FDM if applicable
+        if (fdm_check.should_run) {
+            std::cout << "Running FDM simulation..." << std::flush;
+            fdm_result = run_fdm_simulation(sequence, opts.num_qubits, opts.verbose);
+            std::cout << " done (" << std::fixed << std::setprecision(3) 
+                      << fdm_result->time_seconds << "s)\n";
+        } else if (opts.enable_fdm) {
+            FDMResult skipped;
+            skipped.was_run = false;
+            skipped.skip_reason = fdm_check.skip_reason;
+            fdm_result = skipped;
+        }
+        
+        // Run based on mode
+        if (opts.parallel_mode == ParallelMode::COMPARE) {
+            // Comparison mode - run all strategies
+            std::cout << "\n";
+            auto results = run_all_modes_comparison(
+                L_init, sequence, opts.num_qubits, config, batch_size
+            );
+            
+            // Compute FDM metrics if available
+            if (fdm_result && fdm_result->was_run) {
+                auto fastest = std::min_element(results.begin(), results.end(),
+                    [](const auto& a, const auto& b) { 
+                        return a.time_seconds < b.time_seconds; 
+                    });
+                
+                MatrixXcd rho_lret = L_to_density_matrix(fastest->L_final);
+                fdm_metrics = MetricsResult{
+                    compute_fidelity_rho(rho_lret, fdm_result->rho_final),
+                    compute_trace_distance_rho(rho_lret, fdm_result->rho_final),
+                    compute_frobenius_distance_rho(rho_lret, fdm_result->rho_final),
+                    compute_variational_distance(rho_lret, fdm_result->rho_final)
+                };
+            }
+            
+            std::cout << "\n";
+            print_comparison_output(opts, results, noise_in_circuit, fdm_result, fdm_metrics);
+            
+            if (opts.output_file) {
+                export_to_csv(*opts.output_file, opts, results, noise_in_circuit, fdm_result);
+            }
+        } else {
+            // Single mode run
+            ParallelMode mode = opts.parallel_mode;
+            if (mode == ParallelMode::AUTO) {
+                mode = auto_select_mode(opts.num_qubits, opts.depth, 10);
+            }
+            
+            std::cout << "Running " << parallel_mode_to_string(mode) << " mode...\n";
+            
+            auto result = run_with_mode(L_init, sequence, opts.num_qubits, 
+                                        mode, config, batch_size);
+            
+            // Compute metrics vs initial state
+            MetricsResult metrics{
+                compute_fidelity(L_init, result.L_final),
+                compare_L_matrices_trace(L_init, result.L_final),
+                compute_frobenius_distance(L_init, result.L_final),
+                compute_variational_distance_L(L_init, result.L_final)
+            };
+            
+            // Compute FDM metrics if available
+            if (fdm_result && fdm_result->was_run) {
+                MatrixXcd rho_lret = L_to_density_matrix(result.L_final);
+                fdm_metrics = MetricsResult{
+                    compute_fidelity_rho(rho_lret, fdm_result->rho_final),
+                    compute_trace_distance_rho(rho_lret, fdm_result->rho_final),
+                    compute_frobenius_distance_rho(rho_lret, fdm_result->rho_final),
+                    compute_variational_distance(rho_lret, fdm_result->rho_final)
+                };
+            }
+            
+            print_standard_output(opts, result, metrics, noise_in_circuit, 
+                                  fdm_result, fdm_metrics);
+            
+            if (opts.output_file) {
+                std::vector<ModeResult> single_result = {result};
+                export_to_csv(*opts.output_file, opts, single_result, 
+                              noise_in_circuit, fdm_result);
+            }
+        }
+        
     } catch (const std::exception& e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
-        return 1;
-    } catch (...) {
-        std::cerr << "Unknown exception" << std::endl;
+        std::cerr << "Error: " << e.what() << std::endl;
         return 1;
     }
     

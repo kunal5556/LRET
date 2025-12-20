@@ -1,0 +1,192 @@
+#include "cli_parser.h"
+#include <iostream>
+#include <algorithm>
+#include <cstring>
+
+namespace qlret {
+
+std::string parallel_mode_to_string(ParallelMode mode) {
+    switch (mode) {
+        case ParallelMode::AUTO:       return "auto";
+        case ParallelMode::SEQUENTIAL: return "sequential";
+        case ParallelMode::ROW:        return "row";
+        case ParallelMode::COLUMN:     return "column";
+        case ParallelMode::BATCH:      return "batch";
+        case ParallelMode::HYBRID:     return "hybrid";
+        case ParallelMode::COMPARE:    return "compare";
+        default:                       return "unknown";
+    }
+}
+
+ParallelMode string_to_parallel_mode(const std::string& str) {
+    std::string lower = str;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+    
+    if (lower == "auto")       return ParallelMode::AUTO;
+    if (lower == "sequential") return ParallelMode::SEQUENTIAL;
+    if (lower == "row")        return ParallelMode::ROW;
+    if (lower == "column")     return ParallelMode::COLUMN;
+    if (lower == "batch")      return ParallelMode::BATCH;
+    if (lower == "hybrid")     return ParallelMode::HYBRID;
+    if (lower == "compare")    return ParallelMode::COMPARE;
+    
+    return ParallelMode::AUTO;  // Default fallback
+}
+
+void print_help() {
+    std::cout << R"(
+QuantumLRET-Sim - Low-Rank Exact Tensor Quantum Simulator
+
+USAGE:
+    quantum_sim [OPTIONS]
+
+OPTIONS:
+    -n, --qubits N        Number of qubits (default: 11)
+    -d, --depth N         Circuit depth (default: 13)
+    -b, --batch N         Batch size, 0=auto (default: 0)
+    -t, --threshold F     Truncation threshold (default: 1e-4)
+    --noise F             Noise probability (default: 0.01)
+
+    --mode MODE           Parallelization mode:
+                          auto|sequential|row|column|batch|hybrid|compare
+                          (default: auto)
+
+    --fdm                 Enable FDM comparison (if qubits <= threshold)
+    --fdm-threshold N     Max qubits for FDM (default: 10)
+
+    -o, --output FILE     Export results to CSV
+    -v, --verbose         Detailed output
+    --threads N           Limit thread count, 0=all cores (default: 0)
+
+    -h, --help            Show this help
+    --version             Show version
+
+EXAMPLES:
+    quantum_sim -n 11 -d 13
+    quantum_sim -n 10 --mode compare --fdm
+    quantum_sim -n 8 --mode row -v --output results.csv
+
+)";
+}
+
+void print_version() {
+    std::cout << "QuantumLRET-Sim v1.0.0\n";
+    std::cout << "Low-Rank Exact Tensor Quantum Circuit Simulator\n";
+}
+
+CLIOptions parse_arguments(int argc, char* argv[]) {
+    CLIOptions opts;
+    
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        
+        // Help
+        if (arg == "-h" || arg == "--help") {
+            opts.show_help = true;
+            return opts;
+        }
+        
+        // Version
+        if (arg == "--version") {
+            opts.show_version = true;
+            return opts;
+        }
+        
+        // Qubits
+        if ((arg == "-n" || arg == "--qubits") && i + 1 < argc) {
+            opts.num_qubits = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // Depth
+        if ((arg == "-d" || arg == "--depth") && i + 1 < argc) {
+            opts.depth = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // Batch size
+        if ((arg == "-b" || arg == "--batch") && i + 1 < argc) {
+            opts.batch_size = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // Truncation threshold
+        if ((arg == "-t" || arg == "--threshold") && i + 1 < argc) {
+            opts.truncation_threshold = std::stod(argv[++i]);
+            continue;
+        }
+        
+        // Noise probability
+        if (arg == "--noise" && i + 1 < argc) {
+            opts.noise_prob = std::stod(argv[++i]);
+            continue;
+        }
+        
+        // Parallel mode
+        if (arg == "--mode" && i + 1 < argc) {
+            opts.parallel_mode = string_to_parallel_mode(argv[++i]);
+            continue;
+        }
+        
+        // FDM enable
+        if (arg == "--fdm") {
+            opts.enable_fdm = true;
+            continue;
+        }
+        
+        // FDM threshold
+        if (arg == "--fdm-threshold" && i + 1 < argc) {
+            opts.fdm_threshold = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // Output file
+        if ((arg == "-o" || arg == "--output") && i + 1 < argc) {
+            opts.output_file = argv[++i];
+            continue;
+        }
+        
+        // Verbose
+        if (arg == "-v" || arg == "--verbose") {
+            opts.verbose = true;
+            continue;
+        }
+        
+        // Thread count
+        if (arg == "--threads" && i + 1 < argc) {
+            opts.num_threads = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // Unknown option
+        std::cerr << "Warning: Unknown option '" << arg << "'\n";
+    }
+    
+    return opts;
+}
+
+bool validate_options(const CLIOptions& opts, std::string& error_msg) {
+    if (opts.num_qubits < 1 || opts.num_qubits > 20) {
+        error_msg = "Qubits must be between 1 and 20";
+        return false;
+    }
+    
+    if (opts.depth < 1) {
+        error_msg = "Depth must be at least 1";
+        return false;
+    }
+    
+    if (opts.noise_prob < 0.0 || opts.noise_prob > 1.0) {
+        error_msg = "Noise probability must be between 0 and 1";
+        return false;
+    }
+    
+    if (opts.truncation_threshold <= 0.0) {
+        error_msg = "Truncation threshold must be positive";
+        return false;
+    }
+    
+    return true;
+}
+
+}  // namespace qlret

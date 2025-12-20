@@ -31,6 +31,18 @@ make -j$(nproc)  # Or cmake --build .
 
 This produces `./quantum_sim` (main benchmark) and `./demo_batch` (batch heuristic tester).
 
+### Using Docker (Alternative)
+A pre-built Docker image is available on Docker Hub for easy setup without manual compilation.
+
+#### Pull and Run the Docker Image
+```bash
+cd lret-
+mkdir build
+docker run --rm -v $HOME/lret-:/app ajs911/lret777:latest
+```
+
+This mounts your local `lret-` directory to `/app` inside the container and runs the simulation. The `--rm` flag automatically removes the container after execution.
+
 ### Run
 Execute the benchmark for n=11 qubits, depth=13:
 ```bash

@@ -299,6 +299,50 @@ double compute_entropy(const MatrixXcd& L) {
     return entropy;
 }
 
+double compute_variational_distance(const MatrixXcd& rho1, const MatrixXcd& rho2) {
+    // Sum of absolute differences of diagonal elements
+    double dist = 0.0;
+    for (size_t i = 0; i < static_cast<size_t>(rho1.rows()); ++i) {
+        dist += std::abs(rho1(i, i).real() - rho2(i, i).real());
+    }
+    return dist;
+}
+
+double compute_variational_distance_L(const MatrixXcd& L1, const MatrixXcd& L2) {
+    MatrixXcd rho1 = L1 * L1.adjoint();
+    MatrixXcd rho2 = L2 * L2.adjoint();
+    return compute_variational_distance(rho1, rho2);
+}
+
+double compute_frobenius_distance_rho(const MatrixXcd& rho1, const MatrixXcd& rho2) {
+    return (rho1 - rho2).norm();
+}
+
+double compute_trace_distance_rho(const MatrixXcd& rho1, const MatrixXcd& rho2) {
+    MatrixXcd diff = rho1 - rho2;
+    Eigen::SelfAdjointEigenSolver<MatrixXcd> solver(diff);
+    VectorXd eigenvalues = solver.eigenvalues().real();
+    
+    double trace_dist = 0.0;
+    for (int i = 0; i < eigenvalues.size(); ++i) {
+        trace_dist += std::abs(eigenvalues(i));
+    }
+    return 0.5 * trace_dist;
+}
+
+double compute_fidelity_rho(const MatrixXcd& rho1, const MatrixXcd& rho2) {
+    // F = (Tr[sqrt(sqrt(rho1) * rho2 * sqrt(rho1))])^2
+    Eigen::SelfAdjointEigenSolver<MatrixXcd> solver1(rho1);
+    MatrixXcd sqrt_rho1 = solver1.operatorSqrt();
+    
+    MatrixXcd inner = sqrt_rho1 * rho2 * sqrt_rho1;
+    Eigen::SelfAdjointEigenSolver<MatrixXcd> solver2(inner);
+    MatrixXcd sqrt_inner = solver2.operatorSqrt();
+    
+    double trace = sqrt_inner.trace().real();
+    return trace * trace;
+}
+
 //==============================================================================
 // Visualization
 //==============================================================================

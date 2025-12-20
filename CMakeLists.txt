@@ -31,6 +31,10 @@ set(LIB_SOURCES
     src/gates_and_noise.cpp
     src/simulator.cpp
     src/utils.cpp
+    src/cli_parser.cpp
+    src/output_formatter.cpp
+    src/parallel_modes.cpp
+    src/fdm_simulator.cpp
 )
 
 # Create static library

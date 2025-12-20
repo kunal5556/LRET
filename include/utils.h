@@ -114,6 +114,32 @@ double compute_purity(const MatrixXcd& L);
  */
 double compute_entropy(const MatrixXcd& L);
 
+/**
+ * @brief Compute variational distance (distortion)
+ * Sum of absolute differences of diagonal elements
+ */
+double compute_variational_distance(const MatrixXcd& rho1, const MatrixXcd& rho2);
+
+/**
+ * @brief Compute variational distance from L factors
+ */
+double compute_variational_distance_L(const MatrixXcd& L1, const MatrixXcd& L2);
+
+/**
+ * @brief Compute Frobenius distance between density matrices
+ */
+double compute_frobenius_distance_rho(const MatrixXcd& rho1, const MatrixXcd& rho2);
+
+/**
+ * @brief Compute trace distance between density matrices
+ */
+double compute_trace_distance_rho(const MatrixXcd& rho1, const MatrixXcd& rho2);
+
+/**
+ * @brief Compute fidelity from density matrices
+ */
+double compute_fidelity_rho(const MatrixXcd& rho1, const MatrixXcd& rho2);
+
 //==============================================================================
 // Visualization
 //==============================================================================
