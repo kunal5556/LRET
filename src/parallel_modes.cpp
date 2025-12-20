@@ -72,16 +72,14 @@ MatrixXcd apply_gate_sequential(const MatrixXcd& L, const GateOp& gate, size_t n
 
 // Row-parallel gate application
 MatrixXcd apply_gate_row_parallel(const MatrixXcd& L, const GateOp& gate, size_t num_qubits) {
-    MatrixXcd U = get_single_qubit_gate(gate.type, gate.params);
-    if (gate.qubits.size() == 2) {
-        U = get_two_qubit_gate(gate.type, gate.params);
-    }
-    
-    // Expand to full space
     MatrixXcd U_full;
+    
+    // Get appropriate gate matrix and expand to full space
     if (gate.qubits.size() == 1) {
+        MatrixXcd U = get_single_qubit_gate(gate.type, gate.params);
         U_full = expand_single_gate(U, gate.qubits[0], num_qubits);
     } else {
+        MatrixXcd U = get_two_qubit_gate(gate.type, gate.params);
         U_full = expand_two_qubit_gate(U, gate.qubits[0], gate.qubits[1], num_qubits);
     }
     
@@ -108,15 +106,14 @@ MatrixXcd apply_gate_row_parallel(const MatrixXcd& L, const GateOp& gate, size_t
 
 // Column-parallel gate application
 MatrixXcd apply_gate_column_parallel(const MatrixXcd& L, const GateOp& gate, size_t num_qubits) {
-    MatrixXcd U = get_single_qubit_gate(gate.type, gate.params);
-    if (gate.qubits.size() == 2) {
-        U = get_two_qubit_gate(gate.type, gate.params);
-    }
-    
     MatrixXcd U_full;
+    
+    // Get appropriate gate matrix and expand to full space
     if (gate.qubits.size() == 1) {
+        MatrixXcd U = get_single_qubit_gate(gate.type, gate.params);
         U_full = expand_single_gate(U, gate.qubits[0], num_qubits);
     } else {
+        MatrixXcd U = get_two_qubit_gate(gate.type, gate.params);
         U_full = expand_two_qubit_gate(U, gate.qubits[0], gate.qubits[1], num_qubits);
     }
     
