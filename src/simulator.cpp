@@ -278,61 +278,6 @@ MatrixXcd run_simulation_naive(
 }
 
 //==============================================================================
-// Batch Size Heuristics (Auto-Tuned Parallelism)
-//==============================================================================
-
-/**
- * Automatically select optimal batch size based on problem size.
- * Uses heuristics based on number of qubits and available cores.
- * 
- * Workload classes:
- * - n <= 10: low-workload (batch_size=32 base)
- * - n <= 14: medium-workload (batch_size=64 base)  
- * - n > 14:  high-workload (batch_size=128 base)
- * 
- * Scales with available threads, capped at 256.
- */
-size_t auto_select_batch_size(size_t num_qubits) {
-    unsigned int num_threads = 1;
-#ifdef USE_OPENMP
-    num_threads = omp_get_max_threads();
-#else
-    num_threads = std::thread::hardware_concurrency();
-    if (num_threads == 0) num_threads = 4;
-#endif
-    
-    size_t base_batch;
-    
-    if (num_qubits <= 10) {
-        // Low workload: smaller batches are fine
-        base_batch = 32;
-    } else if (num_qubits <= 14) {
-        // Medium workload (n=11 default benchmark)
-        base_batch = 64;
-    } else {
-        // High workload: larger batches to amortize OpenMP overhead
-        base_batch = 128;
-    }
-    
-    // Scale with available threads (base assumes 4 threads)
-    size_t scaled_batch = base_batch * (num_threads / 4);
-    scaled_batch = std::max(scaled_batch, static_cast<size_t>(32));
-    scaled_batch = std::min(scaled_batch, static_cast<size_t>(256));
-    
-    return scaled_batch;
-}
-
-/**
- * Get workload classification for logging/diagnostics.
- * Matches README sample output format.
- */
-std::string get_workload_class(size_t num_qubits) {
-    if (num_qubits <= 10) return "low-workload";
-    if (num_qubits <= 14) return "low-workload";  // n=11 is "low-workload" per README
-    return "high-workload";
-}
-
-//==============================================================================
 // Density Matrix Operations (for validation/metrics)
 //==============================================================================
 
