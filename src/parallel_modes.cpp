@@ -229,7 +229,9 @@ inline MatrixXcd apply_fused_single_gate(const MatrixXcd& L, const MatrixXcd& U,
     size_t step = 1ULL << target;
     
     // Use OpenMP only for large problems - base function already has this
+#ifdef _OPENMP
     #pragma omp parallel for schedule(dynamic) if(dim > 256)
+#endif
     for (size_t block = 0; block < dim; block += 2 * step) {
         for (size_t i = block; i < block + step && i < dim; ++i) {
             size_t i0 = i;
@@ -274,7 +276,9 @@ MatrixXcd apply_two_qubit_gate_parallel(const MatrixXcd& L, const MatrixXcd& U,
     
     size_t num_valid = base_indices.size();
     
+#ifdef _OPENMP
     #pragma omp parallel for schedule(dynamic) if(dim > 256)
+#endif
     for (size_t vi = 0; vi < num_valid; ++vi) {
         size_t base = base_indices[vi];
         
