@@ -486,11 +486,6 @@ MatrixXcd run_row_parallel(
             if (!gate_buffer.empty()) {
                 auto fused = fuse_single_qubit_gates(gate_buffer);
                 for (const auto& fg : fused) {
-                    // Create a temporary GateOp to use the base optimized function
-                    GateOp temp_gate;
-                    temp_gate.qubits = fg.qubits;
-                    temp_gate.type = GateType::H;  // Type doesn't matter, we override matrix
-                    
                     if (fg.qubits.size() == 1) {
                         // Use pre-computed fused matrix with base function structure
                         L = parallel_ops::apply_fused_single_gate(L, fg.matrix, fg.qubits[0], num_qubits);
