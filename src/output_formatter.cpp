@@ -42,6 +42,16 @@ void print_standard_output(
     std::cout << "  Final Rank:  " << result.final_rank << "\n";
     std::cout << "  Final Trace: " << std::setprecision(5) << result.trace_value << "\n";
     
+    // Show speedup if computed (for non-sequential modes)
+    if (result.speedup != 1.0 && result.mode != ParallelMode::SEQUENTIAL) {
+        std::cout << "  Speedup:     " << std::setprecision(2) << result.speedup 
+                  << "x vs sequential\n";
+        if (result.distortion > 0) {
+            std::cout << "  Distortion:  " << std::scientific << std::setprecision(2) 
+                      << result.distortion << " (vs sequential)\n";
+        }
+    }
+    
     // Metrics vs initial state
     std::cout << "\nMetrics (vs initial state):\n";
     std::cout << "  Fidelity:              " << std::setprecision(6) << metrics.fidelity << "\n";
@@ -108,11 +118,11 @@ void print_comparison_output(
     auto fastest = std::min_element(results.begin(), results.end(),
         [](const auto& a, const auto& b) { return a.time_seconds < b.time_seconds; });
     
-    // Print comparison table
+    // Print comparison table with metrics
     std::cout << "\nPerformance Results:\n";
-    std::cout << "+--------------+------------+------------+------------+\n";
-    std::cout << "| Strategy     | Time (s)   | Speedup    | Final Rank |\n";
-    std::cout << "+--------------+------------+------------+------------+\n";
+    std::cout << "+--------------+------------+------------+------------+------------+-------------+\n";
+    std::cout << "| Strategy     | Time (s)   | Speedup    | Final Rank | Fidelity   | Distortion  |\n";
+    std::cout << "+--------------+------------+------------+------------+------------+-------------+\n";
     
     for (const auto& r : results) {
         double speedup = seq_time / r.time_seconds;
@@ -120,9 +130,18 @@ void print_comparison_output(
                   << " | " << std::right << std::fixed << std::setprecision(4) 
                   << std::setw(10) << r.time_seconds
                   << " | " << std::setw(9) << std::setprecision(2) << speedup << "x"
-                  << " | " << std::setw(10) << r.final_rank << " |\n";
+                  << " | " << std::setw(10) << r.final_rank;
+        
+        // Show fidelity and distortion vs sequential baseline
+        if (r.mode == ParallelMode::SEQUENTIAL) {
+            std::cout << " | " << std::setw(10) << "1.000000" 
+                      << " | " << std::setw(11) << "0.000e+00" << " |\n";
+        } else {
+            std::cout << " | " << std::setw(10) << std::fixed << std::setprecision(6) << r.fidelity
+                      << " | " << std::setw(11) << std::scientific << std::setprecision(3) << r.distortion << " |\n";
+        }
     }
-    std::cout << "+--------------+------------+------------+------------+\n";
+    std::cout << "+--------------+------------+------------+------------+------------+-------------+\n";
     
     std::cout << "\nWinner: " << fastest->mode_name() 
               << " (" << std::fixed << std::setprecision(2) 

@@ -11,8 +11,14 @@
  * Key optimizations:
  * 1. Gate Fusion: Combine consecutive single-qubit gates on same target
  * 2. Layer Parallelism: Apply non-overlapping gates simultaneously
- * 3. In-place operations: Avoid unnecessary matrix copies
- * 4. Cache-aware scheduling: Better memory access patterns
+ * 3. OpenMP Threshold: Skip parallelization for small problems (overhead > benefit)
+ * 4. Pre-computed indices: O(2^n) not O(4^n) for two-qubit gates
+ * 5. Cache-aware scheduling: Better memory access patterns
+ * 
+ * Performance notes:
+ * - For n<8 (dim<256): Sequential is faster due to OpenMP overhead
+ * - For n>12: Memory bandwidth becomes bottleneck, need cache-aware access
+ * - Row parallelism dominates when rank << 2^n (typical LRET)
  */
 
 #include "parallel_modes.h"
@@ -23,12 +29,24 @@
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
+#include <algorithm>
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
 namespace qlret {
+
+//==============================================================================
+// Configuration Constants
+//==============================================================================
+
+// Minimum dimension for OpenMP parallelization to be beneficial
+// For smaller problems, OpenMP overhead (~10-50μs) exceeds computation time
+constexpr size_t MIN_DIM_FOR_OPENMP = 256;  // 2^8, so n >= 8 qubits
+
+// Minimum rank for column parallelism to be beneficial
+constexpr size_t MIN_RANK_FOR_COL_PARALLEL = 4;
 
 //==============================================================================
 // Batch Size and Mode Selection Heuristics
@@ -207,9 +225,11 @@ MatrixXcd apply_fused_single_gate(const MatrixXcd& L, const MatrixXcd& U,
     size_t step = 1ULL << target;
     size_t num_blocks = dim / (2 * step);
     
-    // Aggressive parallelization over blocks
+    // Only parallelize if problem is large enough to amortize OpenMP overhead
+    const bool use_parallel = (dim >= MIN_DIM_FOR_OPENMP);
+    
 #ifdef _OPENMP
-    #pragma omp parallel for schedule(dynamic, 16)
+    #pragma omp parallel for schedule(static) if(use_parallel)
 #endif
     for (size_t block = 0; block < num_blocks; ++block) {
         size_t block_start = block * (2 * step);
@@ -231,12 +251,13 @@ MatrixXcd apply_fused_single_gate(const MatrixXcd& L, const MatrixXcd& U,
     return result;
 }
 
-// Apply two-qubit gate with aggressive parallelization
+// Apply two-qubit gate with parallelization
+// FIX: Pre-compute base indices BEFORE parallel loop to avoid O(4^n) complexity
 MatrixXcd apply_two_qubit_gate_parallel(const MatrixXcd& L, const MatrixXcd& U,
                                          size_t q1, size_t q2, size_t num_qubits) {
     size_t dim = L.rows();
     size_t rank = L.cols();
-    MatrixXcd result = L;
+    MatrixXcd result(dim, rank);
     
     size_t qmin = std::min(q1, q2);
     size_t qmax = std::max(q1, q2);
@@ -245,40 +266,27 @@ MatrixXcd apply_two_qubit_gate_parallel(const MatrixXcd& L, const MatrixXcd& U,
     size_t step_min = 1ULL << qmin;
     size_t step_max = 1ULL << qmax;
     
-    // Pre-compute valid base indices for better parallelization
-    size_t num_valid = dim / 4;  // Each base covers 4 indices
+    // Pre-compute ALL valid base indices BEFORE parallel loop
+    // This is O(dim) done ONCE, not O(dim) per parallel iteration
+    // Previous bug: O(dim) loop inside O(dim/4) parallel loop = O(4^n) total!
+    std::vector<size_t> base_indices;
+    base_indices.reserve(dim / 4);
+    for (size_t b = 0; b < dim; ++b) {
+        if ((b & step_min) == 0 && (b & step_max) == 0) {
+            base_indices.push_back(b);
+        }
+    }
+    
+    size_t num_valid = base_indices.size();
+    
+    // Only parallelize if problem is large enough to amortize OpenMP overhead
+    const bool use_parallel = (dim >= MIN_DIM_FOR_OPENMP);
     
 #ifdef _OPENMP
-    #pragma omp parallel for schedule(dynamic, 32)
+    #pragma omp parallel for schedule(static) if(use_parallel)
 #endif
     for (size_t vi = 0; vi < num_valid; ++vi) {
-        // Convert linear index to valid base index
-        // Skip indices where either qubit bit is set
-        size_t base = 0;
-        size_t remaining = vi;
-        size_t bit_pos = 0;
-        
-        for (size_t b = 0; b < num_qubits && remaining > 0; ++b) {
-            if (b != qmin && b != qmax) {
-                if (remaining & 1) {
-                    base |= (1ULL << b);
-                }
-                remaining >>= 1;
-            }
-        }
-        
-        // Re-derive from linear index (simpler approach)
-        base = 0;
-        size_t count = 0;
-        for (size_t b = 0; b < dim && count <= vi; ++b) {
-            if ((b & step_min) == 0 && (b & step_max) == 0) {
-                if (count == vi) {
-                    base = b;
-                    break;
-                }
-                count++;
-            }
-        }
+        size_t base = base_indices[vi];  // O(1) lookup instead of O(dim) search
         
         size_t idx[4];
         idx[0] = base;
@@ -698,6 +706,45 @@ std::vector<ModeResult> run_all_modes_comparison(
         
         std::cout << " done (" << std::fixed << std::setprecision(4) 
                   << result.time_seconds << "s)\n";
+    }
+    
+    // Compute metrics for each mode vs sequential baseline
+    if (!results.empty() && results[0].mode == ParallelMode::SEQUENTIAL) {
+        const MatrixXcd& L_seq = results[0].L_final;
+        double seq_time = results[0].time_seconds;
+        double seq_norm = L_seq.norm();
+        
+        for (auto& r : results) {
+            r.speedup = seq_time / r.time_seconds;
+            
+            if (r.mode == ParallelMode::SEQUENTIAL) {
+                r.fidelity = 1.0;
+                r.trace_distance = 0.0;
+                r.frobenius_distance = 0.0;
+                r.distortion = 0.0;
+            } else {
+                // Compute fidelity: Tr(L_seq† L_this)^2 / (Tr(L_seq† L_seq) * Tr(L_this† L_this))
+                MatrixXcd rho_seq = L_seq * L_seq.adjoint();
+                MatrixXcd rho_this = r.L_final * r.L_final.adjoint();
+                
+                // Simple fidelity approximation for comparison
+                Complex overlap = (rho_seq.adjoint() * rho_this).trace();
+                double tr_seq = std::real(rho_seq.trace() * rho_seq.trace());
+                double tr_this = std::real(rho_this.trace() * rho_this.trace());
+                double denom = std::sqrt(tr_seq * tr_this);
+                r.fidelity = (denom > 1e-15) ? std::abs(overlap) / denom : 0.0;
+                
+                // Trace distance: 0.5 * ||rho_seq - rho_this||_1
+                MatrixXcd diff = rho_seq - rho_this;
+                r.trace_distance = 0.5 * diff.norm();  // Approximation using Frobenius
+                
+                // Frobenius distance
+                r.frobenius_distance = (L_seq - r.L_final).norm();
+                
+                // Distortion: ||L_this - L_seq||_F / ||L_seq||_F
+                r.distortion = (seq_norm > 1e-15) ? r.frobenius_distance / seq_norm : 0.0;
+            }
+        }
     }
     
     return results;

@@ -136,6 +136,20 @@ int main(int argc, char* argv[]) {
             auto result = run_with_mode(L_init, sequence, opts.num_qubits, 
                                         mode, config, batch_size);
             
+            // If not sequential, run a quick sequential baseline for speedup comparison
+            if (mode != ParallelMode::SEQUENTIAL) {
+                std::cout << "Running sequential baseline for speedup comparison...\n";
+                auto seq_result = run_with_mode(L_init, sequence, opts.num_qubits, 
+                                                ParallelMode::SEQUENTIAL, config, batch_size);
+                result.speedup = seq_result.time_seconds / result.time_seconds;
+                
+                // Compute distortion vs sequential
+                double seq_norm = seq_result.L_final.norm();
+                if (seq_norm > 1e-15) {
+                    result.distortion = (result.L_final - seq_result.L_final).norm() / seq_norm;
+                }
+            }
+            
             // Compute metrics vs initial state
             MetricsResult metrics{
                 compute_fidelity(L_init, result.L_final),

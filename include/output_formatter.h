@@ -16,6 +16,13 @@ struct ModeResult {
     size_t final_rank;
     double trace_value;
     
+    // Metrics for comparison (computed vs sequential baseline)
+    double speedup = 1.0;           // time_sequential / time_this
+    double fidelity = 0.0;          // vs sequential result
+    double trace_distance = 0.0;
+    double frobenius_distance = 0.0;
+    double distortion = 0.0;        // ||L_this - L_seq||_F / ||L_seq||_F
+    
     std::string mode_name() const { return parallel_mode_to_string(mode); }
 };
 
