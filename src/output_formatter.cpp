@@ -120,28 +120,32 @@ void print_comparison_output(
     
     // Print comparison table with metrics
     std::cout << "\nPerformance Results:\n";
-    std::cout << "+--------------+------------+------------+------------+------------+-------------+\n";
-    std::cout << "| Strategy     | Time (s)   | Speedup    | Final Rank | Fidelity   | Distortion  |\n";
-    std::cout << "+--------------+------------+------------+------------+------------+-------------+\n";
+    std::cout << "+--------------+------------+----------+------+------------+-------------+-------------+-------------+\n";
+    std::cout << "| Strategy     | Time (s)   | Speedup  | Rank | Fidelity   | Trace Dist  | Frobenius   | Distortion  |\n";
+    std::cout << "+--------------+------------+----------+------+------------+-------------+-------------+-------------+\n";
     
     for (const auto& r : results) {
         double speedup = seq_time / r.time_seconds;
         std::cout << "| " << std::left << std::setw(12) << r.mode_name()
                   << " | " << std::right << std::fixed << std::setprecision(4) 
                   << std::setw(10) << r.time_seconds
-                  << " | " << std::setw(9) << std::setprecision(2) << speedup << "x"
-                  << " | " << std::setw(10) << r.final_rank;
+                  << " | " << std::setw(7) << std::setprecision(2) << speedup << "x"
+                  << " | " << std::setw(4) << r.final_rank;
         
-        // Show fidelity and distortion vs sequential baseline
+        // Show metrics vs sequential baseline
         if (r.mode == ParallelMode::SEQUENTIAL) {
             std::cout << " | " << std::setw(10) << "1.000000" 
+                      << " | " << std::setw(11) << "0.000e+00"
+                      << " | " << std::setw(11) << "0.000e+00"
                       << " | " << std::setw(11) << "0.000e+00" << " |\n";
         } else {
             std::cout << " | " << std::setw(10) << std::fixed << std::setprecision(6) << r.fidelity
+                      << " | " << std::setw(11) << std::scientific << std::setprecision(3) << r.trace_distance
+                      << " | " << std::setw(11) << std::scientific << std::setprecision(3) << r.frobenius_distance
                       << " | " << std::setw(11) << std::scientific << std::setprecision(3) << r.distortion << " |\n";
         }
     }
-    std::cout << "+--------------+------------+------------+------------+------------+-------------+\n";
+    std::cout << "+--------------+------------+----------+------+------------+-------------+-------------+-------------+\n";
     
     std::cout << "\nWinner: " << fastest->mode_name() 
               << " (" << std::fixed << std::setprecision(2) 

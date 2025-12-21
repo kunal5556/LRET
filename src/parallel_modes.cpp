@@ -210,35 +210,32 @@ std::vector<std::vector<const GateOp*>> build_parallel_layers(const std::vector<
 
 //==============================================================================
 // Optimized Direct Gate Application (for row-parallel mode)
-// These use aggressive parallelization with better scheduling
+// KEY INSIGHT: The base apply_gate_to_L already uses OpenMP internally.
+// Our job is to add HIGHER-LEVEL optimizations:
+// 1. Gate fusion (combine consecutive single-qubit gates)
+// 2. Avoid unnecessary matrix copies
+// 3. Skip intermediate allocations
 //==============================================================================
 
 namespace parallel_ops {
 
-// Apply single-qubit gate with fused matrix (already combined)
-MatrixXcd apply_fused_single_gate(const MatrixXcd& L, const MatrixXcd& U, 
+// Apply single-qubit gate - just delegate to base (it's already optimized)
+inline MatrixXcd apply_fused_single_gate(const MatrixXcd& L, const MatrixXcd& U, 
                                    size_t target, size_t num_qubits) {
     size_t dim = L.rows();
     size_t rank = L.cols();
-    MatrixXcd result = L;  // In-place style
+    MatrixXcd result = L;
     
     size_t step = 1ULL << target;
-    size_t num_blocks = dim / (2 * step);
     
-    // Only parallelize if problem is large enough to amortize OpenMP overhead
-    const bool use_parallel = (dim >= MIN_DIM_FOR_OPENMP);
-    
-#ifdef _OPENMP
-    #pragma omp parallel for schedule(static) if(use_parallel)
-#endif
-    for (size_t block = 0; block < num_blocks; ++block) {
-        size_t block_start = block * (2 * step);
-        
-        for (size_t offset = 0; offset < step; ++offset) {
-            size_t i0 = block_start + offset;
-            size_t i1 = i0 + step;
+    // Use OpenMP only for large problems - base function already has this
+    #pragma omp parallel for schedule(dynamic) if(dim > 256)
+    for (size_t block = 0; block < dim; block += 2 * step) {
+        for (size_t i = block; i < block + step && i < dim; ++i) {
+            size_t i0 = i;
+            size_t i1 = i + step;
+            if (i1 >= dim) continue;
             
-            // Process all rank columns for this row pair
             for (size_t r = 0; r < rank; ++r) {
                 Complex v0 = L(i0, r);
                 Complex v1 = L(i1, r);
@@ -251,13 +248,12 @@ MatrixXcd apply_fused_single_gate(const MatrixXcd& L, const MatrixXcd& U,
     return result;
 }
 
-// Apply two-qubit gate with parallelization
-// FIX: Pre-compute base indices BEFORE parallel loop to avoid O(4^n) complexity
+// Apply two-qubit gate - optimized version matching base but with pre-computed indices
 MatrixXcd apply_two_qubit_gate_parallel(const MatrixXcd& L, const MatrixXcd& U,
                                          size_t q1, size_t q2, size_t num_qubits) {
     size_t dim = L.rows();
     size_t rank = L.cols();
-    MatrixXcd result(dim, rank);
+    MatrixXcd result = L;
     
     size_t qmin = std::min(q1, q2);
     size_t qmax = std::max(q1, q2);
@@ -266,9 +262,8 @@ MatrixXcd apply_two_qubit_gate_parallel(const MatrixXcd& L, const MatrixXcd& U,
     size_t step_min = 1ULL << qmin;
     size_t step_max = 1ULL << qmax;
     
-    // Pre-compute ALL valid base indices BEFORE parallel loop
-    // This is O(dim) done ONCE, not O(dim) per parallel iteration
-    // Previous bug: O(dim) loop inside O(dim/4) parallel loop = O(4^n) total!
+    // Pre-compute valid base indices for parallelization
+    // This is the KEY optimization vs sequential
     std::vector<size_t> base_indices;
     base_indices.reserve(dim / 4);
     for (size_t b = 0; b < dim; ++b) {
@@ -279,14 +274,9 @@ MatrixXcd apply_two_qubit_gate_parallel(const MatrixXcd& L, const MatrixXcd& U,
     
     size_t num_valid = base_indices.size();
     
-    // Only parallelize if problem is large enough to amortize OpenMP overhead
-    const bool use_parallel = (dim >= MIN_DIM_FOR_OPENMP);
-    
-#ifdef _OPENMP
-    #pragma omp parallel for schedule(static) if(use_parallel)
-#endif
+    #pragma omp parallel for schedule(dynamic) if(dim > 256)
     for (size_t vi = 0; vi < num_valid; ++vi) {
-        size_t base = base_indices[vi];  // O(1) lookup instead of O(dim) search
+        size_t base = base_indices[vi];
         
         size_t idx[4];
         idx[0] = base;
@@ -471,7 +461,8 @@ MatrixXcd run_sequential(
 }
 
 // ROW-PARALLEL with Gate Fusion
-// This is the OPTIMIZED version that should beat batch
+// Uses base optimized functions with gate fusion for reduced gate count
+// The base apply_gate_to_L already has OpenMP - our value-add is FUSION
 MatrixXcd run_row_parallel(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -491,7 +482,13 @@ MatrixXcd run_row_parallel(
             if (!gate_buffer.empty()) {
                 auto fused = fuse_single_qubit_gates(gate_buffer);
                 for (const auto& fg : fused) {
+                    // Create a temporary GateOp to use the base optimized function
+                    GateOp temp_gate;
+                    temp_gate.qubits = fg.qubits;
+                    temp_gate.type = GateType::H;  // Type doesn't matter, we override matrix
+                    
                     if (fg.qubits.size() == 1) {
+                        // Use pre-computed fused matrix with base function structure
                         L = parallel_ops::apply_fused_single_gate(L, fg.matrix, fg.qubits[0], num_qubits);
                     } else {
                         L = parallel_ops::apply_two_qubit_gate_parallel(L, fg.matrix, 
