@@ -210,16 +210,20 @@ std::vector<std::vector<const GateOp*>> build_parallel_layers(const std::vector<
 
 //==============================================================================
 // Optimized Direct Gate Application (for row-parallel mode)
-// KEY INSIGHT: The base apply_gate_to_L already uses OpenMP internally.
-// Our job is to add HIGHER-LEVEL optimizations:
-// 1. Gate fusion (combine consecutive single-qubit gates)
-// 2. Avoid unnecessary matrix copies
-// 3. Skip intermediate allocations
+// KEY INSIGHT: For low-rank LRET (rank=1 typical), the base functions are optimal.
+// Parallelization only helps when:
+// 1. rank > num_threads (column parallel)
+// 2. dim >> 4096 AND rank > 4 (row parallel)
+// 
+// For most LRET cases, BATCH/SEQUENTIAL is optimal because:
+// - Memory allocation overhead exceeds computation
+// - OpenMP thread synchronization overhead exceeds work
 //==============================================================================
 
 namespace parallel_ops {
 
-// Apply single-qubit gate - just delegate to base (it's already optimized)
+// Apply single-qubit gate - MINIMAL overhead version
+// No vector allocations, no dynamic scheduling
 inline MatrixXcd apply_fused_single_gate(const MatrixXcd& L, const MatrixXcd& U, 
                                    size_t target, size_t num_qubits) {
     size_t dim = L.rows();
@@ -228,9 +232,11 @@ inline MatrixXcd apply_fused_single_gate(const MatrixXcd& L, const MatrixXcd& U,
     
     size_t step = 1ULL << target;
     
-    // Use OpenMP only for large problems - base function already has this
+    // Only use OpenMP for LARGE problems with enough work per thread
+    // dim > 4096 means n >= 12 qubits
+    // rank > 2 means there's meaningful work to parallelize
 #ifdef _OPENMP
-    #pragma omp parallel for schedule(dynamic) if(dim > 256)
+    #pragma omp parallel for schedule(static) if(dim > 4096 && rank > 2)
 #endif
     for (size_t block = 0; block < dim; block += 2 * step) {
         for (size_t i = block; i < block + step && i < dim; ++i) {
@@ -250,7 +256,8 @@ inline MatrixXcd apply_fused_single_gate(const MatrixXcd& L, const MatrixXcd& U,
     return result;
 }
 
-// Apply two-qubit gate - optimized version matching base but with pre-computed indices
+// Apply two-qubit gate - NO vector allocation version
+// Uses direct iteration instead of pre-computed indices
 MatrixXcd apply_two_qubit_gate_parallel(const MatrixXcd& L, const MatrixXcd& U,
                                          size_t q1, size_t q2, size_t num_qubits) {
     size_t dim = L.rows();
@@ -264,23 +271,14 @@ MatrixXcd apply_two_qubit_gate_parallel(const MatrixXcd& L, const MatrixXcd& U,
     size_t step_min = 1ULL << qmin;
     size_t step_max = 1ULL << qmax;
     
-    // Pre-compute valid base indices for parallelization
-    // This is the KEY optimization vs sequential
-    std::vector<size_t> base_indices;
-    base_indices.reserve(dim / 4);
-    for (size_t b = 0; b < dim; ++b) {
-        if ((b & step_min) == 0 && (b & step_max) == 0) {
-            base_indices.push_back(b);
-        }
-    }
-    
-    size_t num_valid = base_indices.size();
-    
+    // Direct iteration - no vector allocation needed
+    // Only parallelize for large problems with meaningful rank
 #ifdef _OPENMP
-    #pragma omp parallel for schedule(dynamic) if(dim > 256)
+    #pragma omp parallel for schedule(static) if(dim > 4096 && rank > 2)
 #endif
-    for (size_t vi = 0; vi < num_valid; ++vi) {
-        size_t base = base_indices[vi];
+    for (size_t base = 0; base < dim; ++base) {
+        // Skip if either qubit bit is set
+        if ((base & step_min) != 0 || (base & step_max) != 0) continue;
         
         size_t idx[4];
         idx[0] = base;
@@ -464,9 +462,9 @@ MatrixXcd run_sequential(
     return L;
 }
 
-// ROW-PARALLEL with Gate Fusion
-// Uses base optimized functions with gate fusion for reduced gate count
-// The base apply_gate_to_L already has OpenMP - our value-add is FUSION
+// ROW-PARALLEL mode
+// For low rank (typical LRET), just use the base optimized functions
+// Gate fusion only helps when there are consecutive gates on same qubit
 MatrixXcd run_row_parallel(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -475,46 +473,19 @@ MatrixXcd run_row_parallel(
 ) {
     MatrixXcd L = L_init;
     
-    // Collect gates between noise operations for fusion
-    std::vector<GateOp> gate_buffer;
-    
+    // For efficiency, just apply gates directly using the base functions
+    // which are already OpenMP-optimized
     for (const auto& op : sequence.operations) {
         if (std::holds_alternative<GateOp>(op)) {
-            gate_buffer.push_back(std::get<GateOp>(op));
+            const auto& gate = std::get<GateOp>(op);
+            // Use apply_gate_to_L which is already optimized
+            L = apply_gate_to_L(L, gate, num_qubits);
         } else {
-            // Apply fused gates before noise
-            if (!gate_buffer.empty()) {
-                auto fused = fuse_single_qubit_gates(gate_buffer);
-                for (const auto& fg : fused) {
-                    if (fg.qubits.size() == 1) {
-                        // Use pre-computed fused matrix with base function structure
-                        L = parallel_ops::apply_fused_single_gate(L, fg.matrix, fg.qubits[0], num_qubits);
-                    } else {
-                        L = parallel_ops::apply_two_qubit_gate_parallel(L, fg.matrix, 
-                                                                         fg.qubits[0], fg.qubits[1], num_qubits);
-                    }
-                }
-                gate_buffer.clear();
-            }
-            
             const auto& noise = std::get<NoiseOp>(op);
             L = apply_noise_to_L(L, noise, num_qubits);
             
             if (config.do_truncation && L.cols() > 1) {
                 L = truncate_L(L, config.truncation_threshold);
-            }
-        }
-    }
-    
-    // Apply remaining fused gates
-    if (!gate_buffer.empty()) {
-        auto fused = fuse_single_qubit_gates(gate_buffer);
-        for (const auto& fg : fused) {
-            if (fg.qubits.size() == 1) {
-                L = parallel_ops::apply_fused_single_gate(L, fg.matrix, fg.qubits[0], num_qubits);
-            } else {
-                L = parallel_ops::apply_two_qubit_gate_parallel(L, fg.matrix, 
-                                                                 fg.qubits[0], fg.qubits[1], num_qubits);
             }
         }
     }
@@ -561,8 +532,8 @@ MatrixXcd run_batch_parallel(
     );
 }
 
-// HYBRID: Layer-parallel + Gate Fusion
-// This should be the FASTEST for deep circuits
+// HYBRID: Same as batch but uses the optimized simulator directly
+// This is actually the best mode for most cases
 MatrixXcd run_hybrid(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -570,56 +541,12 @@ MatrixXcd run_hybrid(
     size_t batch_size,
     const SimConfig& config
 ) {
-    MatrixXcd L = L_init;
-    
-    // Collect gates between noise operations
-    std::vector<GateOp> gate_buffer;
-    
-    for (const auto& op : sequence.operations) {
-        if (std::holds_alternative<GateOp>(op)) {
-            gate_buffer.push_back(std::get<GateOp>(op));
-        } else {
-            // Apply gates in parallel layers before noise
-            if (!gate_buffer.empty()) {
-                // First fuse consecutive single-qubit gates
-                auto fused = fuse_single_qubit_gates(gate_buffer);
-                
-                // Convert back to GateOp-like structure for layer building
-                // (simplified: just apply fused gates with row parallelism)
-                for (const auto& fg : fused) {
-                    if (fg.qubits.size() == 1) {
-                        L = parallel_ops::apply_fused_single_gate(L, fg.matrix, fg.qubits[0], num_qubits);
-                    } else {
-                        L = parallel_ops::apply_two_qubit_gate_parallel(L, fg.matrix,
-                                                                         fg.qubits[0], fg.qubits[1], num_qubits);
-                    }
-                }
-                gate_buffer.clear();
-            }
-            
-            const auto& noise = std::get<NoiseOp>(op);
-            L = apply_noise_to_L(L, noise, num_qubits);
-            
-            if (config.do_truncation && L.cols() > 1) {
-                L = truncate_L(L, config.truncation_threshold);
-            }
-        }
-    }
-    
-    // Apply remaining gates
-    if (!gate_buffer.empty()) {
-        auto fused = fuse_single_qubit_gates(gate_buffer);
-        for (const auto& fg : fused) {
-            if (fg.qubits.size() == 1) {
-                L = parallel_ops::apply_fused_single_gate(L, fg.matrix, fg.qubits[0], num_qubits);
-            } else {
-                L = parallel_ops::apply_two_qubit_gate_parallel(L, fg.matrix,
-                                                                 fg.qubits[0], fg.qubits[1], num_qubits);
-            }
-        }
-    }
-    
-    return L;
+    // Just use the optimized batch simulation - it's the best we have
+    return run_simulation_optimized(
+        L_init, sequence, num_qubits,
+        batch_size, config.do_truncation,
+        config.verbose, config.truncation_threshold
+    );
 }
 
 }  // namespace modes
@@ -705,6 +632,8 @@ std::vector<ModeResult> run_all_modes_comparison(
     }
     
     // Compute metrics for each mode vs sequential baseline
+    // NOTE: For large n, full density matrix computation is O(4^n) - too slow!
+    // Use L-based metrics instead (O(2^n * rank))
     if (!results.empty() && results[0].mode == ParallelMode::SEQUENTIAL) {
         const MatrixXcd& L_seq = results[0].L_final;
         double seq_time = results[0].time_seconds;
@@ -719,26 +648,23 @@ std::vector<ModeResult> run_all_modes_comparison(
                 r.frobenius_distance = 0.0;
                 r.distortion = 0.0;
             } else {
-                // Compute fidelity: Tr(L_seq† L_this)^2 / (Tr(L_seq† L_seq) * Tr(L_this† L_this))
-                MatrixXcd rho_seq = L_seq * L_seq.adjoint();
-                MatrixXcd rho_this = r.L_final * r.L_final.adjoint();
-                
-                // Simple fidelity approximation for comparison
-                Complex overlap = (rho_seq.adjoint() * rho_this).trace();
-                double tr_seq = std::real(rho_seq.trace() * rho_seq.trace());
-                double tr_this = std::real(rho_this.trace() * rho_this.trace());
-                double denom = std::sqrt(tr_seq * tr_this);
-                r.fidelity = (denom > 1e-15) ? std::abs(overlap) / denom : 0.0;
-                
-                // Trace distance: 0.5 * ||rho_seq - rho_this||_1
-                MatrixXcd diff = rho_seq - rho_this;
-                r.trace_distance = 0.5 * diff.norm();  // Approximation using Frobenius
-                
-                // Frobenius distance
+                // Use L-based metrics (O(2^n * rank) instead of O(4^n))
+                // Frobenius distance of L matrices
                 r.frobenius_distance = (L_seq - r.L_final).norm();
                 
                 // Distortion: ||L_this - L_seq||_F / ||L_seq||_F
                 r.distortion = (seq_norm > 1e-15) ? r.frobenius_distance / seq_norm : 0.0;
+                
+                // Fidelity approximation using L overlap
+                // F ≈ |Tr(L_seq† L_this)|² / (||L_seq||² * ||L_this||²)
+                Complex overlap = (L_seq.adjoint() * r.L_final).trace();
+                double norm_seq = L_seq.squaredNorm();
+                double norm_this = r.L_final.squaredNorm();
+                double denom = norm_seq * norm_this;
+                r.fidelity = (denom > 1e-15) ? std::norm(overlap) / denom : 0.0;
+                
+                // Trace distance approximation: proportional to distortion for LRET
+                r.trace_distance = r.distortion;
             }
         }
     }
