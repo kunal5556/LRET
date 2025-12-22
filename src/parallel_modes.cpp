@@ -532,8 +532,10 @@ MatrixXcd run_batch_parallel(
     );
 }
 
-// HYBRID: Same as batch but uses the optimized simulator directly
-// This is actually the best mode for most cases
+// HYBRID: Adaptive mode that switches between row and batch based on rank
+// - For low rank (1-4): Use batch (minimal overhead)
+// - For medium rank (4-16): Use row parallelism
+// - For high rank (16+): Use column parallelism
 MatrixXcd run_hybrid(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -541,12 +543,46 @@ MatrixXcd run_hybrid(
     size_t batch_size,
     const SimConfig& config
 ) {
-    // Just use the optimized batch simulation - it's the best we have
-    return run_simulation_optimized(
-        L_init, sequence, num_qubits,
-        batch_size, config.do_truncation,
-        config.verbose, config.truncation_threshold
-    );
+    MatrixXcd L = L_init;
+    size_t dim = L.rows();
+    
+    // Threshold for switching between strategies
+    constexpr size_t ROW_RANK_THRESHOLD = 4;
+    constexpr size_t COL_RANK_THRESHOLD = 16;
+    
+    for (const auto& op : sequence.operations) {
+        if (std::holds_alternative<GateOp>(op)) {
+            const auto& gate = std::get<GateOp>(op);
+            size_t rank = L.cols();
+            
+            // Adaptive strategy based on current rank
+            if (rank <= ROW_RANK_THRESHOLD) {
+                // Low rank: use base function (no parallelization overhead)
+                L = apply_gate_to_L(L, gate, num_qubits);
+            } else if (rank <= COL_RANK_THRESHOLD || dim < 4096) {
+                // Medium rank or small dim: row parallelism
+                if (gate.qubits.size() == 1) {
+                    MatrixXcd U = get_single_qubit_gate(gate.type, gate.params);
+                    L = parallel_ops::apply_fused_single_gate(L, U, gate.qubits[0], num_qubits);
+                } else {
+                    MatrixXcd U = get_two_qubit_gate(gate.type, gate.params);
+                    L = parallel_ops::apply_two_qubit_gate_parallel(L, U, gate.qubits[0], gate.qubits[1], num_qubits);
+                }
+            } else {
+                // High rank + large dim: column parallelism is better
+                L = parallel_ops::apply_gate_column_parallel(L, gate, num_qubits);
+            }
+        } else {
+            const auto& noise = std::get<NoiseOp>(op);
+            L = apply_noise_to_L(L, noise, num_qubits);
+            
+            if (config.do_truncation && L.cols() > 1) {
+                L = truncate_L(L, config.truncation_threshold);
+            }
+        }
+    }
+    
+    return L;
 }
 
 }  // namespace modes

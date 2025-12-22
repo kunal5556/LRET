@@ -26,6 +26,12 @@ struct CLIOptions {
     double truncation_threshold = 1e-4;
     size_t batch_size = 0;  // 0 = auto
     
+    // High-rank testing (for parallelization benchmarking)
+    // When > 1, starts with a random mixed state of given rank instead of |0...0>
+    // This enables meaningful parallelization testing since rank=1 has no parallel benefit
+    size_t initial_rank = 1;
+    unsigned int random_seed = 0;  // 0 = time-based seed
+    
     // Parallelization
     ParallelMode parallel_mode = ParallelMode::AUTO;
     size_t num_threads = 0;  // 0 = use all cores

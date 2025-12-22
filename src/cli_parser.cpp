@@ -51,6 +51,12 @@ OPTIONS:
                           auto|sequential|row|column|batch|hybrid|compare
                           (default: auto)
 
+    --initial-rank N      Start with random mixed state of rank N (default: 1)
+                          Rank=1 is pure state |0...0>.
+                          Higher rank enables meaningful parallel benchmarking
+                          since pure states have only 1 column to process.
+    --seed N              Random seed for mixed state (default: 0=time-based)
+
     --fdm                 Enable FDM comparison (if qubits <= threshold)
     --fdm-threshold N     Max qubits for FDM (default: 10)
 
@@ -122,6 +128,18 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
             continue;
         }
         
+        // Initial rank (for high-rank testing)
+        if (arg == "--initial-rank" && i + 1 < argc) {
+            opts.initial_rank = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // Random seed
+        if (arg == "--seed" && i + 1 < argc) {
+            opts.random_seed = static_cast<unsigned int>(std::stoul(argv[++i]));
+            continue;
+        }
+        
         // Parallel mode
         if (arg == "--mode" && i + 1 < argc) {
             opts.parallel_mode = string_to_parallel_mode(argv[++i]);
@@ -183,6 +201,13 @@ bool validate_options(const CLIOptions& opts, std::string& error_msg) {
     
     if (opts.truncation_threshold <= 0.0) {
         error_msg = "Truncation threshold must be positive";
+        return false;
+    }
+    
+    // Initial rank validation
+    size_t dim = 1ULL << opts.num_qubits;
+    if (opts.initial_rank < 1 || opts.initial_rank > dim) {
+        error_msg = "Initial rank must be between 1 and 2^n (n=num_qubits)";
         return false;
     }
     

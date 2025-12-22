@@ -510,6 +510,33 @@ MatrixXcd create_pure_state(const VectorXcd& coefficients) {
     return L;
 }
 
+MatrixXcd create_random_mixed_state(size_t num_qubits, size_t target_rank, unsigned int seed) {
+    if (seed == 0) {
+        seed = static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count());
+    }
+    std::mt19937 rng(seed);
+    std::normal_distribution<> normal(0.0, 1.0);
+    
+    size_t dim = 1ULL << num_qubits;
+    target_rank = std::min(target_rank, dim);  // Can't exceed dimension
+    
+    // Create random L matrix with specified rank
+    // L is dim x rank, L*L† is the density matrix
+    MatrixXcd L(dim, target_rank);
+    
+    for (size_t i = 0; i < dim; ++i) {
+        for (size_t j = 0; j < target_rank; ++j) {
+            L(i, j) = Complex(normal(rng), normal(rng));
+        }
+    }
+    
+    // Normalize so trace(L*L†) = 1
+    double trace = (L * L.adjoint()).trace().real();
+    L /= std::sqrt(trace);
+    
+    return L;
+}
+
 //==============================================================================
 // Printing Utilities
 //==============================================================================

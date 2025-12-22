@@ -226,6 +226,29 @@ MatrixXcd create_maximally_mixed_state(size_t num_qubits);
  */
 MatrixXcd create_pure_state(const VectorXcd& coefficients);
 
+/**
+ * @brief Create a random mixed state with specified rank
+ * 
+ * This is useful for testing parallel modes that benefit from high rank.
+ * The rank of the state determines how much work there is to parallelize.
+ * 
+ * RANK MECHANICS IN LRET:
+ * =======================
+ * 1. Pure states (|ψ⟩⟨ψ|) have rank 1: L is a dim×1 column vector
+ * 2. Gates preserve rank: U L has the same number of columns as L
+ * 3. Noise INCREASES rank: Each Kraus operator K_i creates a new component
+ *    - Depolarizing: 4 Kraus operators → rank multiplies by 4
+ *    - Amplitude damping: 2 Kraus operators → rank multiplies by 2
+ *    - Phase damping: 2 Kraus operators → rank multiplies by 2
+ * 4. Truncation DECREASES rank: Keeps only significant eigenvalues
+ * 
+ * @param num_qubits Number of qubits
+ * @param target_rank Desired rank of the state
+ * @param seed Random seed
+ * @return L matrix with specified rank
+ */
+MatrixXcd create_random_mixed_state(size_t num_qubits, size_t target_rank, unsigned int seed = 0);
+
 //==============================================================================
 // Printing Utilities
 //==============================================================================

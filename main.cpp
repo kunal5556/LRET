@@ -64,8 +64,17 @@ int main(int argc, char* argv[]) {
             std::cout << "\n";
         }
         
-        // Initial state
-        MatrixXcd L_init = create_zero_state(opts.num_qubits);
+        // Initial state - pure state or random mixed state for high-rank testing
+        MatrixXcd L_init;
+        if (opts.initial_rank > 1) {
+            L_init = create_random_mixed_state(opts.num_qubits, opts.initial_rank, opts.random_seed);
+            std::cout << "Using random mixed state with initial rank=" << opts.initial_rank << "\n";
+            if (opts.verbose) {
+                std::cout << "  (This enables meaningful parallel benchmarking since pure states have rank=1)\n";
+            }
+        } else {
+            L_init = create_zero_state(opts.num_qubits);
+        }
         
         // Simulation config
         SimConfig config;
