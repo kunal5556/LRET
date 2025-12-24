@@ -16,6 +16,8 @@
 
 #include "simulator.h"
 #include "utils.h"
+#include "resource_monitor.h"
+#include "progressive_csv.h"
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
@@ -155,6 +157,7 @@ MatrixXcd run_simulation_optimized(
     size_t step = 0;
     size_t truncation_count = 0;
     size_t max_rank = L.cols();
+    auto start_time = std::chrono::steady_clock::now();
     
     // Collect gates for batched application
     std::vector<GateOp> gate_batch;
@@ -162,14 +165,34 @@ MatrixXcd run_simulation_optimized(
     for (const auto& op : sequence.operations) {
         step++;
         
+        // Check for abort (Ctrl+C or timeout) every step
+        if (should_abort()) {
+            if (g_csv_writer) {
+                g_csv_writer->log_interrupt("User interrupt during step " + std::to_string(step));
+            }
+            if (verbose) {
+                std::cout << "\nAborted at step " << step << "/" << sequence.operations.size() << std::endl;
+            }
+            break;  // Return partial result
+        }
+        
         if (std::holds_alternative<GateOp>(op)) {
             const auto& gate = std::get<GateOp>(op);
             gate_batch.push_back(gate);
             
             // Apply batch when full
             if (gate_batch.size() >= batch_size) {
+                size_t rank_before = L.cols();
                 L = apply_gates_batched(L, gate_batch, num_qubits, batch_size);
                 gate_batch.clear();
+                
+                // Log to progressive CSV
+                if (g_csv_writer) {
+                    auto elapsed = std::chrono::duration<double>(
+                        std::chrono::steady_clock::now() - start_time).count();
+                    g_csv_writer->log_operation(step, "GATE_BATCH", 
+                                                rank_before, L.cols(), elapsed);
+                }
                 
                 if (verbose) {
                     std::cout << "Step " << step << ": Applied gate batch, rank = " << L.cols() << std::endl;
@@ -182,8 +205,17 @@ MatrixXcd run_simulation_optimized(
                 gate_batch.clear();
             }
             
+            size_t rank_before = L.cols();
             const auto& noise = std::get<NoiseOp>(op);
             L = apply_noise_to_L(L, noise, num_qubits);
+            
+            // Log noise operation
+            if (g_csv_writer) {
+                auto elapsed = std::chrono::duration<double>(
+                    std::chrono::steady_clock::now() - start_time).count();
+                g_csv_writer->log_operation(step, "NOISE_" + noise_type_to_string(noise.type),
+                                            rank_before, L.cols(), elapsed);
+            }
             
             if (verbose) {
                 std::cout << "Step " << step << ": Applied noise, rank = " << L.cols() << std::endl;

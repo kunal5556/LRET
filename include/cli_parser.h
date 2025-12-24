@@ -53,6 +53,11 @@ struct CLIOptions {
     bool enable_fdm = false;
     bool fdm_force = false;  // Bypass memory check, attempt FDM anyway
     
+    // Resource management
+    bool allow_swap = false;          // Skip swap warning prompt
+    std::string timeout_str = "";     // Timeout string (e.g., "1h", "2d")
+    bool non_interactive = false;     // Skip all prompts
+    
     // Output options
     bool verbose = false;
     std::optional<std::string> output_file;

@@ -35,6 +35,8 @@ set(LIB_SOURCES
     src/output_formatter.cpp
     src/parallel_modes.cpp
     src/fdm_simulator.cpp
+    src/resource_monitor.cpp
+    src/progressive_csv.cpp
 )
 
 # Create static library

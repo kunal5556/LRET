@@ -94,7 +94,11 @@ OPTIONS:
     --fdm                 Enable FDM comparison (memory permitting)
     --fdm-force           Force FDM even with insufficient memory (test limits)
 
-    -o, --output FILE     Export results to CSV
+    --allow-swap          Continue even if system is using swap memory
+    --timeout TIME        Timeout for simulation (e.g., 60, 5m, 2h, 1d)
+    --non-interactive     Skip all prompts (for automated runs)
+
+    -o, --output FILE     Export results to CSV (progressive, appends as it runs)
     -v, --verbose         Detailed output
     --threads N           Limit thread count, 0=all cores (default: 0)
 
@@ -107,6 +111,8 @@ EXAMPLES:
     quantum_sim -n 14 --fdm-force   # Test FDM at the memory limit
     quantum_sim -n 8 --mode row -v --output results.csv
     quantum_sim -n 10 --noise-type depolarizing --noise 0.05
+    quantum_sim -n 20 --timeout 2h -o long_run.csv  # 2 hour timeout
+    quantum_sim -n 15 --allow-swap --non-interactive  # Automated run
 
 )";
 }
@@ -217,6 +223,24 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
         // Thread count
         if (arg == "--threads" && i + 1 < argc) {
             opts.num_threads = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // Allow swap memory (skip swap warning)
+        if (arg == "--allow-swap") {
+            opts.allow_swap = true;
+            continue;
+        }
+        
+        // Timeout for simulation
+        if (arg == "--timeout" && i + 1 < argc) {
+            opts.timeout_str = argv[++i];
+            continue;
+        }
+        
+        // Non-interactive mode (skip all prompts)
+        if (arg == "--non-interactive") {
+            opts.non_interactive = true;
             continue;
         }
         

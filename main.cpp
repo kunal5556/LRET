@@ -9,6 +9,8 @@
 #include "gates_and_noise.h"
 #include "simulator.h"
 #include "utils.h"
+#include "resource_monitor.h"
+#include "progressive_csv.h"
 #include <iostream>
 #include <iomanip>
 
@@ -20,6 +22,9 @@ using namespace qlret;
 
 int main(int argc, char* argv[]) {
     try {
+        // Setup signal handlers for graceful Ctrl+C handling
+        setup_signal_handlers();
+        
         // Parse command line
         CLIOptions opts = parse_arguments(argc, argv);
         
@@ -38,6 +43,41 @@ int main(int argc, char* argv[]) {
         if (!validate_options(opts, error)) {
             std::cerr << "Error: " << error << std::endl;
             return 1;
+        }
+        
+        // Initialize timeout if specified
+        if (!opts.timeout_str.empty()) {
+            auto timeout_duration = parse_timeout_string(opts.timeout_str);
+            if (timeout_duration.count() > 0) {
+                g_timeout.enabled = true;
+                g_timeout.duration = timeout_duration;
+                g_timeout.start();
+                std::cout << "Timeout set: " << timeout_duration.count() << " seconds\n";
+            } else {
+                std::cerr << "Warning: Could not parse timeout '" << opts.timeout_str << "'\n";
+            }
+        }
+        
+        // Check for swap usage (unless --allow-swap or --non-interactive)
+        if (!opts.allow_swap && !opts.non_interactive) {
+            if (!check_swap_and_prompt(opts.allow_swap, !opts.non_interactive)) {
+                std::cout << "Exiting due to swap memory concerns.\n";
+                return 2;
+            }
+        }
+        
+        // Initialize progressive CSV writer if output file specified
+        std::unique_ptr<ProgressiveCSVWriter> csv_writer;
+        if (opts.output_file) {
+            csv_writer = std::make_unique<ProgressiveCSVWriter>(*opts.output_file);
+            if (!csv_writer->is_open()) {
+                std::cerr << "Warning: Could not open CSV file for writing\n";
+                csv_writer.reset();
+            } else {
+                g_csv_writer = csv_writer.get();
+                g_csv_writer->log_start(opts.num_qubits, opts.depth, 
+                                        parallel_mode_to_string(opts.parallel_mode), opts.noise_prob);
+            }
         }
         
         // Configure threading
@@ -88,6 +128,15 @@ int main(int argc, char* argv[]) {
         std::optional<FDMResult> fdm_result;
         std::optional<MetricsResult> fdm_metrics;
         
+        // Check for abort before FDM
+        if (should_abort()) {
+            std::cout << "\nAborted before FDM simulation.\n";
+            if (g_csv_writer) {
+                g_csv_writer->log_interrupt("Aborted before FDM");
+            }
+            return 130;  // Standard interrupt exit code
+        }
+        
         // Run FDM if applicable (wrapped in try-catch for graceful failure)
         if (fdm_check.should_run) {
             std::cout << "Running FDM simulation..." << std::flush;
@@ -116,6 +165,15 @@ int main(int argc, char* argv[]) {
             skipped.was_run = false;
             skipped.skip_reason = fdm_check.skip_reason;
             fdm_result = skipped;
+        }
+        
+        // Check for abort before LRET simulation
+        if (should_abort()) {
+            std::cout << "\nAborted before LRET simulation.\n";
+            if (g_csv_writer) {
+                g_csv_writer->log_interrupt("Aborted before LRET");
+            }
+            return 130;
         }
         
         // Run based on mode
@@ -216,6 +274,13 @@ int main(int argc, char* argv[]) {
             print_standard_output(opts, result, metrics, noise_in_circuit, 
                                   sequence.noise_stats, fdm_result, fdm_metrics, state_metrics);
             
+            // Log summary to progressive CSV
+            if (g_csv_writer) {
+                g_csv_writer->log_summary(result.final_rank, 
+                                          compute_trace(result.L_final), 
+                                          result.time_seconds, "SUCCESS");
+            }
+            
             if (opts.output_file) {
                 std::vector<ModeResult> single_result = {result};
                 export_to_csv(*opts.output_file, opts, single_result, 
@@ -223,10 +288,14 @@ int main(int argc, char* argv[]) {
             }
         }
         
+        // Check if we were interrupted during computation
+        if (is_interrupted()) {
+            std::cout << "\nSimulation was interrupted by user.\n";
+            return 130;
+        }
+        
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
-        return 1;
-    }
-    
-    return 0;
-}
+        if (g_csv_writer) {
+            g_csv_writer->log_error(e.what());
+        }

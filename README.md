@@ -43,6 +43,97 @@ docker run --rm -v $HOME/lret-:/app ajs911/lret777:latest
 
 This mounts your local `lret-` directory to `/app` inside the container and runs the simulation. The `--rm` flag automatically removes the container after execution.
 
+### Docker for Massive Workstations (TBs of RAM)
+
+When running simulations on high-end workstations with terabytes of RAM, Docker's default resource limits can prevent you from utilizing all available memory. Here's how to unlock full host resources:
+
+#### Recommended Docker Configuration
+
+```bash
+# Run with NO memory limits (uses all host RAM)
+docker run --rm -it \
+    --memory=0 \
+    --memory-swap=-1 \
+    --privileged \
+    -v $(pwd):/app \
+    ajs911/lret777:latest \
+    ./quantum_sim -n 25 --fdm --allow-swap --timeout 2d -o results.csv
+
+# With specific resource allocation
+docker run --rm -it \
+    --memory=512g \           # Limit to 512GB
+    --memory-swap=1t \        # Allow 1TB total (RAM + swap)
+    --cpus=128 \              # Use 128 CPU cores
+    --privileged \
+    -v $(pwd):/app \
+    ajs911/lret777:latest \
+    ./quantum_sim -n 24 --mode hybrid
+```
+
+#### Docker Flag Reference
+
+| Flag | Description | Recommended Value |
+|------|-------------|-------------------|
+| `--memory=0` | No memory limit | Use for unlimited access |
+| `--memory-swap=-1` | Unlimited swap | Essential for large simulations |
+| `--privileged` | Full host access | Required for some memory operations |
+| `--cpus=N` | CPU cores to use | Set to your core count |
+| `--shm-size=64g` | Shared memory | Helps with large matrices |
+| `--ulimit memlock=-1:-1` | Allow memory locking | Improves performance |
+
+#### Alternative: Singularity/Apptainer for HPC
+
+For HPC clusters and environments where Docker isn't ideal, use Singularity/Apptainer:
+
+```bash
+# Convert Docker image to Singularity
+singularity pull quantum-lret.sif docker://ajs911/lret777:latest
+
+# Run with full host resources (default behavior in Singularity)
+singularity run --bind $(pwd):/app quantum-lret.sif \
+    ./quantum_sim -n 26 --fdm --timeout 7d -o massive_run.csv
+```
+
+**Why Singularity?**
+- No resource isolation by default (uses all host RAM/CPU)
+- No root privileges needed
+- Native HPC integration (Slurm, PBS, etc.)
+- Same container image works everywhere
+
+#### Memory Requirements by Qubit Count
+
+| Qubits | FDM Memory | LRET Peak (est.) | Recommended RAM |
+|--------|------------|------------------|-----------------|
+| 20 | 17.6 GB | ~1-5 GB | 32 GB |
+| 22 | 281.5 GB | ~10-50 GB | 512 GB |
+| 24 | 4.5 TB | ~100-500 GB | 8 TB |
+| 26 | 72 TB | ~1-5 TB | 128 TB |
+
+*Note: LRET memory depends on rank growth. Noisy circuits maintain lower rank.*
+
+#### Long-Running Simulation Tips
+
+```bash
+# Start a named container for monitoring
+docker run -d --name lret-run \
+    --memory=0 --memory-swap=-1 \
+    -v $(pwd):/app \
+    ajs911/lret777:latest \
+    ./quantum_sim -n 24 --timeout 3d -o run.csv
+
+# Monitor progress (CSV updates in real-time)
+tail -f run.csv
+
+# Check container resource usage
+docker stats lret-run
+
+# View logs
+docker logs -f lret-run
+
+# Graceful stop (triggers Ctrl+C handler)
+docker stop --time=30 lret-run
+```
+
 ### Run
 Execute the benchmark for n=11 qubits, depth=13:
 ```bash
