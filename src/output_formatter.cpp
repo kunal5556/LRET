@@ -10,13 +10,48 @@ void print_separator(size_t width, char c) {
     std::cout << std::string(width, c) << "\n";
 }
 
-void print_config_header(const CLIOptions& opts, double noise_in_circuit, bool fdm_enabled) {
+void print_noise_stats(const NoiseStats& stats) {
+    std::cout << "\nNoise Statistics:\n";
+    std::cout << "  Total Channels: " << stats.total_count() << "\n";
+    std::cout << "  Total Probability: " << std::scientific << std::setprecision(4) 
+              << stats.total_probability() << "\n";
+    
+    if (stats.depolarizing_count > 0) {
+        std::cout << "  Depolarizing:      " << std::setw(4) << stats.depolarizing_count 
+                  << " ops, total p = " << stats.total_depolarizing_prob << "\n";
+    }
+    if (stats.amplitude_damping_count > 0) {
+        std::cout << "  Amplitude Damping: " << std::setw(4) << stats.amplitude_damping_count 
+                  << " ops, total γ = " << stats.total_amplitude_prob << "\n";
+    }
+    if (stats.phase_damping_count > 0) {
+        std::cout << "  Phase Damping:     " << std::setw(4) << stats.phase_damping_count 
+                  << " ops, total λ = " << stats.total_phase_prob << "\n";
+    }
+    if (stats.bit_flip_count > 0) {
+        std::cout << "  Bit Flip:          " << std::setw(4) << stats.bit_flip_count 
+                  << " ops, total p = " << stats.total_bit_flip_prob << "\n";
+    }
+    if (stats.phase_flip_count > 0) {
+        std::cout << "  Phase Flip:        " << std::setw(4) << stats.phase_flip_count 
+                  << " ops, total p = " << stats.total_phase_flip_prob << "\n";
+    }
+    if (stats.other_count > 0) {
+        std::cout << "  Other:             " << std::setw(4) << stats.other_count 
+                  << " ops, total p = " << stats.total_other_prob << "\n";
+    }
+}
+
+void print_config_header(const CLIOptions& opts, double noise_in_circuit, 
+                         const NoiseStats& noise_stats, bool fdm_enabled) {
     std::cout << "Configuration:\n";
     std::cout << "  Qubits: " << opts.num_qubits 
               << " | Depth: " << opts.depth
               << " | Noise: " << std::fixed << std::setprecision(6) << noise_in_circuit
               << " | Mode: " << parallel_mode_to_string(opts.parallel_mode)
               << " | FDM: " << (fdm_enabled ? "ENABLED" : "DISABLED") << "\n";
+    std::cout << "  Noise Selection: " << noise_selection_to_string(opts.noise_selection)
+              << " | Channels Applied: " << noise_stats.total_count() << "\n";
 }
 
 void print_standard_output(
@@ -24,15 +59,23 @@ void print_standard_output(
     const ModeResult& result,
     const MetricsResult& metrics,
     double noise_in_circuit,
+    const NoiseStats& noise_stats,
     const std::optional<FDMResult>& fdm_result,
-    const std::optional<MetricsResult>& fdm_metrics
+    const std::optional<MetricsResult>& fdm_metrics,
+    const std::optional<StateMetrics>& state_metrics
 ) {
     print_separator(80, '=');
     std::cout << "                    QuantumLRET-Sim Results\n";
     print_separator(80, '=');
     
     bool fdm_enabled = fdm_result.has_value() && fdm_result->was_run;
-    print_config_header(opts, noise_in_circuit, fdm_enabled);
+    print_config_header(opts, noise_in_circuit, noise_stats, fdm_enabled);
+    
+    // Print noise breakdown if verbose
+    if (opts.verbose && noise_stats.total_count() > 0) {
+        print_noise_stats(noise_stats);
+    }
+    
     print_separator(80, '-');
     
     // LRET results
@@ -49,6 +92,23 @@ void print_standard_output(
         if (result.distortion > 0) {
             std::cout << "  Distortion:  " << std::scientific << std::setprecision(2) 
                       << result.distortion << " (vs sequential)\n";
+        }
+    }
+    
+    // State metrics (properties of final state)
+    if (state_metrics.has_value()) {
+        std::cout << "\nFinal State Properties:\n";
+        std::cout << std::fixed;
+        std::cout << "  Purity:         " << std::setprecision(6) << state_metrics->purity << "\n";
+        std::cout << "  Entropy:        " << std::setprecision(4) << state_metrics->entropy << " bits\n";
+        std::cout << "  Linear Entropy: " << std::setprecision(6) << state_metrics->linear_entropy << "\n";
+        if (state_metrics->concurrence >= 0) {
+            std::cout << "  Concurrence:    " << std::setprecision(6) << state_metrics->concurrence 
+                      << " (2-qubit entanglement)\n";
+        }
+        if (state_metrics->negativity >= 0) {
+            std::cout << "  Negativity:     " << std::setprecision(6) << state_metrics->negativity 
+                      << " (bipartite entanglement)\n";
         }
     }
     
@@ -94,6 +154,7 @@ void print_comparison_output(
     const CLIOptions& opts,
     const std::vector<ModeResult>& results,
     double noise_in_circuit,
+    const NoiseStats& noise_stats,
     const std::optional<FDMResult>& fdm_result,
     const std::optional<MetricsResult>& fdm_metrics
 ) {
@@ -102,7 +163,13 @@ void print_comparison_output(
     print_separator(80, '=');
     
     bool fdm_enabled = fdm_result.has_value() && fdm_result->was_run;
-    print_config_header(opts, noise_in_circuit, fdm_enabled);
+    print_config_header(opts, noise_in_circuit, noise_stats, fdm_enabled);
+    
+    // Print noise breakdown if verbose
+    if (opts.verbose && noise_stats.total_count() > 0) {
+        print_noise_stats(noise_stats);
+    }
+    
     print_separator(80, '-');
     
     // Find sequential time for speedup calculation
@@ -218,6 +285,7 @@ void export_to_csv(
     const CLIOptions& opts,
     const std::vector<ModeResult>& results,
     double noise_in_circuit,
+    const NoiseStats& noise_stats,
     const std::optional<FDMResult>& fdm_result
 ) {
     std::ofstream file(filename);
@@ -226,8 +294,9 @@ void export_to_csv(
         return;
     }
     
-    // Header
-    file << "mode,qubits,depth,noise,time_seconds,final_rank,trace\n";
+    // Header with noise stats columns
+    file << "mode,qubits,depth,noise_total,depolarizing_count,amplitude_count,phase_count,"
+         << "time_seconds,final_rank,trace\n";
     
     // Results
     for (const auto& r : results) {
@@ -235,6 +304,9 @@ void export_to_csv(
              << opts.num_qubits << ","
              << opts.depth << ","
              << std::fixed << std::setprecision(6) << noise_in_circuit << ","
+             << noise_stats.depolarizing_count << ","
+             << noise_stats.amplitude_damping_count << ","
+             << noise_stats.phase_damping_count << ","
              << std::setprecision(6) << r.time_seconds << ","
              << r.final_rank << ","
              << std::setprecision(5) << r.trace_value << "\n";
@@ -246,6 +318,9 @@ void export_to_csv(
              << opts.num_qubits << ","
              << opts.depth << ","
              << noise_in_circuit << ","
+             << noise_stats.depolarizing_count << ","
+             << noise_stats.amplitude_damping_count << ","
+             << noise_stats.phase_damping_count << ","
              << fdm_result->time_seconds << ","
              << "N/A,"
              << fdm_result->trace_value << "\n";

@@ -83,9 +83,7 @@ int main(int argc, char* argv[]) {
         config.do_truncation = true;
         
         // Check FDM feasibility
-        auto fdm_check = check_fdm_feasibility(
-            opts.num_qubits, opts.fdm_threshold, opts.enable_fdm
-        );
+        auto fdm_check = check_fdm_feasibility(opts.num_qubits, opts.enable_fdm);
         
         std::optional<FDMResult> fdm_result;
         std::optional<MetricsResult> fdm_metrics;
@@ -128,10 +126,12 @@ int main(int argc, char* argv[]) {
             }
             
             std::cout << "\n";
-            print_comparison_output(opts, results, noise_in_circuit, fdm_result, fdm_metrics);
+            print_comparison_output(opts, results, noise_in_circuit, 
+                                    sequence.noise_stats, fdm_result, fdm_metrics);
             
             if (opts.output_file) {
-                export_to_csv(*opts.output_file, opts, results, noise_in_circuit, fdm_result);
+                export_to_csv(*opts.output_file, opts, results, noise_in_circuit,
+                              sequence.noise_stats, fdm_result);
             }
         } else {
             // Single mode run
@@ -167,6 +167,24 @@ int main(int argc, char* argv[]) {
                 compute_variational_distance_L(L_init, result.L_final)
             };
             
+            // Compute state metrics for final state
+            StateMetrics state_metrics;
+            state_metrics.purity = compute_purity(result.L_final);
+            state_metrics.entropy = compute_entropy(result.L_final);
+            state_metrics.linear_entropy = compute_linear_entropy(result.L_final);
+            state_metrics.rank = result.final_rank;
+            
+            // Concurrence only for 2-qubit systems
+            if (opts.num_qubits == 2) {
+                state_metrics.concurrence = compute_concurrence(result.L_final);
+            }
+            
+            // Negativity for bipartite split (half-half)
+            if (opts.num_qubits >= 2) {
+                size_t split = opts.num_qubits / 2;
+                state_metrics.negativity = compute_negativity(result.L_final, split, opts.num_qubits);
+            }
+            
             // Compute FDM metrics if available
             if (fdm_result && fdm_result->was_run) {
                 MatrixXcd rho_lret = L_to_density_matrix(result.L_final);
@@ -179,12 +197,12 @@ int main(int argc, char* argv[]) {
             }
             
             print_standard_output(opts, result, metrics, noise_in_circuit, 
-                                  fdm_result, fdm_metrics);
+                                  sequence.noise_stats, fdm_result, fdm_metrics, state_metrics);
             
             if (opts.output_file) {
                 std::vector<ModeResult> single_result = {result};
                 export_to_csv(*opts.output_file, opts, single_result, 
-                              noise_in_circuit, fdm_result);
+                              noise_in_circuit, sequence.noise_stats, fdm_result);
             }
         }
         

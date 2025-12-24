@@ -1,0 +1,2706 @@
+--------------------------------------------------------------------------------------------------
+
+number of qubits: 23
+
+INFO: n=23 is in the high-workload regime. Dynamically selected batch_size=512.
+batch size: 512
+
+
+current time ==  01:22:15
+Running LRET simulation for 23 qubits...
+
+=== Step 1 === current time 01:31:06
+  Time for Gate Operation: 4.281 sec
+  Rank after Gate Operation: 1
+  Time for Kraus Operation: 12.508 sec
+  Rank after Kraus Operation: 2
+  Time for truncation: 0.184 sec
+  Rank after truncation: 1
+  Time for Kraus Operation: 12.411 sec
+  Rank after Kraus Operation: 2
+  Time for truncation: 0.185 sec
+  Rank after truncation: 2
+  Time for Kraus Operation: 31.138 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 0.614 sec
+  Rank after truncation: 3
+  Time for Kraus Operation: 18.092 sec
+  Rank after Kraus Operation: 6
+  Time for truncation: 0.489 sec
+  Rank after truncation: 3
+  Time for Kraus Operation: 18.083 sec
+  Rank after Kraus Operation: 6
+  Time for truncation: 0.474 sec
+  Rank after truncation: 3
+  Time for Kraus Operation: 18.151 sec
+  Rank after Kraus Operation: 6
+  Time for truncation: 0.534 sec
+  Rank after truncation: 3
+  Time for Kraus Operation: 18.388 sec
+  Rank after Kraus Operation: 6
+  Time for truncation: 0.491 sec
+  Rank after truncation: 3
+  Time for Kraus Operation: 18.366 sec
+  Rank after Kraus Operation: 6
+  Time for truncation: 0.484 sec
+  Rank after truncation: 3
+
+=== Step 2 === current time 01:33:40
+  Time for Gate Operation: 9.023 sec
+  Rank after Gate Operation: 3
+  Time for Kraus Operation: 37.049 sec
+  Rank after Kraus Operation: 12
+  Time for truncation: 0.894 sec
+  Rank after truncation: 4
+  Time for Kraus Operation: 19.400 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 0.653 sec
+  Rank after truncation: 4
+  Time for Kraus Operation: 19.235 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 0.694 sec
+  Rank after truncation: 4
+  Time for Kraus Operation: 19.107 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 0.667 sec
+  Rank after truncation: 4
+  Time for Kraus Operation: 19.356 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 0.697 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 45.882 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 1.471 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 23.018 sec
+  Rank after Kraus Operation: 10
+  Time for truncation: 0.844 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 23.009 sec
+  Rank after Kraus Operation: 10
+  Time for truncation: 0.802 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 22.991 sec
+  Rank after Kraus Operation: 10
+  Time for truncation: 0.800 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 23.288 sec
+  Rank after Kraus Operation: 10
+  Time for truncation: 0.816 sec
+  Rank after truncation: 6
+  Time for Kraus Operation: 25.747 sec
+  Rank after Kraus Operation: 12
+  Time for truncation: 0.986 sec
+  Rank after truncation: 6
+  Time for Kraus Operation: 25.189 sec
+  Rank after Kraus Operation: 12
+  Time for truncation: 0.945 sec
+  Rank after truncation: 6
+  Time for Kraus Operation: 25.000 sec
+  Rank after Kraus Operation: 12
+  Time for truncation: 0.994 sec
+  Rank after truncation: 7
+  Time for Kraus Operation: 27.666 sec
+  Rank after Kraus Operation: 14
+  Time for truncation: 1.111 sec
+  Rank after truncation: 7
+  Time for Kraus Operation: 53.414 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 2.021 sec
+  Rank after truncation: 8
+  Time for Kraus Operation: 57.435 sec
+  Rank after Kraus Operation: 32
+  Time for truncation: 2.226 sec
+  Rank after truncation: 8
+  Time for Kraus Operation: 57.708 sec
+  Rank after Kraus Operation: 32
+  Time for truncation: 2.267 sec
+  Rank after truncation: 9
+
+=== Step 3 === current time 01:42:53
+  Time for Gate Operation: 15.683 sec
+  Rank after Gate Operation: 9
+  Time for Kraus Operation: 60.454 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.550 sec
+  Rank after truncation: 9
+  Time for Kraus Operation: 29.694 sec
+  Rank after Kraus Operation: 18
+  Time for truncation: 1.317 sec
+  Rank after truncation: 9
+  Time for Kraus Operation: 60.658 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.564 sec
+  Rank after truncation: 10
+  Time for Kraus Operation: 32.881 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 1.478 sec
+  Rank after truncation: 10
+  Time for Kraus Operation: 31.440 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 1.472 sec
+  Rank after truncation: 10
+
+=== Step 4 === current time 01:46:53
+  Time for Gate Operation: 15.300 sec
+  Rank after Gate Operation: 10
+  Time for Kraus Operation: 31.516 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 1.454 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 35.167 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 1.597 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 34.345 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 1.607 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 34.592 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 1.597 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 34.938 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 1.591 sec
+  Rank after truncation: 12
+  Time for Kraus Operation: 37.438 sec
+  Rank after Kraus Operation: 24
+  Time for truncation: 1.716 sec
+  Rank after truncation: 12
+  Time for Kraus Operation: 36.140 sec
+  Rank after Kraus Operation: 24
+  Time for truncation: 1.777 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 39.528 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.892 sec
+  Rank after truncation: 13
+
+=== Step 5 === current time 01:52:05
+  Time for Gate Operation: 7.484 sec
+  Rank after Gate Operation: 13
+  Time for Kraus Operation: 44.612 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.903 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 46.133 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.887 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 46.605 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.912 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 47.365 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.898 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 47.866 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.893 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 48.419 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.903 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 48.844 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.895 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 49.316 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.946 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 49.495 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.905 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 50.009 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 1.994 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 99.839 sec
+  Rank after Kraus Operation: 56
+  Time for truncation: 3.693 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 50.429 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 2.034 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 50.647 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 2.038 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 50.736 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 2.049 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 54.513 sec
+  Rank after Kraus Operation: 30
+  Time for truncation: 2.200 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 53.389 sec
+  Rank after Kraus Operation: 30
+  Time for truncation: 2.161 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 109.139 sec
+  Rank after Kraus Operation: 60
+  Time for truncation: 4.064 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 53.586 sec
+  Rank after Kraus Operation: 30
+  Time for truncation: 2.176 sec
+  Rank after truncation: 16
+
+=== Step 6 === current time 02:09:33
+  Time for Gate Operation: 10.972 sec
+  Rank after Gate Operation: 16
+  Time for Kraus Operation: 62.556 sec
+  Rank after Kraus Operation: 64
+  Time for truncation: 4.691 sec
+  Rank after truncation: 16
+  Time for Kraus Operation: 31.897 sec
+  Rank after Kraus Operation: 32
+  Time for truncation: 2.448 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 34.206 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.576 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 33.032 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.508 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 33.020 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.553 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 67.651 sec
+  Rank after Kraus Operation: 68
+  Time for truncation: 5.341 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 33.896 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.569 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 33.835 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.423 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 33.947 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.639 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 34.128 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.716 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 34.200 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.748 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 34.480 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.678 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 34.492 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.645 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 69.641 sec
+  Rank after Kraus Operation: 68
+  Time for truncation: 4.813 sec
+  Rank after truncation: 18
+
+=== Step 7 === current time 02:19:59
+  Time for Gate Operation: 18.225 sec
+  Rank after Gate Operation: 18
+  Time for Kraus Operation: 36.274 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.499 sec
+  Rank after truncation: 18
+
+=== Step 8 === current time 02:20:56
+  Time for Gate Operation: 13.207 sec
+  Rank after Gate Operation: 18
+  Time for Kraus Operation: 36.631 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.569 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 73.289 sec
+  Rank after Kraus Operation: 72
+  Time for truncation: 5.610 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 36.583 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.564 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 36.519 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.605 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 36.678 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.648 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 36.577 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.578 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 36.936 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.614 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 37.221 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.614 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 37.042 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.551 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 73.826 sec
+  Rank after Kraus Operation: 72
+  Time for truncation: 5.713 sec
+  Rank after truncation: 18
+
+=== Step 9 === current time 02:29:02
+  Time for Gate Operation: 17.555 sec
+  Rank after Gate Operation: 18
+  Time for Kraus Operation: 37.051 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.528 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 36.866 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.469 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 40.598 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.682 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 39.193 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.629 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 39.652 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.634 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 39.787 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.626 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 39.369 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.656 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 39.839 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.635 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 42.518 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.743 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 40.804 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.740 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 41.030 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.744 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 41.242 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.754 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 41.083 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.746 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 82.834 sec
+  Rank after Kraus Operation: 80
+  Time for truncation: 6.980 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 41.118 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.758 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 41.241 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.810 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 41.211 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.773 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 41.155 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.772 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 41.069 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.825 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 41.233 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.786 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 41.217 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.824 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 41.486 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.784 sec
+  Rank after truncation: 20
+
+=== Step 10 === current time 02:45:55
+  Time for Gate Operation: 19.489 sec
+  Rank after Gate Operation: 20
+  Time for Kraus Operation: 41.666 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.755 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 86.924 sec
+  Rank after Kraus Operation: 84
+  Time for truncation: 7.826 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 84.681 sec
+  Rank after Kraus Operation: 84
+  Time for truncation: 7.776 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 42.113 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 2.947 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 42.270 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 2.922 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 84.818 sec
+  Rank after Kraus Operation: 84
+  Time for truncation: 7.801 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 42.336 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 2.979 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 83.193 sec
+  Rank after Kraus Operation: 84
+  Time for truncation: 7.700 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 42.679 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 2.952 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 41.897 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 2.976 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 42.005 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 3.030 sec
+  Rank after truncation: 22
+  Time for Kraus Operation: 45.679 sec
+  Rank after Kraus Operation: 44
+  Time for truncation: 3.116 sec
+  Rank after truncation: 22
+  Time for Kraus Operation: 43.074 sec
+  Rank after Kraus Operation: 44
+  Time for truncation: 3.159 sec
+  Rank after truncation: 22
+  Time for Kraus Operation: 43.361 sec
+  Rank after Kraus Operation: 44
+  Time for truncation: 3.180 sec
+  Rank after truncation: 22
+  Time for Kraus Operation: 87.177 sec
+  Rank after Kraus Operation: 88
+  Time for truncation: 8.534 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 90.870 sec
+  Rank after Kraus Operation: 92
+  Time for truncation: 9.227 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 43.828 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.229 sec
+  Rank after truncation: 23
+
+=== Step 11 === current time 03:04:05
+  Time for Gate Operation: 15.058 sec
+  Rank after Gate Operation: 23
+  Time for Kraus Operation: 43.530 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.216 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 43.860 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.261 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 43.879 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.125 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 44.007 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.111 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 44.427 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.310 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 44.367 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.259 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 44.500 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.150 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 44.560 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.214 sec
+  Rank after truncation: 23
+
+=== Step 12 === current time 03:10:39
+  Time for Gate Operation: 20.917 sec
+  Rank after Gate Operation: 23
+  Time for Kraus Operation: 45.022 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.179 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 44.802 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.205 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 44.720 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.220 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 44.803 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.215 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 44.726 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.190 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 44.391 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.400 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 44.933 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.281 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 89.748 sec
+  Rank after Kraus Operation: 92
+  Time for truncation: 9.298 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 44.888 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.197 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 44.565 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.286 sec
+  Rank after truncation: 23
+
+=== Step 13 === current time 03:19:51
+  Time for Gate Operation: 15.607 sec
+  Rank after Gate Operation: 23
+  Time for Kraus Operation: 45.744 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.371 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 44.966 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.303 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 45.283 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.403 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 45.072 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.273 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 44.994 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.142 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 45.030 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.365 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 45.135 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.311 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 90.850 sec
+  Rank after Kraus Operation: 92
+  Time for truncation: 9.307 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 48.915 sec
+  Rank after Kraus Operation: 48
+  Time for truncation: 3.275 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 47.123 sec
+  Rank after Kraus Operation: 48
+  Time for truncation: 3.521 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 93.274 sec
+  Rank after Kraus Operation: 96
+  Time for truncation: 9.703 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 47.878 sec
+  Rank after Kraus Operation: 48
+  Time for truncation: 3.392 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 46.866 sec
+  Rank after Kraus Operation: 48
+  Time for truncation: 3.239 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 94.756 sec
+  Rank after Kraus Operation: 96
+  Time for truncation: 10.313 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 96.924 sec
+  Rank after Kraus Operation: 96
+  Time for truncation: 10.037 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 47.952 sec
+  Rank after Kraus Operation: 48
+  Time for truncation: 3.417 sec
+  Rank after truncation: 24
+
+=== Simulation END @ 03:36:57 ===
+Total Simulation Time: 7551.353 sec
+Simulation Time: 8082.235 seconds
+Final Rank: 24
+
+
+batch size: 87381
+
+
+current time ==  03:36:57
+Running LRET simulation for 23 qubits...
+
+=== Step 1 === current time 03:36:57
+  Time for Gate Operation: 1.045 sec
+  Rank after Gate Operation: 1
+  Time for Kraus Operation: 2.388 sec
+  Rank after Kraus Operation: 2
+  Time for truncation: 0.173 sec
+  Rank after truncation: 1
+  Time for Kraus Operation: 2.428 sec
+  Rank after Kraus Operation: 2
+  Time for truncation: 0.180 sec
+  Rank after truncation: 2
+  Time for Kraus Operation: 6.117 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 0.626 sec
+  Rank after truncation: 3
+  Time for Kraus Operation: 3.957 sec
+  Rank after Kraus Operation: 6
+  Time for truncation: 0.481 sec
+  Rank after truncation: 3
+  Time for Kraus Operation: 3.849 sec
+  Rank after Kraus Operation: 6
+  Time for truncation: 0.482 sec
+  Rank after truncation: 3
+  Time for Kraus Operation: 3.752 sec
+  Rank after Kraus Operation: 6
+  Time for truncation: 0.463 sec
+  Rank after truncation: 3
+  Time for Kraus Operation: 4.020 sec
+  Rank after Kraus Operation: 6
+  Time for truncation: 0.516 sec
+  Rank after truncation: 3
+  Time for Kraus Operation: 4.417 sec
+  Rank after Kraus Operation: 6
+  Time for truncation: 0.541 sec
+  Rank after truncation: 3
+
+=== Step 2 === current time 03:37:33
+  Time for Gate Operation: 1.882 sec
+  Rank after Gate Operation: 3
+  Time for Kraus Operation: 9.034 sec
+  Rank after Kraus Operation: 12
+  Time for truncation: 1.024 sec
+  Rank after truncation: 4
+  Time for Kraus Operation: 5.234 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 0.685 sec
+  Rank after truncation: 4
+  Time for Kraus Operation: 5.210 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 0.693 sec
+  Rank after truncation: 4
+  Time for Kraus Operation: 5.155 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 0.694 sec
+  Rank after truncation: 4
+  Time for Kraus Operation: 5.175 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 0.696 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 13.924 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 1.934 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 6.902 sec
+  Rank after Kraus Operation: 10
+  Time for truncation: 1.097 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 6.769 sec
+  Rank after Kraus Operation: 10
+  Time for truncation: 1.170 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 6.532 sec
+  Rank after Kraus Operation: 10
+  Time for truncation: 1.153 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 6.570 sec
+  Rank after Kraus Operation: 10
+  Time for truncation: 1.177 sec
+  Rank after truncation: 6
+  Time for Kraus Operation: 7.766 sec
+  Rank after Kraus Operation: 12
+  Time for truncation: 1.392 sec
+  Rank after truncation: 6
+  Time for Kraus Operation: 7.678 sec
+  Rank after Kraus Operation: 12
+  Time for truncation: 1.381 sec
+  Rank after truncation: 6
+  Time for Kraus Operation: 7.889 sec
+  Rank after Kraus Operation: 12
+  Time for truncation: 1.111 sec
+  Rank after truncation: 7
+  Time for Kraus Operation: 8.810 sec
+  Rank after Kraus Operation: 14
+  Time for truncation: 1.561 sec
+  Rank after truncation: 7
+  Time for Kraus Operation: 17.745 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 2.712 sec
+  Rank after truncation: 8
+  Time for Kraus Operation: 19.263 sec
+  Rank after Kraus Operation: 32
+  Time for truncation: 2.811 sec
+  Rank after truncation: 8
+  Time for Kraus Operation: 19.514 sec
+  Rank after Kraus Operation: 32
+  Time for truncation: 2.880 sec
+  Rank after truncation: 9
+
+=== Step 3 === current time 03:40:38
+  Time for Gate Operation: 4.480 sec
+  Rank after Gate Operation: 9
+  Time for Kraus Operation: 21.461 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 3.442 sec
+  Rank after truncation: 9
+  Time for Kraus Operation: 10.622 sec
+  Rank after Kraus Operation: 18
+  Time for truncation: 2.053 sec
+  Rank after truncation: 9
+  Time for Kraus Operation: 20.958 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 3.891 sec
+  Rank after truncation: 10
+  Time for Kraus Operation: 11.662 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 1.799 sec
+  Rank after truncation: 10
+  Time for Kraus Operation: 9.116 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 1.524 sec
+  Rank after truncation: 10
+
+=== Step 4 === current time 03:42:09
+  Time for Gate Operation: 3.876 sec
+  Rank after Gate Operation: 10
+  Time for Kraus Operation: 8.639 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 1.559 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 9.329 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 1.667 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 9.126 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 1.669 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 9.234 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 1.640 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 8.773 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 1.684 sec
+  Rank after truncation: 12
+  Time for Kraus Operation: 9.667 sec
+  Rank after Kraus Operation: 24
+  Time for truncation: 1.768 sec
+  Rank after truncation: 12
+  Time for Kraus Operation: 10.301 sec
+  Rank after Kraus Operation: 24
+  Time for truncation: 1.879 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 10.553 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.964 sec
+  Rank after truncation: 13
+
+=== Step 5 === current time 03:43:42
+  Time for Gate Operation: 4.129 sec
+  Rank after Gate Operation: 13
+  Time for Kraus Operation: 11.122 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.988 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 11.031 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 2.030 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 10.763 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 2.012 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 11.059 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.993 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 10.486 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 2.008 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 10.954 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 2.006 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 11.255 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 2.000 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 11.005 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.999 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 10.730 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 2.050 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 11.364 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 2.171 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 23.108 sec
+  Rank after Kraus Operation: 56
+  Time for truncation: 4.330 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 11.596 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 2.091 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 11.480 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 2.096 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 11.053 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 2.137 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 11.877 sec
+  Rank after Kraus Operation: 30
+  Time for truncation: 2.292 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 12.086 sec
+  Rank after Kraus Operation: 30
+  Time for truncation: 2.245 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 24.381 sec
+  Rank after Kraus Operation: 60
+  Time for truncation: 4.626 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 12.296 sec
+  Rank after Kraus Operation: 30
+  Time for truncation: 2.307 sec
+  Rank after truncation: 16
+
+=== Step 6 === current time 03:48:17
+  Time for Gate Operation: 4.498 sec
+  Rank after Gate Operation: 16
+  Time for Kraus Operation: 24.882 sec
+  Rank after Kraus Operation: 64
+  Time for truncation: 5.478 sec
+  Rank after truncation: 16
+  Time for Kraus Operation: 12.566 sec
+  Rank after Kraus Operation: 32
+  Time for truncation: 2.412 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 13.599 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.563 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 12.991 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.590 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 13.178 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.577 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 26.513 sec
+  Rank after Kraus Operation: 68
+  Time for truncation: 6.273 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 13.260 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.500 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 12.980 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.553 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 13.251 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.537 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 13.169 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.561 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 13.159 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.516 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 12.791 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.520 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 13.234 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.503 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 26.434 sec
+  Rank after Kraus Operation: 68
+  Time for truncation: 6.424 sec
+  Rank after truncation: 18
+
+=== Step 7 === current time 03:52:49
+  Time for Gate Operation: 6.022 sec
+  Rank after Gate Operation: 18
+  Time for Kraus Operation: 13.478 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.654 sec
+  Rank after truncation: 18
+
+=== Step 8 === current time 03:53:11
+  Time for Gate Operation: 5.281 sec
+  Rank after Gate Operation: 18
+  Time for Kraus Operation: 13.530 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.650 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 27.879 sec
+  Rank after Kraus Operation: 72
+  Time for truncation: 7.348 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 13.659 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.617 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 13.755 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.655 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 13.489 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.653 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 13.173 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.603 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 13.484 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.631 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 13.510 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.616 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 13.565 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.609 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 27.599 sec
+  Rank after Kraus Operation: 72
+  Time for truncation: 7.318 sec
+  Rank after truncation: 18
+
+=== Step 9 === current time 03:56:36
+  Time for Gate Operation: 5.692 sec
+  Rank after Gate Operation: 18
+  Time for Kraus Operation: 13.660 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.635 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 13.731 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.684 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 13.847 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.784 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 14.065 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.809 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 14.144 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.781 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 13.940 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.800 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 13.504 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.661 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 13.295 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.805 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 13.371 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 3.042 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 13.890 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 3.031 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 13.828 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.790 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 14.093 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.874 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 13.848 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.948 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 27.788 sec
+  Rank after Kraus Operation: 80
+  Time for truncation: 8.192 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 14.337 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.884 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 14.162 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.862 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 13.701 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.910 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 14.432 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.837 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 13.930 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.936 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 14.106 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.923 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 14.040 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.917 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 13.459 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.795 sec
+  Rank after truncation: 20
+
+=== Step 10 === current time 04:03:09
+  Time for Gate Operation: 6.114 sec
+  Rank after Gate Operation: 20
+  Time for Kraus Operation: 13.870 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.903 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 30.632 sec
+  Rank after Kraus Operation: 84
+  Time for truncation: 8.439 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 30.827 sec
+  Rank after Kraus Operation: 84
+  Time for truncation: 8.540 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 15.500 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 3.059 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 14.640 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 3.129 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 30.276 sec
+  Rank after Kraus Operation: 84
+  Time for truncation: 8.591 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 14.928 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 3.209 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 31.362 sec
+  Rank after Kraus Operation: 84
+  Time for truncation: 8.560 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 15.384 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 3.043 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 14.644 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 3.144 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 14.926 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 3.137 sec
+  Rank after truncation: 22
+  Time for Kraus Operation: 15.461 sec
+  Rank after Kraus Operation: 44
+  Time for truncation: 2.962 sec
+  Rank after truncation: 22
+  Time for Kraus Operation: 15.712 sec
+  Rank after Kraus Operation: 44
+  Time for truncation: 3.135 sec
+  Rank after truncation: 22
+  Time for Kraus Operation: 15.127 sec
+  Rank after Kraus Operation: 44
+  Time for truncation: 2.972 sec
+  Rank after truncation: 22
+  Time for Kraus Operation: 31.591 sec
+  Rank after Kraus Operation: 88
+  Time for truncation: 9.100 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 34.103 sec
+  Rank after Kraus Operation: 92
+  Time for truncation: 9.561 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 16.488 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.229 sec
+  Rank after truncation: 23
+
+=== Step 11 === current time 04:10:37
+  Time for Gate Operation: 6.246 sec
+  Rank after Gate Operation: 23
+  Time for Kraus Operation: 16.141 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.424 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 16.145 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.204 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 15.789 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.112 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 15.818 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.168 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 16.311 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.402 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 16.614 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.416 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 15.979 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.210 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 15.887 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.154 sec
+  Rank after truncation: 23
+
+=== Step 12 === current time 04:13:18
+  Time for Gate Operation: 6.750 sec
+  Rank after Gate Operation: 23
+  Time for Kraus Operation: 15.918 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.258 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 16.010 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.113 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 16.321 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.374 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 15.767 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.355 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 16.052 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.189 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 15.953 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.399 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 16.054 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.350 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 34.539 sec
+  Rank after Kraus Operation: 92
+  Time for truncation: 9.362 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 16.316 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.102 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 15.693 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.149 sec
+  Rank after truncation: 23
+
+=== Step 13 === current time 04:17:02
+  Time for Gate Operation: 6.201 sec
+  Rank after Gate Operation: 23
+  Time for Kraus Operation: 16.247 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.393 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 16.144 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.133 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 15.804 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.185 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 15.938 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.119 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 16.040 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.478 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 16.019 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.241 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 16.512 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.409 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 33.805 sec
+  Rank after Kraus Operation: 92
+  Time for truncation: 9.521 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 16.671 sec
+  Rank after Kraus Operation: 48
+  Time for truncation: 3.299 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 16.540 sec
+  Rank after Kraus Operation: 48
+  Time for truncation: 3.323 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 35.380 sec
+  Rank after Kraus Operation: 96
+  Time for truncation: 10.078 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 16.588 sec
+  Rank after Kraus Operation: 48
+  Time for truncation: 3.581 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 16.372 sec
+  Rank after Kraus Operation: 48
+  Time for truncation: 3.272 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 34.635 sec
+  Rank after Kraus Operation: 96
+  Time for truncation: 9.880 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 35.488 sec
+  Rank after Kraus Operation: 96
+  Time for truncation: 10.001 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 16.663 sec
+  Rank after Kraus Operation: 48
+  Time for truncation: 3.228 sec
+  Rank after truncation: 24
+
+=== Simulation END @ 04:24:02 ===
+Total Simulation Time: 2824.786 sec
+Simulation Time: 2825.376 seconds
+Final Rank: 24
+******** Time with batch size 512 =: 8082.234821557999 *** and time with batch size 87381 =: 2825.3760402202606 ***** speed difference 0.34957856367697293
+
+current time ==  04:24:03
+Running FDM simulation for 23 qubits...
+
+=== Step 1 === current time 04:24:03
+  Time for Gate Operation: 32.051 sec
+  Rank after Gate Operation: 1
+  Time for Kraus Operation: 94.720 sec
+  Rank after Kraus Operation: 2
+  Time for truncation: 0.156 sec
+  Rank after truncation: 1
+  Time for Kraus Operation: 95.237 sec
+  Rank after Kraus Operation: 2
+  Time for truncation: 0.163 sec
+  Rank after truncation: 2
+  Time for Kraus Operation: 374.911 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 0.598 sec
+  Rank after truncation: 3
+  Time for Kraus Operation: 283.668 sec
+  Rank after Kraus Operation: 6
+  Time for truncation: 0.451 sec
+  Rank after truncation: 3
+  Time for Kraus Operation: 280.381 sec
+  Rank after Kraus Operation: 6
+  Time for truncation: 0.461 sec
+  Rank after truncation: 3
+  Time for Kraus Operation: 279.179 sec
+  Rank after Kraus Operation: 6
+  Time for truncation: 0.465 sec
+  Rank after truncation: 3
+  Time for Kraus Operation: 281.818 sec
+  Rank after Kraus Operation: 6
+  Time for truncation: 0.459 sec
+  Rank after truncation: 3
+  Time for Kraus Operation: 283.586 sec
+  Rank after Kraus Operation: 6
+  Time for truncation: 0.483 sec
+  Rank after truncation: 3
+
+=== Simulation END @ 04:57:31 ===
+Total Simulation Time: 2008.791 sec
+
+=== Step 2 === current time 04:57:31
+  Time for Gate Operation: 141.576 sec
+  Rank after Gate Operation: 3
+  Time for Kraus Operation: 554.144 sec
+  Rank after Kraus Operation: 12
+  Time for truncation: 0.873 sec
+  Rank after truncation: 4
+  Time for Kraus Operation: 377.415 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 0.564 sec
+  Rank after truncation: 4
+  Time for Kraus Operation: 375.909 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 0.594 sec
+  Rank after truncation: 4
+  Time for Kraus Operation: 375.646 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 0.609 sec
+  Rank after truncation: 4
+  Time for Kraus Operation: 364.061 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 0.601 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 923.946 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 1.387 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 471.724 sec
+  Rank after Kraus Operation: 10
+  Time for truncation: 0.767 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 454.198 sec
+  Rank after Kraus Operation: 10
+  Time for truncation: 0.751 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 456.853 sec
+  Rank after Kraus Operation: 10
+  Time for truncation: 0.734 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 469.053 sec
+  Rank after Kraus Operation: 10
+  Time for truncation: 0.761 sec
+  Rank after truncation: 6
+  Time for Kraus Operation: 565.515 sec
+  Rank after Kraus Operation: 12
+  Time for truncation: 0.913 sec
+  Rank after truncation: 6
+  Time for Kraus Operation: 566.296 sec
+  Rank after Kraus Operation: 12
+  Time for truncation: 0.893 sec
+  Rank after truncation: 6
+  Time for Kraus Operation: 548.155 sec
+  Rank after Kraus Operation: 12
+  Time for truncation: 0.913 sec
+  Rank after truncation: 7
+  Time for Kraus Operation: 657.730 sec
+  Rank after Kraus Operation: 14
+  Time for truncation: 1.042 sec
+  Rank after truncation: 7
+  Time for Kraus Operation: 1298.884 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 1.908 sec
+  Rank after truncation: 8
+  Time for Kraus Operation: 1482.573 sec
+  Rank after Kraus Operation: 32
+  Time for truncation: 2.107 sec
+  Rank after truncation: 8
+  Time for Kraus Operation: 1483.725 sec
+  Rank after Kraus Operation: 32
+  Time for truncation: 2.161 sec
+  Rank after truncation: 9
+
+=== Simulation END @ 08:10:36 ===
+Total Simulation Time: 13593.776 sec
+
+=== Step 3 === current time 08:10:36
+  Time for Gate Operation: 425.763 sec
+  Rank after Gate Operation: 9
+  Time for Kraus Operation: 1670.200 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.550 sec
+  Rank after truncation: 9
+  Time for Kraus Operation: 849.337 sec
+  Rank after Kraus Operation: 18
+  Time for truncation: 1.328 sec
+  Rank after truncation: 9
+  Time for Kraus Operation: 1670.074 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.400 sec
+  Rank after truncation: 10
+  Time for Kraus Operation: 940.181 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 1.421 sec
+  Rank after truncation: 10
+  Time for Kraus Operation: 938.463 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 1.450 sec
+  Rank after truncation: 10
+
+=== Simulation END @ 09:59:00 ===
+Total Simulation Time: 20096.945 sec
+
+=== Step 4 === current time 09:59:00
+  Time for Gate Operation: 441.949 sec
+  Rank after Gate Operation: 10
+  Time for Kraus Operation: 912.505 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 1.468 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 1043.222 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 1.582 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 1045.263 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 1.561 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 1041.277 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 1.573 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 1046.454 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 1.611 sec
+  Rank after truncation: 12
+  Time for Kraus Operation: 1149.900 sec
+  Rank after Kraus Operation: 24
+  Time for truncation: 1.698 sec
+  Rank after truncation: 12
+  Time for Kraus Operation: 1150.231 sec
+  Rank after Kraus Operation: 24
+  Time for truncation: 1.736 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 1246.933 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.842 sec
+  Rank after truncation: 13
+
+=== Simulation END @ 12:30:30 ===
+Total Simulation Time: 29187.754 sec
+
+=== Step 5 === current time 12:30:30
+  Time for Gate Operation: 418.368 sec
+  Rank after Gate Operation: 13
+  Time for Kraus Operation: 1247.175 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.844 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 1231.028 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.847 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 1254.128 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.831 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 1239.554 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.834 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 1236.741 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.851 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 1239.059 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.837 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 1241.293 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.822 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 1189.744 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.851 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 1201.297 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 1.856 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 1330.426 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 1.963 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 2654.368 sec
+  Rank after Kraus Operation: 56
+  Time for truncation: 3.763 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 1291.972 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 1.965 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 1307.545 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 1.973 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 1305.807 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 2.001 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 1442.298 sec
+  Rank after Kraus Operation: 30
+  Time for truncation: 2.115 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 1435.652 sec
+  Rank after Kraus Operation: 30
+  Time for truncation: 2.099 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 2841.819 sec
+  Rank after Kraus Operation: 60
+  Time for truncation: 4.269 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 1426.847 sec
+  Rank after Kraus Operation: 30
+  Time for truncation: 2.111 sec
+  Rank after truncation: 16
+
+=== Simulation END @ 19:53:24 ===
+Total Simulation Time: 55761.713 sec
+
+=== Step 6 === current time 19:53:24
+  Time for Gate Operation: 517.514 sec
+  Rank after Gate Operation: 16
+  Time for Kraus Operation: 3005.078 sec
+  Rank after Kraus Operation: 64
+  Time for truncation: 5.191 sec
+  Rank after truncation: 16
+  Time for Kraus Operation: 1476.953 sec
+  Rank after Kraus Operation: 32
+  Time for truncation: 2.277 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 1628.433 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.436 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 1649.393 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.535 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 1651.399 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.432 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 3288.309 sec
+  Rank after Kraus Operation: 68
+  Time for truncation: 6.031 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 1609.993 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.546 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 1637.138 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.383 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 1616.735 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.416 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 1567.177 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.614 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 1617.992 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.441 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 1577.818 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.474 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 1626.384 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 2.399 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 3185.592 sec
+  Rank after Kraus Operation: 68
+  Time for truncation: 6.062 sec
+  Rank after truncation: 18
+
+=== Simulation END @ 03:35:05 ===
+Total Simulation Time: 83461.862 sec
+
+=== Step 7 === current time 03:35:05
+  Time for Gate Operation: 857.017 sec
+  Rank after Gate Operation: 18
+  Time for Kraus Operation: 1650.660 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.541 sec
+  Rank after truncation: 18
+
+=== Simulation END @ 04:16:55 ===
+Total Simulation Time: 85972.081 sec
+
+=== Step 8 === current time 04:16:55
+  Time for Gate Operation: 694.401 sec
+  Rank after Gate Operation: 18
+  Time for Kraus Operation: 1760.062 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.592 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 3368.668 sec
+  Rank after Kraus Operation: 72
+  Time for truncation: 6.810 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 1666.416 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.546 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 1665.262 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.526 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 1711.463 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.514 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 1710.750 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.518 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 1713.843 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.541 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 1711.917 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.599 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 1707.399 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.516 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 3382.914 sec
+  Rank after Kraus Operation: 72
+  Time for truncation: 6.990 sec
+  Rank after truncation: 18
+
+=== Simulation END @ 10:09:02 ===
+Total Simulation Time: 107099.333 sec
+
+=== Step 9 === current time 10:09:02
+  Time for Gate Operation: 853.595 sec
+  Rank after Gate Operation: 18
+  Time for Kraus Operation: 1718.702 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.527 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 1667.885 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 2.573 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 1807.136 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.763 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 1810.808 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.757 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 1807.044 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.858 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 1810.562 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.804 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 1757.043 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.930 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 1765.831 sec
+  Rank after Kraus Operation: 38
+  Time for truncation: 2.915 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 1979.073 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.819 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 1946.018 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 3.067 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 1899.562 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.918 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 1923.904 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 3.002 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 1902.725 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.924 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 3803.723 sec
+  Rank after Kraus Operation: 80
+  Time for truncation: 8.051 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 1876.064 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.998 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 1903.949 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 3.012 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 1914.353 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.923 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 1916.564 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 3.028 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 1862.050 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 3.031 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 1868.396 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 3.029 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 1957.097 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 2.929 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 1953.805 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 3.007 sec
+  Rank after truncation: 20
+
+=== Simulation END @ 22:18:37 ===
+Total Simulation Time: 150874.097 sec
+
+=== Step 10 === current time 22:18:37
+  Time for Gate Operation: 978.085 sec
+  Rank after Gate Operation: 20
+  Time for Kraus Operation: 1899.025 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 3.010 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 4044.621 sec
+  Rank after Kraus Operation: 84
+  Time for truncation: 8.605 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 3951.187 sec
+  Rank after Kraus Operation: 84
+  Time for truncation: 8.496 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 1995.431 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 3.035 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 1993.779 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 3.141 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 3927.104 sec
+  Rank after Kraus Operation: 84
+  Time for truncation: 8.509 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 1992.629 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 2.911 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 3931.727 sec
+  Rank after Kraus Operation: 84
+  Time for truncation: 8.369 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 1993.318 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 3.055 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 2005.639 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 2.932 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 1995.377 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 2.911 sec
+  Rank after truncation: 22
+  Time for Kraus Operation: 2035.819 sec
+  Rank after Kraus Operation: 44
+  Time for truncation: 3.187 sec
+  Rank after truncation: 22
+  Time for Kraus Operation: 2101.335 sec
+  Rank after Kraus Operation: 44
+  Time for truncation: 3.056 sec
+  Rank after truncation: 22
+  Time for Kraus Operation: 2120.674 sec
+  Rank after Kraus Operation: 44
+  Time for truncation: 3.336 sec
+  Rank after truncation: 22
+  Time for Kraus Operation: 4186.599 sec
+  Rank after Kraus Operation: 88
+  Time for truncation: 8.916 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 4353.883 sec
+  Rank after Kraus Operation: 92
+  Time for truncation: 9.530 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2152.380 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.141 sec
+  Rank after truncation: 23
+
+=== Simulation END @ 11:34:22 ===
+Total Simulation Time: 198618.853 sec
+
+=== Step 11 === current time 11:34:22
+  Time for Gate Operation: 745.666 sec
+  Rank after Gate Operation: 23
+  Time for Kraus Operation: 2208.585 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.148 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2204.775 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.226 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2204.567 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.445 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2126.583 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.179 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2194.943 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.160 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2192.429 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.158 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2136.789 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.320 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2236.013 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.431 sec
+  Rank after truncation: 23
+
+=== Simulation END @ 16:38:58 ===
+Total Simulation Time: 216895.271 sec
+
+=== Step 12 === current time 16:38:58
+  Time for Gate Operation: 1100.288 sec
+  Rank after Gate Operation: 23
+  Time for Kraus Operation: 2258.753 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.203 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2217.324 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.377 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2251.039 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.472 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2200.615 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.218 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2183.156 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.200 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2182.075 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.149 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2196.629 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.304 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 4392.410 sec
+  Rank after Kraus Operation: 92
+  Time for truncation: 10.171 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2262.243 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.211 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2169.076 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.193 sec
+  Rank after truncation: 23
+
+=== Simulation END @ 23:43:11 ===
+Total Simulation Time: 242348.385 sec
+
+=== Step 13 === current time 23:43:11
+  Time for Gate Operation: 754.895 sec
+  Rank after Gate Operation: 23
+  Time for Kraus Operation: 2183.796 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.304 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2220.665 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.118 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2218.477 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.178 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2189.004 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.106 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2190.254 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.204 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2120.818 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.123 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 2185.899 sec
+  Rank after Kraus Operation: 46
+  Time for truncation: 3.116 sec
+  Rank after truncation: 23
+  Time for Kraus Operation: 4485.357 sec
+  Rank after Kraus Operation: 92
+  Time for truncation: 9.476 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 2220.185 sec
+  Rank after Kraus Operation: 48
+  Time for truncation: 3.209 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 2287.513 sec
+  Rank after Kraus Operation: 48
+  Time for truncation: 3.297 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 4522.891 sec
+  Rank after Kraus Operation: 96
+  Time for truncation: 10.712 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 2222.231 sec
+  Rank after Kraus Operation: 48
+  Time for truncation: 3.201 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 2284.070 sec
+  Rank after Kraus Operation: 48
+  Time for truncation: 3.207 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 4513.634 sec
+  Rank after Kraus Operation: 96
+  Time for truncation: 10.119 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 4510.695 sec
+  Rank after Kraus Operation: 96
+  Time for truncation: 9.961 sec
+  Rank after truncation: 24
+  Time for Kraus Operation: 2290.483 sec
+  Rank after Kraus Operation: 48
+  Time for truncation: 3.200 sec
+  Rank after truncation: 24
+
+=== Simulation END @ 12:21:10 ===
+Total Simulation Time: 287827.790 sec
+Simulation Time: 287828.105 seconds
+Final Rank: 24
+Speed up: 35.612
+
+current time ==  12:21:11
+Forbenius norm: 1.9425972372359759
+trace distance: 0.0
+
+current time ==  12:21:18
+
+--------------------------------------------------------------------------------------------------
+
+number of qubits: 24
+
+INFO: n=24 is in the high-workload regime. Dynamically selected batch_size=512.
+batch size: 512
+
+
+current time ==  12:21:18
+Running LRET simulation for 24 qubits...
+
+=== Step 1 === current time 12:40:26
+  Time for Gate Operation: 12.656 sec
+  Rank after Gate Operation: 1
+  Time for Kraus Operation: 23.427 sec
+  Rank after Kraus Operation: 2
+  Time for truncation: 0.319 sec
+  Rank after truncation: 2
+
+=== Step 2 === current time 12:41:02
+  Time for Gate Operation: 17.392 sec
+  Rank after Gate Operation: 2
+  Time for Kraus Operation: 105.676 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 1.130 sec
+  Rank after truncation: 2
+  Time for Kraus Operation: 52.173 sec
+  Rank after Kraus Operation: 4
+  Time for truncation: 0.643 sec
+  Rank after truncation: 3
+  Time for Kraus Operation: 70.307 sec
+  Rank after Kraus Operation: 6
+  Time for truncation: 0.910 sec
+  Rank after truncation: 4
+  Time for Kraus Operation: 85.232 sec
+  Rank after Kraus Operation: 8
+  Time for truncation: 1.176 sec
+  Rank after truncation: 4
+  Time for Kraus Operation: 169.520 sec
+  Rank after Kraus Operation: 16
+  Time for truncation: 2.314 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 93.421 sec
+  Rank after Kraus Operation: 10
+  Time for truncation: 1.437 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 93.119 sec
+  Rank after Kraus Operation: 10
+  Time for truncation: 1.468 sec
+  Rank after truncation: 5
+  Time for Kraus Operation: 92.824 sec
+  Rank after Kraus Operation: 10
+  Time for truncation: 1.499 sec
+  Rank after truncation: 6
+  Time for Kraus Operation: 105.317 sec
+  Rank after Kraus Operation: 12
+  Time for truncation: 1.865 sec
+  Rank after truncation: 6
+  Time for Kraus Operation: 104.961 sec
+  Rank after Kraus Operation: 12
+  Time for truncation: 1.975 sec
+  Rank after truncation: 6
+  Time for Kraus Operation: 105.194 sec
+  Rank after Kraus Operation: 12
+  Time for truncation: 1.889 sec
+  Rank after truncation: 6
+  Time for Kraus Operation: 104.557 sec
+  Rank after Kraus Operation: 12
+  Time for truncation: 1.736 sec
+  Rank after truncation: 7
+  Time for Kraus Operation: 120.354 sec
+  Rank after Kraus Operation: 14
+  Time for truncation: 2.014 sec
+  Rank after truncation: 7
+  Time for Kraus Operation: 119.608 sec
+  Rank after Kraus Operation: 14
+  Time for truncation: 2.195 sec
+  Rank after truncation: 7
+  Time for Kraus Operation: 119.219 sec
+  Rank after Kraus Operation: 14
+  Time for truncation: 2.063 sec
+  Rank after truncation: 7
+  Time for Kraus Operation: 119.129 sec
+  Rank after Kraus Operation: 14
+  Time for truncation: 2.288 sec
+  Rank after truncation: 7
+  Time for Kraus Operation: 119.181 sec
+  Rank after Kraus Operation: 14
+  Time for truncation: 2.230 sec
+  Rank after truncation: 8
+  Time for Kraus Operation: 119.829 sec
+  Rank after Kraus Operation: 16
+  Time for truncation: 2.318 sec
+  Rank after truncation: 8
+  Time for Kraus Operation: 119.593 sec
+  Rank after Kraus Operation: 16
+  Time for truncation: 2.349 sec
+  Rank after truncation: 8
+  Time for Kraus Operation: 119.323 sec
+  Rank after Kraus Operation: 16
+  Time for truncation: 2.504 sec
+  Rank after truncation: 8
+  Time for Kraus Operation: 118.572 sec
+  Rank after Kraus Operation: 16
+  Time for truncation: 2.498 sec
+  Rank after truncation: 8
+  Time for Kraus Operation: 119.595 sec
+  Rank after Kraus Operation: 16
+  Time for truncation: 2.521 sec
+  Rank after truncation: 8
+  Time for Kraus Operation: 119.420 sec
+  Rank after Kraus Operation: 16
+  Time for truncation: 2.518 sec
+  Rank after truncation: 8
+
+=== Step 3 === current time 13:23:40
+  Time for Gate Operation: 58.357 sec
+  Rank after Gate Operation: 8
+  Time for Kraus Operation: 119.389 sec
+  Rank after Kraus Operation: 16
+  Time for truncation: 2.508 sec
+  Rank after truncation: 8
+  Time for Kraus Operation: 239.442 sec
+  Rank after Kraus Operation: 32
+  Time for truncation: 6.588 sec
+  Rank after truncation: 9
+  Time for Kraus Operation: 137.314 sec
+  Rank after Kraus Operation: 18
+  Time for truncation: 2.500 sec
+  Rank after truncation: 9
+  Time for Kraus Operation: 273.845 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 7.393 sec
+  Rank after truncation: 10
+  Time for Kraus Operation: 148.684 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 3.053 sec
+  Rank after truncation: 10
+  Time for Kraus Operation: 147.797 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 2.758 sec
+  Rank after truncation: 10
+  Time for Kraus Operation: 148.129 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 2.748 sec
+  Rank after truncation: 10
+  Time for Kraus Operation: 148.095 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 2.714 sec
+  Rank after truncation: 10
+
+=== Step 4 === current time 13:47:51
+  Time for Gate Operation: 24.837 sec
+  Rank after Gate Operation: 10
+  Time for Kraus Operation: 134.950 sec
+  Rank after Kraus Operation: 20
+  Time for truncation: 2.720 sec
+  Rank after truncation: 10
+  Time for Kraus Operation: 260.195 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 8.939 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 281.088 sec
+  Rank after Kraus Operation: 44
+  Time for truncation: 10.407 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 138.414 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 3.189 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 279.417 sec
+  Rank after Kraus Operation: 44
+  Time for truncation: 9.621 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 138.983 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 2.973 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 139.148 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 2.939 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 139.855 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 2.929 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 140.262 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 2.941 sec
+  Rank after truncation: 11
+  Time for Kraus Operation: 141.179 sec
+  Rank after Kraus Operation: 22
+  Time for truncation: 2.966 sec
+  Rank after truncation: 12
+  Time for Kraus Operation: 139.569 sec
+  Rank after Kraus Operation: 24
+  Time for truncation: 3.631 sec
+  Rank after truncation: 12
+  Time for Kraus Operation: 282.718 sec
+  Rank after Kraus Operation: 48
+  Time for truncation: 11.129 sec
+  Rank after truncation: 12
+  Time for Kraus Operation: 140.657 sec
+  Rank after Kraus Operation: 24
+  Time for truncation: 3.629 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 148.677 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 4.488 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 147.432 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 4.465 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 149.349 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 4.478 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 150.607 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 4.482 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 152.018 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 4.516 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 153.323 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 4.505 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 155.366 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 4.528 sec
+  Rank after truncation: 13
+
+=== Step 5 === current time 14:46:48
+  Time for Gate Operation: 76.489 sec
+  Rank after Gate Operation: 13
+  Time for Kraus Operation: 156.674 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 4.580 sec
+  Rank after truncation: 13
+  Time for Kraus Operation: 157.461 sec
+  Rank after Kraus Operation: 26
+  Time for truncation: 4.550 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 157.521 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 5.229 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 155.347 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 5.233 sec
+  Rank after truncation: 14
+  Time for Kraus Operation: 156.076 sec
+  Rank after Kraus Operation: 28
+  Time for truncation: 5.260 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 340.971 sec
+  Rank after Kraus Operation: 60
+  Time for truncation: 16.839 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 349.868 sec
+  Rank after Kraus Operation: 60
+  Time for truncation: 15.131 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 173.959 sec
+  Rank after Kraus Operation: 30
+  Time for truncation: 5.902 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 175.190 sec
+  Rank after Kraus Operation: 30
+  Time for truncation: 5.865 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 177.112 sec
+  Rank after Kraus Operation: 30
+  Time for truncation: 5.848 sec
+  Rank after truncation: 15
+  Time for Kraus Operation: 178.335 sec
+  Rank after Kraus Operation: 30
+  Time for truncation: 6.081 sec
+  Rank after truncation: 16
+  Time for Kraus Operation: 115.675 sec
+  Rank after Kraus Operation: 32
+  Time for truncation: 6.446 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 119.804 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 7.215 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 114.971 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 7.047 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 115.993 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 7.081 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 115.983 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 7.025 sec
+  Rank after truncation: 17
+
+=== Step 6 === current time 15:36:01
+  Time for Gate Operation: 56.729 sec
+  Rank after Gate Operation: 17
+  Time for Kraus Operation: 118.481 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 6.778 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 117.628 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 6.924 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 119.738 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 6.898 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 120.512 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 6.947 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 120.277 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 7.033 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 120.246 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 6.874 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 120.809 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 7.018 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 250.554 sec
+  Rank after Kraus Operation: 68
+  Time for truncation: 36.416 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 125.350 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 5.972 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 120.358 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 5.356 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 120.621 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 5.140 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 120.828 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 4.952 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 122.235 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 4.945 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 121.200 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 4.922 sec
+  Rank after truncation: 17
+
+=== Step 7 === current time 16:09:13
+  Time for Gate Operation: 46.719 sec
+  Rank after Gate Operation: 17
+  Time for Kraus Operation: 121.014 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 4.849 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 121.080 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 4.806 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 121.308 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 4.827 sec
+  Rank after truncation: 17
+  Time for Kraus Operation: 122.503 sec
+  Rank after Kraus Operation: 34
+  Time for truncation: 4.972 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 131.011 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.919 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 125.352 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.779 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 127.036 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.886 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 127.130 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.808 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 127.346 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.929 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 127.495 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.771 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 127.637 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.888 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 264.289 sec
+  Rank after Kraus Operation: 72
+  Time for truncation: 25.168 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 130.646 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.359 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 129.646 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.242 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 129.605 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.278 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 128.165 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.297 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 129.038 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.611 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 128.278 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.452 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 128.545 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.299 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 129.129 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.297 sec
+  Rank after truncation: 18
+
+=== Step 8 === current time 16:56:44
+  Time for Gate Operation: 50.749 sec
+  Rank after Gate Operation: 18
+  Time for Kraus Operation: 126.466 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.434 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 127.787 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.401 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 126.350 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.274 sec
+  Rank after truncation: 18
+
+=== Step 9 === current time 17:04:12
+  Time for Gate Operation: 62.170 sec
+  Rank after Gate Operation: 18
+  Time for Kraus Operation: 128.047 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.366 sec
+  Rank after truncation: 18
+
+=== Step 10 === current time 17:07:27
+  Time for Gate Operation: 62.314 sec
+  Rank after Gate Operation: 18
+  Time for Kraus Operation: 127.700 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.473 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 128.525 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.344 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 128.181 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.258 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 129.101 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.286 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 264.591 sec
+  Rank after Kraus Operation: 72
+  Time for truncation: 25.723 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 130.705 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.669 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 128.684 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.104 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 129.370 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.566 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 129.127 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.235 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 129.148 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.456 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 128.564 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.497 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 128.871 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.080 sec
+  Rank after truncation: 18
+  Time for Kraus Operation: 128.579 sec
+  Rank after Kraus Operation: 36
+  Time for truncation: 5.600 sec
+  Rank after truncation: 19
+  Time for Kraus Operation: 306.783 sec
+  Rank after Kraus Operation: 76
+  Time for truncation: 23.555 sec
+  Rank after truncation: 20
+  Time for Kraus Operation: 162.986 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 6.942 sec
+  Rank after truncation: 20
+
+=== Step 11 === current time 17:48:31
+  Time for Gate Operation: 55.047 sec
+  Rank after Gate Operation: 20
+  Time for Kraus Operation: 150.592 sec
+  Rank after Kraus Operation: 40
+  Time for truncation: 6.994 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 167.581 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 7.645 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 157.595 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 7.524 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 159.510 sec
+  Rank after Kraus Operation: 42
+  Time for truncation: 7.575 sec
+  Rank after truncation: 21
+  Time for Kraus Operation: 330.111 sec
+  Rank after Kraus Operation: 84
+---------------------------------------------------------------------------
+MemoryError                               Traceback (most recent call last)
+Cell In[14], line 581
+    578         print("\ncurrent time == ", formatted_time)
+    580 # Run it
+--> 581 test_lret_on_workstation()
+
+Cell In[14], line 530, in test_lret_on_workstation()
+    528 print(f"Running LRET simulation for {n} qubits...")
+    529 start_time = time.time()
+--> 530 L_final_parallel = run_simulation_optimized(L, gate_noise_sequence, n=n, batch_size= batch_size, verbose = True)
+    531 end_time = time.time()
+    532 time_para = end_time - start_time
+
+Cell In[14], line 205, in run_simulation_optimized(L_initial, gate_noise_sequence, n, batch_size, do_truncation, verbose, tol)
+    203 if do_truncation:
+    204     t_start = time.time()
+--> 205     _, L = compute_rho_eigen_from_L(L,tol)
+    206     t_end = time.time()
+    207     if verbose:
+
+Cell In[14], line 34, in compute_rho_eigen_from_L(L, epsilon)
+     29 def compute_rho_eigen_from_L(L, epsilon=1e-4):
+     30     """
+     31     Computes eigenvalues from the Gram matrix and performs truncation.
+     32     This version is robust and uses a standard ascending-order algorithm.
+     33     """
+---> 34     M = L.conj().T @ L
+     36     # np.linalg.eigh returns eigenvalues sorted in ASCENDING order.
+     37     eigenvalues, eigenvectors = np.linalg.eigh(M)
+
+MemoryError: Unable to allocate 21.0 GiB for an array with shape (16777216, 84) and data type complex128
+
+Click to add a cell.
+
+--------------------------------------------
+
+Shape (16777216, 84)
+
+The array you are trying to create has 16,777,216 rows × 84 columns.
+
+That’s about 1.41 billion elements (16,777,216 × 84 ≈ 1.41 × 10^9).
+
+Data type complex128
+
+A complex128 number is stored as two float64s (real + imaginary).
+
+Each one entry of array takes 16 bytes (8*2 bytes).
+
+Memory required
+
+Total = 1.41 × 10^9 elements × 16 bytes ≈ 22.6 GB.
+
+NumPy says it needs about 21 GiB (GiB uses base 1024, not 1000).
+
+Your system didn’t have enough contiguous RAM available to allocate this block
+
+Number of elements = 16,777,216 rows × 84 = 1,408,745,344
+
+16,777,216 × 84 = 1,408,745,344 Bytes per element
+
+16 bytes per complex128 
+
+Total memory required = 1,408,745,344 x 16 ≈ 22,539,925,504 bytes
+
+Converting:  22,539,925,504 / 1024^3 = 21.0 GiB

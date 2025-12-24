@@ -33,6 +33,32 @@ ParallelMode string_to_parallel_mode(const std::string& str) {
     return ParallelMode::AUTO;  // Default fallback
 }
 
+std::string noise_selection_to_string(NoiseSelection sel) {
+    switch (sel) {
+        case NoiseSelection::ALL:          return "all";
+        case NoiseSelection::DEPOLARIZING: return "depolarizing";
+        case NoiseSelection::AMPLITUDE:    return "amplitude";
+        case NoiseSelection::PHASE:        return "phase";
+        case NoiseSelection::REALISTIC:    return "realistic";
+        case NoiseSelection::NONE:         return "none";
+        default:                           return "unknown";
+    }
+}
+
+NoiseSelection string_to_noise_selection(const std::string& str) {
+    std::string lower = str;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+    
+    if (lower == "all")          return NoiseSelection::ALL;
+    if (lower == "depolarizing") return NoiseSelection::DEPOLARIZING;
+    if (lower == "amplitude")    return NoiseSelection::AMPLITUDE;
+    if (lower == "phase")        return NoiseSelection::PHASE;
+    if (lower == "realistic")    return NoiseSelection::REALISTIC;
+    if (lower == "none")         return NoiseSelection::NONE;
+    
+    return NoiseSelection::ALL;  // Default fallback
+}
+
 void print_help() {
     std::cout << R"(
 QuantumLRET-Sim - Low-Rank Exact Tensor Quantum Simulator
@@ -47,6 +73,14 @@ OPTIONS:
     -t, --threshold F     Truncation threshold (default: 1e-4)
     --noise F             Noise probability (default: 0.01)
 
+    --noise-type TYPE     Type of noise to apply:
+                          all         - All noise types (default)
+                          depolarizing - Only depolarizing noise
+                          amplitude   - Only amplitude damping
+                          phase       - Only phase damping
+                          realistic   - Realistic mix (varied rates)
+                          none        - No noise (pure unitary)
+
     --mode MODE           Parallelization mode:
                           auto|sequential|row|column|batch|hybrid|compare
                           (default: auto)
@@ -57,8 +91,7 @@ OPTIONS:
                           since pure states have only 1 column to process.
     --seed N              Random seed for mixed state (default: 0=time-based)
 
-    --fdm                 Enable FDM comparison (if qubits <= threshold)
-    --fdm-threshold N     Max qubits for FDM (default: 10)
+    --fdm                 Enable FDM comparison (memory permitting)
 
     -o, --output FILE     Export results to CSV
     -v, --verbose         Detailed output
@@ -71,8 +104,10 @@ EXAMPLES:
     quantum_sim -n 11 -d 13
     quantum_sim -n 10 --mode compare --fdm
     quantum_sim -n 8 --mode row -v --output results.csv
+    quantum_sim -n 10 --noise-type depolarizing --noise 0.05
 
 )";
+}
 }
 
 void print_version() {
@@ -146,15 +181,15 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
             continue;
         }
         
-        // FDM enable
-        if (arg == "--fdm") {
-            opts.enable_fdm = true;
+        // Noise type
+        if (arg == "--noise-type" && i + 1 < argc) {
+            opts.noise_selection = string_to_noise_selection(argv[++i]);
             continue;
         }
         
-        // FDM threshold
-        if (arg == "--fdm-threshold" && i + 1 < argc) {
-            opts.fdm_threshold = std::stoul(argv[++i]);
+        // FDM enable
+        if (arg == "--fdm") {
+            opts.enable_fdm = true;
             continue;
         }
         

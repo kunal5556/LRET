@@ -98,12 +98,69 @@ struct NoiseOp {
 // Union type for sequence elements
 using SequenceElement = std::variant<GateOp, NoiseOp>;
 
+// Noise statistics for tracking
+struct NoiseStats {
+    size_t depolarizing_count = 0;
+    size_t amplitude_damping_count = 0;
+    size_t phase_damping_count = 0;
+    size_t bit_flip_count = 0;
+    size_t phase_flip_count = 0;
+    size_t other_count = 0;
+    
+    double total_depolarizing_prob = 0.0;
+    double total_amplitude_prob = 0.0;
+    double total_phase_prob = 0.0;
+    double total_bit_flip_prob = 0.0;
+    double total_phase_flip_prob = 0.0;
+    double total_other_prob = 0.0;
+    
+    size_t total_count() const {
+        return depolarizing_count + amplitude_damping_count + phase_damping_count +
+               bit_flip_count + phase_flip_count + other_count;
+    }
+    
+    double total_probability() const {
+        return total_depolarizing_prob + total_amplitude_prob + total_phase_prob +
+               total_bit_flip_prob + total_phase_flip_prob + total_other_prob;
+    }
+    
+    void add(NoiseType type, double prob) {
+        switch (type) {
+            case NoiseType::DEPOLARIZING:
+                depolarizing_count++;
+                total_depolarizing_prob += prob;
+                break;
+            case NoiseType::AMPLITUDE_DAMPING:
+                amplitude_damping_count++;
+                total_amplitude_prob += prob;
+                break;
+            case NoiseType::PHASE_DAMPING:
+                phase_damping_count++;
+                total_phase_prob += prob;
+                break;
+            case NoiseType::BIT_FLIP:
+                bit_flip_count++;
+                total_bit_flip_prob += prob;
+                break;
+            case NoiseType::PHASE_FLIP:
+                phase_flip_count++;
+                total_phase_flip_prob += prob;
+                break;
+            default:
+                other_count++;
+                total_other_prob += prob;
+                break;
+        }
+    }
+};
+
 // Quantum sequence (circuit)
 struct QuantumSequence {
     size_t num_qubits;
     size_t depth;
     std::vector<SequenceElement> operations;
     double total_noise_probability;
+    NoiseStats noise_stats;
     
     QuantumSequence(size_t n = 0) 
         : num_qubits(n), depth(0), total_noise_probability(0.0) {}
@@ -115,6 +172,7 @@ struct QuantumSequence {
     void add_noise(const NoiseOp& noise) {
         operations.push_back(noise);
         total_noise_probability += noise.probability;
+        noise_stats.add(noise.type, noise.probability);
     }
     
     size_t size() const { return operations.size(); }

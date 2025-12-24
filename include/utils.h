@@ -107,12 +107,55 @@ double compute_frobenius_distance(const MatrixXcd& L1, const MatrixXcd& L2);
 double compute_purity(const MatrixXcd& L);
 
 /**
+ * @brief Compute linear entropy
+ * S_L = 1 - Tr[ρ²] = 1 - purity
+ * Linear entropy is 0 for pure states, maximum for maximally mixed
+ * @param L Low-rank factor
+ * @return Linear entropy in [0, 1-1/d]
+ */
+double compute_linear_entropy(const MatrixXcd& L);
+
+/**
  * @brief Compute von Neumann entropy
  * S(ρ) = -Tr[ρ log ρ]
  * @param L Low-rank factor
  * @return Entropy (in bits if using log2)
  */
 double compute_entropy(const MatrixXcd& L);
+
+/**
+ * @brief Compute relative entropy (Kullback-Leibler divergence)
+ * S(ρ||σ) = Tr[ρ(log ρ - log σ)]
+ * Note: Only defined when supp(ρ) ⊆ supp(σ)
+ * @param L1 First low-rank factor (ρ)
+ * @param L2 Second low-rank factor (σ)
+ * @return Relative entropy, or infinity if undefined
+ */
+double compute_relative_entropy(const MatrixXcd& L1, const MatrixXcd& L2);
+
+/**
+ * @brief Compute concurrence for a 2-qubit state
+ * C(ρ) = max(0, λ₁ - λ₂ - λ₃ - λ₄)
+ * where λᵢ are eigenvalues of sqrt(sqrt(ρ) * ρ̃ * sqrt(ρ)) in decreasing order
+ * and ρ̃ = (σy ⊗ σy) ρ* (σy ⊗ σy)
+ * 
+ * Only valid for 2-qubit systems (dim = 4)
+ * @param L Low-rank factor (must be 4xr for 2 qubits)
+ * @return Concurrence in [0, 1], or -1 if not a 2-qubit state
+ */
+double compute_concurrence(const MatrixXcd& L);
+
+/**
+ * @brief Compute negativity for bipartite entanglement
+ * N(ρ) = (||ρ^Tₐ||₁ - 1) / 2
+ * where ρ^Tₐ is partial transpose over subsystem A
+ * 
+ * @param L Low-rank factor
+ * @param num_qubits_A Number of qubits in subsystem A
+ * @param num_qubits Total number of qubits
+ * @return Negativity (0 for separable states)
+ */
+double compute_negativity(const MatrixXcd& L, size_t num_qubits_A, size_t num_qubits);
 
 /**
  * @brief Compute variational distance (distortion)

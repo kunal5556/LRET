@@ -5,9 +5,6 @@
 
 namespace qlret {
 
-// Default max qubits for FDM (beyond this, memory is too large)
-constexpr size_t DEFAULT_FDM_THRESHOLD = 10;
-
 // Check if FDM should run and estimate resources
 struct FDMCheckResult {
     bool should_run;
@@ -16,9 +13,13 @@ struct FDMCheckResult {
     double estimated_time_s;
 };
 
-FDMCheckResult check_fdm_feasibility(size_t num_qubits, size_t fdm_threshold, bool user_enabled);
+// Get available system memory in MB
+size_t get_available_memory_mb();
 
-// Run FDM simulation
+// Check FDM feasibility based on actual system resources (no arbitrary threshold)
+FDMCheckResult check_fdm_feasibility(size_t num_qubits, bool user_enabled);
+
+// Run FDM simulation with memory safety
 FDMResult run_fdm_simulation(
     const QuantumSequence& sequence,
     size_t num_qubits,

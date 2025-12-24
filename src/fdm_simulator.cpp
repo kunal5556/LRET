@@ -2,8 +2,33 @@
 #include "gates_and_noise.h"
 #include "utils.h"
 #include <iostream>
+#include <new>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/sysinfo.h>
+#include <unistd.h>
+#endif
 
 namespace qlret {
+
+size_t get_available_memory_mb() {
+#ifdef _WIN32
+    MEMORYSTATUSEX status;
+    status.dwLength = sizeof(status);
+    if (GlobalMemoryStatusEx(&status)) {
+        return static_cast<size_t>(status.ullAvailPhys / (1024 * 1024));
+    }
+    return 0;  // Unknown
+#else
+    struct sysinfo info;
+    if (sysinfo(&info) == 0) {
+        return static_cast<size_t>((info.freeram * info.mem_unit) / (1024 * 1024));
+    }
+    return 0;  // Unknown
+#endif
+}
 
 size_t estimate_fdm_memory(size_t num_qubits) {
     // Full density matrix: 2^n x 2^n complex numbers
@@ -16,10 +41,10 @@ size_t estimate_fdm_memory_mb(size_t num_qubits) {
     return estimate_fdm_memory(num_qubits) / (1024 * 1024);
 }
 
-FDMCheckResult check_fdm_feasibility(size_t num_qubits, size_t fdm_threshold, bool user_enabled) {
+FDMCheckResult check_fdm_feasibility(size_t num_qubits, bool user_enabled) {
     FDMCheckResult result;
     result.estimated_memory_mb = estimate_fdm_memory_mb(num_qubits);
-    result.estimated_time_s = 0.1 * std::pow(4.0, num_qubits - 4);  // Rough estimate
+    result.estimated_time_s = 0.1 * std::pow(4.0, static_cast<double>(num_qubits) - 4);
     
     if (!user_enabled) {
         result.should_run = false;
@@ -27,12 +52,33 @@ FDMCheckResult check_fdm_feasibility(size_t num_qubits, size_t fdm_threshold, bo
         return result;
     }
     
-    if (num_qubits > fdm_threshold) {
-        result.should_run = false;
-        result.skip_reason = "Qubits (" + std::to_string(num_qubits) + 
-                             ") exceed threshold (" + std::to_string(fdm_threshold) + 
-                             ") - would require ~" + std::to_string(result.estimated_memory_mb) + " MB";
+    // Check available memory
+    size_t available_mb = get_available_memory_mb();
+    
+    if (available_mb == 0) {
+        // Couldn't determine memory - warn but allow
+        std::cout << "Warning: Could not determine available memory. "
+                  << "FDM requires ~" << result.estimated_memory_mb << " MB.\n";
+        result.should_run = true;
+        result.skip_reason = "";
         return result;
+    }
+    
+    // Need at least 1.2x required memory (20% buffer for operations)
+    size_t required_with_buffer = static_cast<size_t>(result.estimated_memory_mb * 1.2);
+    
+    if (required_with_buffer > available_mb) {
+        result.should_run = false;
+        result.skip_reason = "Insufficient memory: need ~" + 
+                             std::to_string(result.estimated_memory_mb) + " MB, available: " + 
+                             std::to_string(available_mb) + " MB";
+        return result;
+    }
+    
+    // Warn for very large simulations
+    if (result.estimated_memory_mb > 10000) {  // > 10 GB
+        std::cout << "Warning: FDM will use ~" << result.estimated_memory_mb / 1024 
+                  << " GB of memory. Estimated time: " << result.estimated_time_s << "s\n";
     }
     
     result.should_run = true;

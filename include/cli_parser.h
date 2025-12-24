@@ -17,6 +17,16 @@ enum class ParallelMode {
     COMPARE     // Run all and compare
 };
 
+// Noise selection for CLI (which noise types to enable)
+enum class NoiseSelection {
+    ALL,           // All noise types (default)
+    DEPOLARIZING,  // Only depolarizing noise
+    AMPLITUDE,     // Only amplitude damping
+    PHASE,         // Only phase damping
+    REALISTIC,     // Realistic mix (different rates)
+    NONE           // No noise (for pure unitary evolution)
+};
+
 // Command-line options
 struct CLIOptions {
     // Simulation parameters
@@ -25,6 +35,9 @@ struct CLIOptions {
     double noise_prob = 0.01;
     double truncation_threshold = 1e-4;
     size_t batch_size = 0;  // 0 = auto
+    
+    // Noise type selection
+    NoiseSelection noise_selection = NoiseSelection::ALL;
     
     // High-rank testing (for parallelization benchmarking)
     // When > 1, starts with a random mixed state of given rank instead of |0...0>
@@ -38,7 +51,6 @@ struct CLIOptions {
     
     // FDM options
     bool enable_fdm = false;
-    size_t fdm_threshold = 10;
     
     // Output options
     bool verbose = false;
@@ -64,5 +76,9 @@ bool validate_options(const CLIOptions& opts, std::string& error_msg);
 // Mode string conversion
 std::string parallel_mode_to_string(ParallelMode mode);
 ParallelMode string_to_parallel_mode(const std::string& str);
+
+// Noise selection conversion
+std::string noise_selection_to_string(NoiseSelection sel);
+NoiseSelection string_to_noise_selection(const std::string& str);
 
 }  // namespace qlret
