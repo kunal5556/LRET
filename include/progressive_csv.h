@@ -23,7 +23,14 @@ class ProgressiveCSVWriter {
 public:
     ProgressiveCSVWriter() = default;
     
+    // Constructor that opens file immediately
+    explicit ProgressiveCSVWriter(const std::string& filename);
+    
+    // Destructor - ensure file is closed
+    ~ProgressiveCSVWriter() { close(); }
+    
     // Open file and write header
+    bool open(const std::string& filename);
     bool open(const std::string& filename, const CLIOptions& opts);
     
     // Close file
@@ -32,21 +39,24 @@ public:
     // Check if file is open
     bool is_open() const { return file_.is_open(); }
     
-    // Get filename
+    // Get filename (relative as provided)
     const std::string& filename() const { return filename_; }
+    
+    // Get absolute filepath
+    std::string get_filepath() const;
     
     //==========================================================================
     // Event Logging Methods
     //==========================================================================
     
     // Log simulation start
-    void log_start(size_t num_qubits, size_t depth, double noise_prob, 
-                   const std::string& mode);
+    void log_start(size_t num_qubits, size_t depth, 
+                   const std::string& mode, double noise_prob);
     
     // Log a step beginning (e.g., "=== Step 5 ===")
     void log_step_start(size_t step_num, const std::string& mode);
     
-    // Log an operation within a step
+    // Log an operation within a step (full version)
     void log_operation(
         const std::string& mode,
         size_t step_num,
@@ -55,6 +65,15 @@ public:
         size_t rank_after,
         double time_seconds,
         size_t memory_mb = 0
+    );
+    
+    // Log an operation (simple version without mode)
+    void log_operation(
+        size_t step_num,
+        const std::string& operation,
+        size_t rank_before,
+        size_t rank_after,
+        double time_seconds
     );
     
     // Log mode completion
@@ -82,16 +101,21 @@ public:
                           const std::string& message = "");
     
     // Log error or warning
+    void log_error(const std::string& message);  // Simple error with just message
     void log_error(const std::string& mode, const std::string& message);
     void log_warning(const std::string& mode, const std::string& message);
     
-    // Log final summary
+    // Log final summary (detailed version)
     void log_summary(
         const std::string& best_mode,
         double best_time,
         double fdm_time = -1.0,
         double fidelity_vs_fdm = -1.0
     );
+    
+    // Log final summary (simple version for single mode runs)
+    void log_summary(size_t final_rank, double trace_value, 
+                     double time_seconds, const std::string& status);
     
     // Log interrupt/timeout
     void log_interrupt(const std::string& reason);
@@ -125,7 +149,7 @@ private:
     double elapsed_seconds() const;
 };
 
-// Global progressive writer (optional, for convenience)
-extern ProgressiveCSVWriter g_csv_writer;
+// Global progressive writer pointer (set by main when CSV output is enabled)
+extern ProgressiveCSVWriter* g_csv_writer;
 
 }  // namespace qlret

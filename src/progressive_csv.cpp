@@ -4,17 +4,23 @@
 #include <ctime>
 #include <sstream>
 #include <cmath>
+#include <filesystem>
 
 namespace qlret {
 
-// Global instance
-ProgressiveCSVWriter g_csv_writer;
+// Global pointer (nullptr when not using CSV output)
+ProgressiveCSVWriter* g_csv_writer = nullptr;
 
-bool ProgressiveCSVWriter::open(const std::string& filename, const CLIOptions& opts) {
+// Constructor that opens file immediately
+ProgressiveCSVWriter::ProgressiveCSVWriter(const std::string& filename) {
+    open(filename);
+}
+
+// Simple open without CLIOptions
+bool ProgressiveCSVWriter::open(const std::string& filename) {
     std::lock_guard<std::mutex> lock(mutex_);
     
     filename_ = filename;
-    opts_ = opts;
     start_time_ = std::chrono::steady_clock::now();
     
     file_.open(filename, std::ios::out | std::ios::trunc);
@@ -29,6 +35,19 @@ bool ProgressiveCSVWriter::open(const std::string& filename, const CLIOptions& o
     file_.flush();
     
     return true;
+}
+
+bool ProgressiveCSVWriter::open(const std::string& filename, const CLIOptions& opts) {
+    opts_ = opts;
+    return open(filename);
+}
+
+std::string ProgressiveCSVWriter::get_filepath() const {
+    try {
+        return std::filesystem::absolute(filename_).string();
+    } catch (...) {
+        return filename_;  // Fallback to relative path
+    }
 }
 
 void ProgressiveCSVWriter::close() {
@@ -92,8 +111,8 @@ void ProgressiveCSVWriter::write_row(
 void ProgressiveCSVWriter::log_start(
     size_t num_qubits, 
     size_t depth, 
-    double noise_prob,
-    const std::string& mode
+    const std::string& mode,
+    double noise_prob
 ) {
     std::ostringstream msg;
     msg << "Starting simulation: " << num_qubits << " qubits, depth=" << depth 
@@ -122,6 +141,16 @@ void ProgressiveCSVWriter::log_operation(
     write_row("OPERATION", mode, static_cast<int>(step_num), operation,
               static_cast<int>(rank_before), static_cast<int>(rank_after),
               time_seconds, mem, std::nan(""), "OK", "");
+}
+
+void ProgressiveCSVWriter::log_operation(
+    size_t step_num,
+    const std::string& operation,
+    size_t rank_before,
+    size_t rank_after,
+    double time_seconds
+) {
+    log_operation("", step_num, operation, rank_before, rank_after, time_seconds, 0);
 }
 
 void ProgressiveCSVWriter::log_mode_complete(
@@ -173,6 +202,11 @@ void ProgressiveCSVWriter::log_fdm_complete(
               success ? "OK" : "FAILED", message);
 }
 
+void ProgressiveCSVWriter::log_error(const std::string& message) {
+    write_row("ERROR", "", -1, "", -1, -1, 0.0,
+              get_current_memory_usage_mb(), std::nan(""), "ERROR", message);
+}
+
 void ProgressiveCSVWriter::log_error(const std::string& mode, const std::string& message) {
     write_row("ERROR", mode, -1, "", -1, -1, 0.0,
               get_current_memory_usage_mb(), std::nan(""), "ERROR", message);
@@ -202,6 +236,21 @@ void ProgressiveCSVWriter::log_summary(
     
     write_row("SUMMARY", best_mode, -1, "", -1, -1, best_time,
               get_current_memory_usage_mb(), std::nan(""), "OK", msg.str());
+}
+
+void ProgressiveCSVWriter::log_summary(
+    size_t final_rank, 
+    double trace_value, 
+    double time_seconds, 
+    const std::string& status
+) {
+    std::ostringstream msg;
+    msg << "Final rank=" << final_rank << ", trace=" << std::fixed 
+        << std::setprecision(6) << trace_value << ", time=" 
+        << std::setprecision(3) << time_seconds << "s";
+    
+    write_row("SUMMARY", "", -1, "", -1, static_cast<int>(final_rank), time_seconds,
+              get_current_memory_usage_mb(), trace_value, status, msg.str());
 }
 
 void ProgressiveCSVWriter::log_interrupt(const std::string& reason) {

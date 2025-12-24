@@ -75,6 +75,14 @@ int main(int argc, char* argv[]) {
                 csv_writer.reset();
             } else {
                 g_csv_writer = csv_writer.get();
+                
+                // Print CSV file path immediately so user can monitor during long runs
+                std::cout << "========================================\n";
+                std::cout << "CSV Output: " << csv_writer->get_filepath() << "\n";
+                std::cout << "  (File updates in real-time - you can monitor with: tail -f " 
+                          << *opts.output_file << ")\n";
+                std::cout << "========================================\n\n";
+                
                 g_csv_writer->log_start(opts.num_qubits, opts.depth, 
                                         parallel_mode_to_string(opts.parallel_mode), opts.noise_prob);
             }

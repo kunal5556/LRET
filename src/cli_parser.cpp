@@ -62,57 +62,94 @@ NoiseSelection string_to_noise_selection(const std::string& str) {
 void print_help() {
     std::cout << R"(
 QuantumLRET-Sim - Low-Rank Exact Tensor Quantum Simulator
+Version 1.0.0
 
 USAGE:
     quantum_sim [OPTIONS]
 
-OPTIONS:
-    -n, --qubits N        Number of qubits (default: 11)
+SIMULATION OPTIONS:
+    -n, --qubits N        Number of qubits (1-20, default: 11)
     -d, --depth N         Circuit depth (default: 13)
-    -b, --batch N         Batch size, 0=auto (default: 0)
-    -t, --threshold F     Truncation threshold (default: 1e-4)
-    --noise F             Noise probability (default: 0.01)
+    -b, --batch N         Batch size for parallel processing (0=auto, default: 0)
+    -t, --threshold F     Truncation threshold for rank control (default: 1e-4)
+    --threads N           Limit OpenMP thread count (0=all cores, default: 0)
 
+NOISE OPTIONS:
+    --noise F             Noise probability per gate (0.0-1.0, default: 0.01)
     --noise-type TYPE     Type of noise to apply:
-                          all         - All noise types (default)
-                          depolarizing - Only depolarizing noise
-                          amplitude   - Only amplitude damping
-                          phase       - Only phase damping
-                          realistic   - Realistic mix (varied rates)
-                          none        - No noise (pure unitary)
+                          all         - All noise types randomly (default)
+                          depolarizing - Depolarizing channel only
+                          amplitude   - Amplitude damping only
+                          phase       - Phase damping only
+                          realistic   - Realistic mix with varied rates
+                          none        - No noise (pure unitary evolution)
 
-    --mode MODE           Parallelization mode:
-                          auto|sequential|row|column|batch|hybrid|compare
-                          (default: auto)
+PARALLELIZATION OPTIONS:
+    --mode MODE           Parallelization strategy:
+                          auto       - Auto-select best mode (default)
+                          sequential - No parallelization (baseline)
+                          row        - Parallelize over matrix rows
+                          column     - Parallelize over matrix columns
+                          batch      - Batch gate application
+                          hybrid     - Combined row/column strategy
+                          compare    - Run all modes and compare performance
 
+INITIAL STATE OPTIONS:
     --initial-rank N      Start with random mixed state of rank N (default: 1)
                           Rank=1 is pure state |0...0>.
-                          Higher rank enables meaningful parallel benchmarking
-                          since pure states have only 1 column to process.
-    --seed N              Random seed for mixed state (default: 0=time-based)
+                          Higher rank enables meaningful parallel benchmarking.
+    --seed N              Random seed for mixed state generation (0=time-based)
 
-    --fdm                 Enable FDM comparison (memory permitting)
+FDM (FULL DENSITY MATRIX) OPTIONS:
+    --fdm                 Enable FDM comparison (if memory permits)
     --fdm-force           Force FDM even with insufficient memory (test limits)
 
+RESOURCE MANAGEMENT OPTIONS:
     --allow-swap          Continue even if system is using swap memory
-    --timeout TIME        Timeout for simulation (e.g., 60, 5m, 2h, 1d)
-    --non-interactive     Skip all prompts (for automated runs)
+    --timeout TIME        Timeout for simulation. Formats supported:
+                          60        - 60 seconds
+                          5m        - 5 minutes
+                          2h        - 2 hours
+                          1d        - 1 day
+    --non-interactive     Skip all prompts (for scripted/automated runs)
 
-    -o, --output FILE     Export results to CSV (progressive, appends as it runs)
-    -v, --verbose         Detailed output
-    --threads N           Limit thread count, 0=all cores (default: 0)
+OUTPUT OPTIONS:
+    -o, --output FILE     Export results to CSV file. Features:
+                          - Progressive: writes after each operation
+                          - Absolute path shown at start for monitoring
+                          - Can use 'tail -f FILE' to watch progress
+    -v, --verbose         Show detailed step-by-step output
 
-    -h, --help            Show this help
-    --version             Show version
+HELP OPTIONS:
+    -h, --help            Show this help message
+    --version             Show version information
 
 EXAMPLES:
+    # Basic simulation with 11 qubits and depth 13
     quantum_sim -n 11 -d 13
+
+    # Compare all parallelization modes with FDM validation
     quantum_sim -n 10 --mode compare --fdm
-    quantum_sim -n 14 --fdm-force   # Test FDM at the memory limit
+
+    # Force FDM at memory limit for testing
+    quantum_sim -n 14 --fdm-force
+
+    # Detailed output with CSV export
     quantum_sim -n 8 --mode row -v --output results.csv
+
+    # Specific noise model with custom probability
     quantum_sim -n 10 --noise-type depolarizing --noise 0.05
-    quantum_sim -n 20 --timeout 2h -o long_run.csv  # 2 hour timeout
-    quantum_sim -n 15 --allow-swap --non-interactive  # Automated run
+
+    # Long-running simulation with 2 hour timeout
+    quantum_sim -n 20 --timeout 2h -o long_run.csv
+
+    # Automated/scripted run (no prompts)
+    quantum_sim -n 15 --allow-swap --non-interactive
+
+    # High-rank initial state for parallel benchmarking
+    quantum_sim -n 12 --initial-rank 16 --mode compare
+
+For more information, see: https://github.com/kunal5556/LRET
 
 )";
 }
