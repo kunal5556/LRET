@@ -13,6 +13,7 @@
 #include "progressive_csv.h"
 #include <iostream>
 #include <iomanip>
+#include <memory>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -285,7 +286,7 @@ int main(int argc, char* argv[]) {
             // Log summary to progressive CSV
             if (g_csv_writer) {
                 g_csv_writer->log_summary(result.final_rank, 
-                                          compute_trace(result.L_final), 
+                                          compute_purity(result.L_final), 
                                           result.time_seconds, "SUCCESS");
             }
             
@@ -307,3 +308,8 @@ int main(int argc, char* argv[]) {
         if (g_csv_writer) {
             g_csv_writer->log_error(e.what());
         }
+        return 1;
+    }
+    
+    return 0;
+}
