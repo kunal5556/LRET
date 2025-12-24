@@ -1,5 +1,6 @@
 #include "resource_monitor.h"
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <sstream>
 #include <cmath>

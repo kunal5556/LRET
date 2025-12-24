@@ -153,7 +153,6 @@ For more information, see: https://github.com/kunal5556/LRET
 
 )";
 }
-}
 
 void print_version() {
     std::cout << "QuantumLRET-Sim v1.0.0\n";
