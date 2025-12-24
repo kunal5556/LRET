@@ -51,6 +51,7 @@ struct CLIOptions {
     
     // FDM options
     bool enable_fdm = false;
+    bool fdm_force = false;  // Bypass memory check, attempt FDM anyway
     
     // Output options
     bool verbose = false;

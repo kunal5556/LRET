@@ -41,7 +41,7 @@ size_t estimate_fdm_memory_mb(size_t num_qubits) {
     return estimate_fdm_memory(num_qubits) / (1024 * 1024);
 }
 
-FDMCheckResult check_fdm_feasibility(size_t num_qubits, bool user_enabled) {
+FDMCheckResult check_fdm_feasibility(size_t num_qubits, bool user_enabled, bool force_run) {
     FDMCheckResult result;
     result.estimated_memory_mb = estimate_fdm_memory_mb(num_qubits);
     result.estimated_time_s = 0.1 * std::pow(4.0, static_cast<double>(num_qubits) - 4);
@@ -56,7 +56,7 @@ FDMCheckResult check_fdm_feasibility(size_t num_qubits, bool user_enabled) {
     size_t available_mb = get_available_memory_mb();
     
     if (available_mb == 0) {
-        // Couldn't determine memory - warn but allow
+        // Couldn't determine memory - warn but allow (will catch allocation failure)
         std::cout << "Warning: Could not determine available memory. "
                   << "FDM requires ~" << result.estimated_memory_mb << " MB.\n";
         result.should_run = true;
@@ -64,18 +64,37 @@ FDMCheckResult check_fdm_feasibility(size_t num_qubits, bool user_enabled) {
         return result;
     }
     
-    // Need at least 1.2x required memory (20% buffer for operations)
-    size_t required_with_buffer = static_cast<size_t>(result.estimated_memory_mb * 1.2);
-    
-    if (required_with_buffer > available_mb) {
+    // For "testing to the limit": only check if BASE memory is available
+    // No buffer - we'll catch allocation failures at runtime
+    // This allows FDM to run even when memory is tight
+    if (result.estimated_memory_mb > available_mb) {
+        if (force_run) {
+            std::cout << "Warning: --fdm-force enabled. Attempting FDM despite insufficient memory.\n"
+                      << "  Required: ~" << result.estimated_memory_mb << " MB, Available: " 
+                      << available_mb << " MB\n"
+                      << "  This may cause allocation failure or system instability.\n";
+            result.should_run = true;
+            result.skip_reason = "";
+            return result;
+        }
+        
         result.should_run = false;
         result.skip_reason = "Insufficient memory: need ~" + 
                              std::to_string(result.estimated_memory_mb) + " MB, available: " + 
-                             std::to_string(available_mb) + " MB";
+                             std::to_string(available_mb) + " MB. "
+                             "Use --fdm-force to attempt anyway.";
         return result;
     }
     
-    // Warn for very large simulations
+    // Warn if memory is tight (less than 20% buffer)
+    double memory_ratio = static_cast<double>(available_mb) / result.estimated_memory_mb;
+    if (memory_ratio < 1.2) {
+        std::cout << "Warning: Available memory (" << available_mb << " MB) is close to "
+                  << "requirement (" << result.estimated_memory_mb << " MB). "
+                  << "FDM may fail during computation.\n";
+    }
+    
+    // Warn for very large simulations (time estimate)
     if (result.estimated_memory_mb > 10000) {  // > 10 GB
         std::cout << "Warning: FDM will use ~" << result.estimated_memory_mb / 1024 
                   << " GB of memory. Estimated time: " << result.estimated_time_s << "s\n";

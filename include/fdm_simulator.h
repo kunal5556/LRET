@@ -16,10 +16,11 @@ struct FDMCheckResult {
 // Get available system memory in MB
 size_t get_available_memory_mb();
 
-// Check FDM feasibility based on actual system resources (no arbitrary threshold)
-FDMCheckResult check_fdm_feasibility(size_t num_qubits, bool user_enabled);
+// Check FDM feasibility based on actual system resources
+// If force_run is true, bypasses memory check (for testing limits)
+FDMCheckResult check_fdm_feasibility(size_t num_qubits, bool user_enabled, bool force_run = false);
 
-// Run FDM simulation with memory safety
+// Run FDM simulation with memory safety (wrapped in try-catch)
 FDMResult run_fdm_simulation(
     const QuantumSequence& sequence,
     size_t num_qubits,

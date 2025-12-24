@@ -82,18 +82,35 @@ int main(int argc, char* argv[]) {
         config.verbose = opts.verbose;
         config.do_truncation = true;
         
-        // Check FDM feasibility
-        auto fdm_check = check_fdm_feasibility(opts.num_qubits, opts.enable_fdm);
+        // Check FDM feasibility (pass force flag to bypass memory check)
+        auto fdm_check = check_fdm_feasibility(opts.num_qubits, opts.enable_fdm, opts.fdm_force);
         
         std::optional<FDMResult> fdm_result;
         std::optional<MetricsResult> fdm_metrics;
         
-        // Run FDM if applicable
+        // Run FDM if applicable (wrapped in try-catch for graceful failure)
         if (fdm_check.should_run) {
             std::cout << "Running FDM simulation..." << std::flush;
-            fdm_result = run_fdm_simulation(sequence, opts.num_qubits, opts.verbose);
-            std::cout << " done (" << std::fixed << std::setprecision(3) 
-                      << fdm_result->time_seconds << "s)\n";
+            try {
+                fdm_result = run_fdm_simulation(sequence, opts.num_qubits, opts.verbose);
+                std::cout << " done (" << std::fixed << std::setprecision(3) 
+                          << fdm_result->time_seconds << "s)\n";
+            } catch (const std::bad_alloc& e) {
+                std::cout << " FAILED (memory allocation error)\n";
+                std::cerr << "FDM aborted: Could not allocate memory. "
+                          << "Required ~" << fdm_check.estimated_memory_mb << " MB.\n";
+                FDMResult failed;
+                failed.was_run = false;
+                failed.skip_reason = "Memory allocation failed during execution";
+                fdm_result = failed;
+            } catch (const std::exception& e) {
+                std::cout << " FAILED\n";
+                std::cerr << "FDM aborted: " << e.what() << "\n";
+                FDMResult failed;
+                failed.was_run = false;
+                failed.skip_reason = std::string("Runtime error: ") + e.what();
+                fdm_result = failed;
+            }
         } else if (opts.enable_fdm) {
             FDMResult skipped;
             skipped.was_run = false;

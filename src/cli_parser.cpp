@@ -92,6 +92,7 @@ OPTIONS:
     --seed N              Random seed for mixed state (default: 0=time-based)
 
     --fdm                 Enable FDM comparison (memory permitting)
+    --fdm-force           Force FDM even with insufficient memory (test limits)
 
     -o, --output FILE     Export results to CSV
     -v, --verbose         Detailed output
@@ -103,6 +104,7 @@ OPTIONS:
 EXAMPLES:
     quantum_sim -n 11 -d 13
     quantum_sim -n 10 --mode compare --fdm
+    quantum_sim -n 14 --fdm-force   # Test FDM at the memory limit
     quantum_sim -n 8 --mode row -v --output results.csv
     quantum_sim -n 10 --noise-type depolarizing --noise 0.05
 
@@ -190,6 +192,13 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
         // FDM enable
         if (arg == "--fdm") {
             opts.enable_fdm = true;
+            continue;
+        }
+        
+        // FDM force (bypass memory check)
+        if (arg == "--fdm-force") {
+            opts.enable_fdm = true;
+            opts.fdm_force = true;
             continue;
         }
         
