@@ -25,6 +25,7 @@
 #include "gates_and_noise.h"
 #include "simulator.h"
 #include "utils.h"
+#include "structured_csv.h"
 #include <iostream>
 #include <thread>
 #include <unordered_map>
@@ -660,11 +661,22 @@ std::vector<ModeResult> run_all_modes_comparison(
     for (auto mode : modes_to_test) {
         std::cout << "Running " << parallel_mode_to_string(mode) << "..." << std::flush;
         
+        // Begin LRET progress logging for this mode
+        if (g_structured_csv) {
+            g_structured_csv->begin_lret_progress(num_qubits, sequence.operations.size(), mode);
+        }
+        
         auto result = run_with_mode(L_init, sequence, num_qubits, mode, config, batch_size);
         results.push_back(result);
         
         std::cout << " done (" << std::fixed << std::setprecision(4) 
                   << result.time_seconds << "s)\n";
+        
+        // End LRET progress and write mode metrics
+        if (g_structured_csv) {
+            g_structured_csv->end_lret_progress(result.time_seconds, true, mode);
+            g_structured_csv->write_lret_mode_metrics(result, mode);
+        }
     }
     
     // Compute metrics for each mode vs sequential baseline

@@ -37,6 +37,7 @@ set(LIB_SOURCES
     src/fdm_simulator.cpp
     src/resource_monitor.cpp
     src/progressive_csv.cpp
+    src/structured_csv.cpp
 )
 
 # Create static library

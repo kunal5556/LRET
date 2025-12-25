@@ -10,7 +10,7 @@
 #include "simulator.h"
 #include "utils.h"
 #include "resource_monitor.h"
-#include "progressive_csv.h"
+#include "structured_csv.h"
 #include <iostream>
 #include <iomanip>
 #include <memory>
@@ -22,6 +22,8 @@
 using namespace qlret;
 
 int main(int argc, char* argv[]) {
+    auto program_start_time = std::chrono::steady_clock::now();
+    
     try {
         // Setup signal handlers for graceful Ctrl+C handling
         setup_signal_handlers();
@@ -67,26 +69,31 @@ int main(int argc, char* argv[]) {
             }
         }
         
-        // Initialize progressive CSV writer if output file specified
-        std::unique_ptr<ProgressiveCSVWriter> csv_writer;
+        // Determine output filename (use default if not specified)
+        std::string csv_filename;
         if (opts.output_file) {
-            csv_writer = std::make_unique<ProgressiveCSVWriter>(*opts.output_file);
-            if (!csv_writer->is_open()) {
-                std::cerr << "Warning: Could not open CSV file for writing\n";
-                csv_writer.reset();
-            } else {
-                g_csv_writer = csv_writer.get();
-                
-                // Print CSV file path immediately so user can monitor during long runs
-                std::cout << "========================================\n";
-                std::cout << "CSV Output: " << csv_writer->get_filepath() << "\n";
-                std::cout << "  (File updates in real-time - you can monitor with: tail -f " 
-                          << *opts.output_file << ")\n";
-                std::cout << "========================================\n\n";
-                
-                g_csv_writer->log_start(opts.num_qubits, opts.depth, 
-                                        parallel_mode_to_string(opts.parallel_mode), opts.noise_prob);
-            }
+            csv_filename = *opts.output_file;
+        } else {
+            // Generate default filename based on parameters
+            csv_filename = generate_default_csv_filename(opts);
+            std::cout << "Using default output filename: " << csv_filename << "\n";
+        }
+        
+        // Initialize structured CSV writer
+        std::unique_ptr<StructuredCSVWriter> csv_writer;
+        csv_writer = std::make_unique<StructuredCSVWriter>(csv_filename);
+        if (!csv_writer->is_open()) {
+            std::cerr << "Warning: Could not open CSV file for writing: " << csv_filename << "\n";
+            csv_writer.reset();
+        } else {
+            g_structured_csv = csv_writer.get();
+            
+            // Print CSV file path immediately so user can monitor during long runs
+            std::cout << "========================================\n";
+            std::cout << "CSV Output: " << csv_writer->get_filepath() << "\n";
+            std::cout << "  (File updates in real-time)\n";
+            std::cout << "  Monitor with: tail -f " << csv_filename << "\n";
+            std::cout << "========================================\n\n";
         }
         
         // Configure threading
@@ -105,6 +112,11 @@ int main(int argc, char* argv[]) {
             opts.num_qubits, opts.depth, true, opts.noise_prob
         );
         double noise_in_circuit = sequence.total_noise_probability;
+        
+        // Write CSV header section
+        if (g_structured_csv) {
+            g_structured_csv->write_header(opts, sequence.noise_stats);
+        }
         
         // Print circuit if verbose
         if (opts.verbose) {
@@ -140,8 +152,8 @@ int main(int argc, char* argv[]) {
         // Check for abort before FDM
         if (should_abort()) {
             std::cout << "\nAborted before FDM simulation.\n";
-            if (g_csv_writer) {
-                g_csv_writer->log_interrupt("Aborted before FDM");
+            if (g_structured_csv) {
+                g_structured_csv->log_interrupt("Aborted before FDM");
             }
             return 130;  // Standard interrupt exit code
         }
@@ -149,10 +161,22 @@ int main(int argc, char* argv[]) {
         // Run FDM if applicable (wrapped in try-catch for graceful failure)
         if (fdm_check.should_run) {
             std::cout << "Running FDM simulation..." << std::flush;
+            
+            // Start FDM progress logging
+            if (g_structured_csv) {
+                g_structured_csv->begin_fdm_progress(opts.num_qubits, opts.depth);
+            }
+            
             try {
                 fdm_result = run_fdm_simulation(sequence, opts.num_qubits, opts.verbose);
                 std::cout << " done (" << std::fixed << std::setprecision(3) 
                           << fdm_result->time_seconds << "s)\n";
+                
+                // End FDM progress and write metrics
+                if (g_structured_csv) {
+                    g_structured_csv->end_fdm_progress(fdm_result->time_seconds, true);
+                    g_structured_csv->write_fdm_metrics(*fdm_result, opts.num_qubits, sequence.noise_stats);
+                }
             } catch (const std::bad_alloc& e) {
                 std::cout << " FAILED (memory allocation error)\n";
                 std::cerr << "FDM aborted: Could not allocate memory. "
@@ -161,6 +185,10 @@ int main(int argc, char* argv[]) {
                 failed.was_run = false;
                 failed.skip_reason = "Memory allocation failed during execution";
                 fdm_result = failed;
+                
+                if (g_structured_csv) {
+                    g_structured_csv->end_fdm_progress(0, false, "Memory allocation failed");
+                }
             } catch (const std::exception& e) {
                 std::cout << " FAILED\n";
                 std::cerr << "FDM aborted: " << e.what() << "\n";
@@ -168,19 +196,27 @@ int main(int argc, char* argv[]) {
                 failed.was_run = false;
                 failed.skip_reason = std::string("Runtime error: ") + e.what();
                 fdm_result = failed;
+                
+                if (g_structured_csv) {
+                    g_structured_csv->end_fdm_progress(0, false, e.what());
+                }
             }
         } else if (opts.enable_fdm) {
             FDMResult skipped;
             skipped.was_run = false;
             skipped.skip_reason = fdm_check.skip_reason;
             fdm_result = skipped;
+            
+            if (g_structured_csv) {
+                g_structured_csv->write_fdm_metrics(skipped, opts.num_qubits, sequence.noise_stats);
+            }
         }
         
         // Check for abort before LRET simulation
         if (should_abort()) {
             std::cout << "\nAborted before LRET simulation.\n";
-            if (g_csv_writer) {
-                g_csv_writer->log_interrupt("Aborted before LRET");
+            if (g_structured_csv) {
+                g_structured_csv->log_interrupt("Aborted before LRET");
             }
             return 130;
         }
@@ -207,6 +243,27 @@ int main(int argc, char* argv[]) {
                     compute_frobenius_distance_rho(rho_lret, fdm_result->rho_final),
                     compute_variational_distance(rho_lret, fdm_result->rho_final)
                 };
+            }
+            
+            // Write structured CSV comparison tables
+            if (g_structured_csv) {
+                g_structured_csv->write_mode_comparison(results);
+                if (fdm_result && fdm_result->was_run) {
+                    g_structured_csv->write_fdm_comparison(results, *fdm_result);
+                }
+                
+                // Write summary
+                auto wall_clock_end = std::chrono::steady_clock::now();
+                double total_wall_time = std::chrono::duration<double>(wall_clock_end - program_start_time).count();
+                
+                // Compute total LRET time
+                double total_lret_time = 0;
+                for (const auto& r : results) {
+                    total_lret_time += r.time_seconds;
+                }
+                
+                double fdm_time = (fdm_result && fdm_result->was_run) ? fdm_result->time_seconds : 0;
+                g_structured_csv->write_summary(total_wall_time, total_lret_time, fdm_time, true, "");
             }
             
             std::cout << "\n";
@@ -283,11 +340,12 @@ int main(int argc, char* argv[]) {
             print_standard_output(opts, result, metrics, noise_in_circuit, 
                                   sequence.noise_stats, fdm_result, fdm_metrics, state_metrics);
             
-            // Log summary to progressive CSV
-            if (g_csv_writer) {
-                g_csv_writer->log_summary(result.final_rank, 
-                                          compute_purity(result.L_final), 
-                                          result.time_seconds, "SUCCESS");
+            // Log summary to structured CSV
+            if (g_structured_csv) {
+                auto wall_clock_end = std::chrono::steady_clock::now();
+                double total_wall_time = std::chrono::duration<double>(wall_clock_end - program_start_time).count();
+                double fdm_time = (fdm_result && fdm_result->was_run) ? fdm_result->time_seconds : 0;
+                g_structured_csv->write_summary(total_wall_time, result.time_seconds, fdm_time, true, "");
             }
             
             if (opts.output_file) {
@@ -305,8 +363,8 @@ int main(int argc, char* argv[]) {
         
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
-        if (g_csv_writer) {
-            g_csv_writer->log_error(e.what());
+        if (g_structured_csv) {
+            g_structured_csv->log_error(e.what());
         }
         return 1;
     }

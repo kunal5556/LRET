@@ -1,6 +1,7 @@
 #include "fdm_simulator.h"
 #include "gates_and_noise.h"
 #include "utils.h"
+#include "structured_csv.h"
 #include <iostream>
 #include <new>
 
@@ -160,19 +161,40 @@ FDMResult run_fdm_simulation(
     MatrixXcd rho = create_zero_density_matrix(num_qubits);
     
     size_t step = 0;
+    size_t total_gates = 0;
+    size_t total_noise = 0;
+    
     for (const auto& op : sequence.operations) {
         step++;
         
         if (std::holds_alternative<GateOp>(op)) {
             const auto& gate = std::get<GateOp>(op);
+            auto gate_start = std::chrono::steady_clock::now();
             rho = apply_gate_to_rho(rho, gate, num_qubits);
+            auto gate_time = std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - gate_start).count();
+            total_gates++;
+            
+            // Log gate operation
+            if (g_structured_csv) {
+                g_structured_csv->log_fdm_gate(step, gate_time);
+            }
             
             if (verbose && step % 50 == 0) {
                 std::cout << "FDM step " << step << std::endl;
             }
         } else {
             const auto& noise = std::get<NoiseOp>(op);
+            auto noise_start = std::chrono::steady_clock::now();
             rho = apply_noise_to_rho(rho, noise, num_qubits);
+            auto noise_time = std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - noise_start).count();
+            total_noise++;
+            
+            // Log noise operation
+            if (g_structured_csv) {
+                g_structured_csv->log_fdm_noise(step, noise_time);
+            }
         }
     }
     
