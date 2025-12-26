@@ -126,6 +126,11 @@ public:
     // Simplified metrics (result and mode only)
     void write_lret_mode_metrics(const ModeResult& result, ParallelMode mode);
     
+    // Full metrics including state metrics (purity, entropy, etc.)
+    void write_lret_mode_metrics_full(const ModeResult& result, size_t num_qubits,
+                                      double purity, double entropy, double linear_entropy,
+                                      double concurrence, double negativity);
+    
     //==========================================================================
     // Section 6: Mode Comparison Table (All LRET Modes)
     //==========================================================================

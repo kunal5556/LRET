@@ -509,6 +509,45 @@ void StructuredCSVWriter::write_lret_mode_metrics(const ModeResult& result, Para
     end_section();
 }
 
+// Full write_lret_mode_metrics with all state metrics
+void StructuredCSVWriter::write_lret_mode_metrics_full(const ModeResult& result, size_t num_qubits,
+                                                        double purity, double entropy, double linear_entropy,
+                                                        double concurrence, double negativity) {
+    std::string mode_str = parallel_mode_to_string(result.mode);
+    begin_section("LRET_METRICS_" + mode_str);
+    
+    write_csv_row({"metric", "value", "unit", "description"});
+    
+    // Execution metrics
+    write_csv_row({"mode", mode_str, "", "Parallelization mode"});
+    write_csv_row({"num_qubits", std::to_string(num_qubits), "", "Number of qubits"});
+    write_csv_row({"time_seconds", format_double(result.time_seconds, 6), "s", "Execution time"});
+    write_csv_row({"final_rank", std::to_string(result.final_rank), "", "Final L-matrix rank"});
+    write_csv_row({"trace", format_double(result.trace_value, 10), "", "Tr(rho) - should be 1"});
+    write_csv_row({"speedup", format_double(result.speedup, 4), "x", "vs sequential baseline"});
+    
+    // Distance metrics vs sequential baseline
+    write_csv_row({"fidelity_vs_seq", format_double(result.fidelity, 10), "", "Fidelity vs sequential"});
+    write_csv_row({"trace_distance_vs_seq", format_double(result.trace_distance, 10), "", "Trace distance vs sequential"});
+    write_csv_row({"frobenius_distance_vs_seq", format_double(result.frobenius_distance, 10), "", "||L - L_seq||_F"});
+    write_csv_row({"distortion_vs_seq", format_double(result.distortion, 10), "", "Relative distortion vs sequential"});
+    
+    // State metrics (from quantum information theory)
+    write_csv_row({"purity", format_double(purity, 10), "", "Tr(rho^2) - 1 for pure, 1/d for maximally mixed"});
+    write_csv_row({"von_neumann_entropy", format_double(entropy, 10), "bits", "S = -Tr(rho log2 rho)"});
+    write_csv_row({"linear_entropy", format_double(linear_entropy, 10), "", "S_L = 1 - Tr(rho^2)"});
+    
+    // Entanglement metrics (conditional)
+    if (concurrence >= 0) {
+        write_csv_row({"concurrence", format_double(concurrence, 10), "", "Entanglement measure (2-qubit only)"});
+    }
+    if (negativity >= 0) {
+        write_csv_row({"negativity", format_double(negativity, 10), "", "Bipartite negativity (half-half split)"});
+    }
+    
+    end_section();
+}
+
 //==============================================================================
 // Section 6: Mode Comparison
 //==============================================================================

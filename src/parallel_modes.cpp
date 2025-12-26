@@ -672,10 +672,9 @@ std::vector<ModeResult> run_all_modes_comparison(
         std::cout << " done (" << std::fixed << std::setprecision(4) 
                   << result.time_seconds << "s)\n";
         
-        // End LRET progress and write mode metrics
+        // End LRET progress (but DON'T write metrics yet - wait until speedup is computed)
         if (g_structured_csv) {
             g_structured_csv->end_lret_progress(result.time_seconds, true, mode);
-            g_structured_csv->write_lret_mode_metrics(result, mode);
         }
     }
     
@@ -713,6 +712,30 @@ std::vector<ModeResult> run_all_modes_comparison(
                 
                 // Trace distance approximation: proportional to distortion for LRET
                 r.trace_distance = r.distortion;
+            }
+            
+            // Compute state metrics for each mode (purity, entropy, etc.)
+            double purity = compute_purity(r.L_final);
+            double entropy = compute_entropy(r.L_final);
+            double linear_entropy = compute_linear_entropy(r.L_final);
+            double concurrence = -1.0;
+            double negativity = -1.0;
+            
+            // Concurrence only for 2-qubit systems
+            if (num_qubits == 2) {
+                concurrence = compute_concurrence(r.L_final);
+            }
+            
+            // Negativity for bipartite split (half-half)
+            if (num_qubits >= 2) {
+                size_t split = num_qubits / 2;
+                negativity = compute_negativity(r.L_final, split, num_qubits);
+            }
+            
+            // Write comprehensive mode metrics to CSV (NOW that speedup is computed)
+            if (g_structured_csv) {
+                g_structured_csv->write_lret_mode_metrics_full(
+                    r, num_qubits, purity, entropy, linear_entropy, concurrence, negativity);
             }
         }
     }
