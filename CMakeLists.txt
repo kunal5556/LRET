@@ -53,29 +53,41 @@ endif()
 add_executable(quantum_sim main.cpp)
 target_link_libraries(quantum_sim PRIVATE qlret_lib)
 
-# Batch demo executable
-add_executable(demo_batch tests/demo_batch.cpp)
-target_link_libraries(demo_batch PRIVATE qlret_lib)
+# Batch demo executable (only if tests directory exists)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/demo_batch.cpp")
+    add_executable(demo_batch tests/demo_batch.cpp)
+    target_link_libraries(demo_batch PRIVATE qlret_lib)
+    set(BUILD_DEMO_BATCH TRUE)
+else()
+    set(BUILD_DEMO_BATCH FALSE)
+endif()
 
 # Compiler optimizations for Release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         target_compile_options(qlret_lib PRIVATE -O3 -march=native)
         target_compile_options(quantum_sim PRIVATE -O3 -march=native)
-        target_compile_options(demo_batch PRIVATE -O3 -march=native)
+        if(BUILD_DEMO_BATCH)
+            target_compile_options(demo_batch PRIVATE -O3 -march=native)
+        endif()
     elseif(MSVC)
         target_compile_options(qlret_lib PRIVATE /O2 /arch:AVX2)
         target_compile_options(quantum_sim PRIVATE /O2 /arch:AVX2)
-        target_compile_options(demo_batch PRIVATE /O2 /arch:AVX2)
+        if(BUILD_DEMO_BATCH)
+            target_compile_options(demo_batch PRIVATE /O2 /arch:AVX2)
+        endif()
     endif()
 endif()
 
 # Installation rules
-install(TARGETS quantum_sim demo_batch qlret_lib
+install(TARGETS quantum_sim qlret_lib
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
 )
+if(BUILD_DEMO_BATCH)
+    install(TARGETS demo_batch RUNTIME DESTINATION bin)
+endif()
 
 install(DIRECTORY include/ DESTINATION include)
 
