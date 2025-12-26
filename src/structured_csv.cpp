@@ -205,11 +205,10 @@ void StructuredCSVWriter::write_header(const CLIOptions& opts, const NoiseStats&
     write_csv_row({"num_threads", std::to_string(opts.num_threads)});
     
     // Noise statistics
-    write_csv_row({"total_noise_events", std::to_string(noise_stats.total_noise_ops)});
+    write_csv_row({"total_noise_events", std::to_string(noise_stats.total_count())});
     write_csv_row({"depolarizing_count", std::to_string(noise_stats.depolarizing_count)});
     write_csv_row({"amplitude_damping_count", std::to_string(noise_stats.amplitude_damping_count)});
     write_csv_row({"phase_damping_count", std::to_string(noise_stats.phase_damping_count)});
-    write_csv_row({"total_gates", std::to_string(noise_stats.total_gates)});
     
     end_section();
 }
@@ -270,6 +269,24 @@ void StructuredCSVWriter::log_fdm_noise(size_t step, const std::string& noise_ty
                    format_double(elapsed_seconds(), 3)});
 }
 
+// Simplified FDM gate logging (step and time only)
+void StructuredCSVWriter::log_fdm_gate(size_t step, double time_seconds) {
+    write_csv_row({get_timestamp(), format_double(elapsed_seconds(), 3),
+                   std::to_string(step), "GATE", "",
+                   format_double(time_seconds, 6),
+                   std::to_string(get_current_memory_usage_mb()),
+                   format_double(elapsed_seconds(), 3)});
+}
+
+// Simplified FDM noise logging (step and time only)
+void StructuredCSVWriter::log_fdm_noise(size_t step, double time_seconds) {
+    write_csv_row({get_timestamp(), format_double(elapsed_seconds(), 3),
+                   std::to_string(step), "NOISE", "",
+                   format_double(time_seconds, 6),
+                   std::to_string(get_current_memory_usage_mb()),
+                   format_double(elapsed_seconds(), 3)});
+}
+
 void StructuredCSVWriter::end_fdm_progress(double total_time, bool success,
                                             const std::string& message) {
     write_csv_row({get_timestamp(), format_double(elapsed_seconds(), 3),
@@ -300,11 +317,10 @@ void StructuredCSVWriter::write_fdm_metrics(const FDMResult& fdm_result,
         write_csv_row({"matrix_size_gb", format_double((1ULL << (2*num_qubits)) * 16.0 / (1024*1024*1024), 3), "GB", "Full density matrix size"});
         
         // Noise breakdown
-        write_csv_row({"total_noise_ops", std::to_string(noise_stats.total_noise_ops), "", "Total noise operations applied"});
+        write_csv_row({"total_noise_ops", std::to_string(noise_stats.total_count()), "", "Total noise operations applied"});
         write_csv_row({"depolarizing_ops", std::to_string(noise_stats.depolarizing_count), "", "Depolarizing noise count"});
         write_csv_row({"amplitude_damping_ops", std::to_string(noise_stats.amplitude_damping_count), "", "Amplitude damping count"});
         write_csv_row({"phase_damping_ops", std::to_string(noise_stats.phase_damping_count), "", "Phase damping count"});
-        write_csv_row({"total_gates", std::to_string(noise_stats.total_gates), "", "Total gates applied"});
     } else {
         write_csv_row({"status", "SKIPPED", "", fdm_result.skip_reason});
     }
@@ -328,6 +344,11 @@ void StructuredCSVWriter::begin_lret_progress(const std::string& mode,
                    std::to_string(get_current_memory_usage_mb())});
 }
 
+// Simplified begin_lret_progress with ParallelMode enum
+void StructuredCSVWriter::begin_lret_progress(size_t num_qubits, size_t depth, ParallelMode mode) {
+    begin_lret_progress(parallel_mode_to_string(mode), num_qubits, depth);
+}
+
 void StructuredCSVWriter::log_lret_step_start(const std::string& mode, size_t step) {
     write_csv_row({get_timestamp(), format_double(elapsed_seconds(), 3),
                    std::to_string(step), "STEP_START", "", "", "", "0",
@@ -337,6 +358,16 @@ void StructuredCSVWriter::log_lret_step_start(const std::string& mode, size_t st
 void StructuredCSVWriter::log_lret_gate(const std::string& mode, size_t step,
                                          size_t rank_before, size_t rank_after,
                                          double time_seconds) {
+    write_csv_row({get_timestamp(), format_double(elapsed_seconds(), 3),
+                   std::to_string(step), "GATE", "",
+                   std::to_string(rank_before), std::to_string(rank_after),
+                   format_double(time_seconds, 6),
+                   std::to_string(get_current_memory_usage_mb())});
+}
+
+// Simplified log_lret_gate (no mode parameter)
+void StructuredCSVWriter::log_lret_gate(size_t step, double time_seconds,
+                                         size_t rank_before, size_t rank_after) {
     write_csv_row({get_timestamp(), format_double(elapsed_seconds(), 3),
                    std::to_string(step), "GATE", "",
                    std::to_string(rank_before), std::to_string(rank_after),
@@ -355,9 +386,29 @@ void StructuredCSVWriter::log_lret_kraus(const std::string& mode, size_t step,
                    std::to_string(get_current_memory_usage_mb())});
 }
 
+// Simplified log_lret_kraus (no mode or noise_type parameter)
+void StructuredCSVWriter::log_lret_kraus(size_t step, double time_seconds,
+                                          size_t rank_before, size_t rank_after) {
+    write_csv_row({get_timestamp(), format_double(elapsed_seconds(), 3),
+                   std::to_string(step), "KRAUS", "",
+                   std::to_string(rank_before), std::to_string(rank_after),
+                   format_double(time_seconds, 6),
+                   std::to_string(get_current_memory_usage_mb())});
+}
+
 void StructuredCSVWriter::log_lret_truncation(const std::string& mode, size_t step,
                                                size_t rank_before, size_t rank_after,
                                                double time_seconds) {
+    write_csv_row({get_timestamp(), format_double(elapsed_seconds(), 3),
+                   std::to_string(step), "TRUNCATION", "",
+                   std::to_string(rank_before), std::to_string(rank_after),
+                   format_double(time_seconds, 6),
+                   std::to_string(get_current_memory_usage_mb())});
+}
+
+// Simplified log_lret_truncation (no mode parameter)
+void StructuredCSVWriter::log_lret_truncation(size_t step, double time_seconds,
+                                               size_t rank_before, size_t rank_after) {
     write_csv_row({get_timestamp(), format_double(elapsed_seconds(), 3),
                    std::to_string(step), "TRUNCATION", "",
                    std::to_string(rank_before), std::to_string(rank_after),
@@ -370,6 +421,17 @@ void StructuredCSVWriter::end_lret_progress(const std::string& mode, double tota
     write_csv_row({get_timestamp(), format_double(elapsed_seconds(), 3),
                    "", "END", success ? "completed" : "failed",
                    "", std::to_string(final_rank),
+                   format_double(total_time, 6),
+                   std::to_string(get_current_memory_usage_mb())});
+    end_section();
+}
+
+// Simplified end_lret_progress with ParallelMode enum
+void StructuredCSVWriter::end_lret_progress(double total_time, bool success, ParallelMode mode) {
+    // Just end the section - the mode was already used to name it
+    write_csv_row({get_timestamp(), format_double(elapsed_seconds(), 3),
+                   "", "END", success ? "completed" : "failed",
+                   "", "",
                    format_double(total_time, 6),
                    std::to_string(get_current_memory_usage_mb())});
     end_section();
@@ -416,13 +478,33 @@ void StructuredCSVWriter::write_lret_mode_metrics(const std::string& mode,
     write_csv_row({"rank", std::to_string(state_metrics.rank), "", "Effective rank of state"});
     
     // Noise statistics
-    write_csv_row({"total_noise_ops", std::to_string(noise_stats.total_noise_ops), "", "Total noise operations"});
-    write_csv_row({"total_gates", std::to_string(noise_stats.total_gates), "", "Total gates applied"});
+    write_csv_row({"total_noise_ops", std::to_string(noise_stats.total_count()), "", "Total noise operations"});
     
     // Distortion if computed
     if (result.distortion > 0) {
         write_csv_row({"distortion_vs_sequential", format_double(result.distortion, 10), "", "||L_mode - L_seq||/||L_seq||"});
     }
+    
+    end_section();
+}
+
+// Simplified write_lret_mode_metrics (result and mode only)
+void StructuredCSVWriter::write_lret_mode_metrics(const ModeResult& result, ParallelMode mode) {
+    std::string mode_str = parallel_mode_to_string(mode);
+    begin_section("LRET_METRICS_" + mode_str);
+    
+    write_csv_row({"metric", "value", "unit", "description"});
+    
+    // Execution metrics
+    write_csv_row({"mode", mode_str, "", "Parallelization mode"});
+    write_csv_row({"time_seconds", format_double(result.time_seconds, 6), "s", "Execution time"});
+    write_csv_row({"final_rank", std::to_string(result.final_rank), "", "Final L-matrix rank"});
+    write_csv_row({"trace", format_double(result.trace_value, 10), "", "Tr(rho)"});
+    write_csv_row({"speedup", format_double(result.speedup, 4), "x", "vs sequential baseline"});
+    write_csv_row({"fidelity", format_double(result.fidelity, 10), "", "Fidelity vs baseline"});
+    write_csv_row({"trace_distance", format_double(result.trace_distance, 10), "", "Trace distance vs baseline"});
+    write_csv_row({"frobenius_distance", format_double(result.frobenius_distance, 10), "", "Frobenius distance vs baseline"});
+    write_csv_row({"distortion", format_double(result.distortion, 10), "", "Relative distortion"});
     
     end_section();
 }
@@ -512,6 +594,28 @@ void StructuredCSVWriter::write_fdm_comparison(const std::vector<ModeResult>& re
     end_section();
 }
 
+// Simplified FDM comparison (no metrics map, just timing comparison)
+void StructuredCSVWriter::write_fdm_comparison(const std::vector<ModeResult>& results,
+                                                const FDMResult& fdm_result) {
+    begin_section("FDM_COMPARISON");
+    
+    write_csv_row({"mode", "lret_time_s", "fdm_time_s", "speedup_vs_fdm"});
+    
+    for (const auto& r : results) {
+        std::string mode_name = parallel_mode_to_string(r.mode);
+        double speedup = fdm_result.time_seconds / r.time_seconds;
+        
+        write_csv_row({
+            mode_name,
+            format_double(r.time_seconds, 6),
+            format_double(fdm_result.time_seconds, 6),
+            format_double(speedup, 4)
+        });
+    }
+    
+    end_section();
+}
+
 //==============================================================================
 // Section 8: Summary
 //==============================================================================
@@ -550,12 +654,35 @@ void StructuredCSVWriter::write_summary(const CLIOptions& opts,
     end_section();
 }
 
+// Simplified write_summary (timing only)
+void StructuredCSVWriter::write_summary(double total_wall_time, double lret_time, double fdm_time,
+                                         bool success, const std::string& message) {
+    begin_section("SUMMARY");
+    
+    write_csv_row({"metric", "value"});
+    write_csv_row({"total_wall_time_s", format_double(total_wall_time, 3)});
+    write_csv_row({"lret_time_s", format_double(lret_time, 6)});
+    write_csv_row({"fdm_time_s", format_double(fdm_time, 6)});
+    write_csv_row({"status", success ? "SUCCESS" : "FAILED"});
+    if (!message.empty()) {
+        write_csv_row({"message", message});
+    }
+    write_csv_row({"completion_timestamp", get_timestamp()});
+    
+    end_section();
+}
+
 //==============================================================================
 // Error/Warning/Interrupt
 //==============================================================================
 
 void StructuredCSVWriter::log_error(const std::string& context, const std::string& message) {
     write_csv_row({"ERROR", context, message, get_timestamp()});
+}
+
+// Simplified log_error (message only)
+void StructuredCSVWriter::log_error(const std::string& message) {
+    write_csv_row({"ERROR", message, get_timestamp()});
 }
 
 void StructuredCSVWriter::log_warning(const std::string& context, const std::string& message) {

@@ -68,10 +68,16 @@ public:
     void begin_fdm_progress(size_t num_qubits, size_t depth);
     void log_fdm_step(size_t step, const std::string& operation, 
                       double time_seconds, size_t memory_mb = 0);
+    // Detailed gate logging
     void log_fdm_gate(size_t step, size_t gate_idx, const std::string& gate_name,
                       const std::vector<size_t>& qubits, double time_seconds);
+    // Simplified gate logging (step and time only)
+    void log_fdm_gate(size_t step, double time_seconds);
+    // Detailed noise logging
     void log_fdm_noise(size_t step, const std::string& noise_type, size_t qubit,
                        double time_seconds);
+    // Simplified noise logging (step and time only)
+    void log_fdm_noise(size_t step, double time_seconds);
     void end_fdm_progress(double total_time, bool success, const std::string& message = "");
     
     //==========================================================================
@@ -83,24 +89,42 @@ public:
     //==========================================================================
     // Section 4: LRET Progress (Step-by-Step per Mode)
     //==========================================================================
+    // Detailed progress with mode name
     void begin_lret_progress(const std::string& mode, size_t num_qubits, size_t depth);
+    // Simplified progress with ParallelMode enum
+    void begin_lret_progress(size_t num_qubits, size_t depth, ParallelMode mode);
     void log_lret_step_start(const std::string& mode, size_t step);
+    // Detailed gate logging with mode
     void log_lret_gate(const std::string& mode, size_t step, 
                        size_t rank_before, size_t rank_after, double time_seconds);
+    // Simplified gate logging (no mode - uses current section context)
+    void log_lret_gate(size_t step, double time_seconds, size_t rank_before, size_t rank_after);
+    // Detailed kraus logging with mode and noise type
     void log_lret_kraus(const std::string& mode, size_t step, const std::string& noise_type,
                         size_t rank_before, size_t rank_after, double time_seconds);
+    // Simplified kraus logging
+    void log_lret_kraus(size_t step, double time_seconds, size_t rank_before, size_t rank_after);
+    // Detailed truncation logging with mode
     void log_lret_truncation(const std::string& mode, size_t step,
                              size_t rank_before, size_t rank_after, double time_seconds);
+    // Simplified truncation logging
+    void log_lret_truncation(size_t step, double time_seconds, size_t rank_before, size_t rank_after);
+    // Detailed end progress with mode
     void end_lret_progress(const std::string& mode, double total_time, 
                            size_t final_rank, bool success);
+    // Simplified end progress with ParallelMode enum
+    void end_lret_progress(double total_time, bool success, ParallelMode mode);
     
     //==========================================================================
     // Section 5: LRET Metrics per Mode (Complete Table)
     //==========================================================================
+    // Detailed metrics with all info
     void write_lret_mode_metrics(const std::string& mode, const ModeResult& result,
                                  const MetricsResult& vs_initial,
                                  const StateMetrics& state_metrics,
                                  const NoiseStats& noise_stats);
+    // Simplified metrics (result and mode only)
+    void write_lret_mode_metrics(const ModeResult& result, ParallelMode mode);
     
     //==========================================================================
     // Section 6: Mode Comparison Table (All LRET Modes)
@@ -111,22 +135,32 @@ public:
     //==========================================================================
     // Section 7: FDM Comparison Table (Each LRET Mode vs FDM)
     //==========================================================================
+    // Detailed FDM comparison with metrics map
     void write_fdm_comparison(const std::vector<ModeResult>& results,
                               const FDMResult& fdm_result,
                               const std::map<std::string, MetricsResult>& fdm_metrics);
+    // Simplified FDM comparison (no metrics map, just timing)
+    void write_fdm_comparison(const std::vector<ModeResult>& results,
+                              const FDMResult& fdm_result);
     
     //==========================================================================
     // Section 8: Final Summary
     //==========================================================================
+    // Detailed summary
     void write_summary(const CLIOptions& opts, 
                        const std::vector<ModeResult>& results,
                        const std::optional<FDMResult>& fdm_result,
                        double total_wall_time);
+    // Simplified summary (timing only)
+    void write_summary(double total_wall_time, double lret_time, double fdm_time,
+                       bool success, const std::string& message);
     
     //==========================================================================
     // Error/Warning/Interrupt Logging
     //==========================================================================
     void log_error(const std::string& context, const std::string& message);
+    // Simplified log_error (message only)
+    void log_error(const std::string& message);
     void log_warning(const std::string& context, const std::string& message);
     void log_interrupt(const std::string& reason);
     
