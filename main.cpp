@@ -279,11 +279,6 @@ int main(int argc, char* argv[]) {
             std::cout << "\n";
             print_comparison_output(opts, results, noise_in_circuit, 
                                     sequence.noise_stats, fdm_result, fdm_metrics);
-            
-            if (opts.output_file) {
-                export_to_csv(*opts.output_file, opts, results, noise_in_circuit,
-                              sequence.noise_stats, fdm_result);
-            }
         } else {
             // Single mode run
             ParallelMode mode = opts.parallel_mode;
@@ -357,12 +352,11 @@ int main(int argc, char* argv[]) {
                 double fdm_time = (fdm_result && fdm_result->was_run) ? fdm_result->time_seconds : 0;
                 g_structured_csv->write_summary(total_wall_time, result.time_seconds, fdm_time, true, "");
             }
-            
-            if (opts.output_file) {
-                std::vector<ModeResult> single_result = {result};
-                export_to_csv(*opts.output_file, opts, single_result, 
-                              noise_in_circuit, sequence.noise_stats, fdm_result);
-            }
+        }
+        
+        // Print final export message
+        if (g_structured_csv && g_structured_csv->is_open()) {
+            std::cout << "Results exported to: " << g_structured_csv->get_filepath() << "\n";
         }
         
         // Check if we were interrupted during computation
