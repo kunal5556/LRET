@@ -297,9 +297,16 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
 }
 
 bool validate_options(const CLIOptions& opts, std::string& error_msg) {
-    if (opts.num_qubits < 1 || opts.num_qubits > 20) {
-        error_msg = "Qubits must be between 1 and 20";
+    if (opts.num_qubits < 1) {
+        error_msg = "Qubits must be at least 1";
         return false;
+    }
+    
+    // Warning for large qubit counts (memory scales as 2^n)
+    if (opts.num_qubits > 20) {
+        std::cerr << "Warning: " << opts.num_qubits << " qubits requires ~" 
+                  << (1ULL << opts.num_qubits) * sizeof(std::complex<double>) / (1024*1024) 
+                  << " MB for state vector. Ensure sufficient memory.\n";
     }
     
     if (opts.depth < 1) {
