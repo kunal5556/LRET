@@ -69,31 +69,41 @@ int main(int argc, char* argv[]) {
             }
         }
         
-        // Determine output filename (use default if not specified)
-        std::string csv_filename;
-        if (opts.output_file) {
-            csv_filename = *opts.output_file;
-        } else {
-            // Generate default filename based on parameters
-            csv_filename = generate_default_csv_filename(opts);
-            std::cout << "Using default output filename: " << csv_filename << "\n";
-        }
-        
-        // Initialize structured CSV writer
+        // Output file handling
+        // Only generate output if -o flag was explicitly given
         std::unique_ptr<StructuredCSVWriter> csv_writer;
-        csv_writer = std::make_unique<StructuredCSVWriter>(csv_filename);
-        if (!csv_writer->is_open()) {
-            std::cerr << "Warning: Could not open CSV file for writing: " << csv_filename << "\n";
-            csv_writer.reset();
-        } else {
-            g_structured_csv = csv_writer.get();
+        std::string csv_filename;
+        
+        if (opts.generate_output) {
+            // -o flag was given
+            if (opts.output_file && !opts.output_file->empty()) {
+                // Custom filename provided: -o myfile.csv
+                csv_filename = *opts.output_file;
+                std::cout << "Output file (custom): " << csv_filename << "\n";
+            } else {
+                // No filename provided: -o (alone)
+                csv_filename = generate_default_csv_filename(opts);
+                std::cout << "Output file (default): " << csv_filename << "\n";
+            }
             
-            // Print CSV file path immediately so user can monitor during long runs
-            std::cout << "========================================\n";
-            std::cout << "CSV Output: " << csv_writer->get_filepath() << "\n";
-            std::cout << "  (File updates in real-time)\n";
-            std::cout << "  Monitor with: tail -f " << csv_filename << "\n";
-            std::cout << "========================================\n\n";
+            // Initialize structured CSV writer
+            csv_writer = std::make_unique<StructuredCSVWriter>(csv_filename);
+            if (!csv_writer->is_open()) {
+                std::cerr << "Warning: Could not open CSV file for writing: " << csv_filename << "\n";
+                csv_writer.reset();
+            } else {
+                g_structured_csv = csv_writer.get();
+                
+                // Print CSV file path immediately so user can monitor during long runs
+                std::cout << "========================================\n";
+                std::cout << "CSV Output: " << csv_writer->get_filepath() << "\n";
+                std::cout << "  (File updates in real-time)\n";
+                std::cout << "  Monitor with: tail -f " << csv_filename << "\n";
+                std::cout << "========================================\n\n";
+            }
+        } else {
+            // No -o flag: no output file will be created
+            std::cout << "No output file requested (use -o to generate CSV output)\n\n";
         }
         
         // Configure threading

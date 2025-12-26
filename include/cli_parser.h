@@ -61,6 +61,7 @@ struct CLIOptions {
     // Output options
     bool verbose = false;
     std::optional<std::string> output_file;
+    bool generate_output = false;  // True if -o flag was given (with or without filename)
     
     // Flags
     bool show_help = false;

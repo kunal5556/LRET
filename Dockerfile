@@ -60,5 +60,10 @@ RUN mkdir -p /app/output
 ENTRYPOINT ["./quantum_sim"]
 
 # Default arguments (can be overridden)
-# Runs compare mode with FDM and auto-generated CSV filename
+# Note: No -o flag by default. User must add -o to generate output file.
+# Examples:
+#   docker run quantum-lret                           # No output file
+#   docker run quantum-lret -o                        # Default filename in container
+#   docker run quantum-lret -o results.csv            # Custom filename in container
+#   docker run -v /host/path:/app/output quantum-lret -o /app/output/results.csv  # Save to host
 CMD ["-n", "8", "-d", "13", "--mode", "compare", "--fdm"]

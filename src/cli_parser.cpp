@@ -245,8 +245,17 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
         }
         
         // Output file
-        if ((arg == "-o" || arg == "--output") && i + 1 < argc) {
-            opts.output_file = argv[++i];
+        // -o or --output: enables output generation
+        // -o filename: uses custom filename
+        // -o (alone or followed by another flag): uses default filename
+        if (arg == "-o" || arg == "--output") {
+            opts.generate_output = true;
+            
+            // Check if next argument exists and is not a flag (doesn't start with -)
+            if (i + 1 < argc && argv[i + 1][0] != '-') {
+                opts.output_file = argv[++i];
+            }
+            // If no filename provided, output_file stays empty (will use default)
             continue;
         }
         
