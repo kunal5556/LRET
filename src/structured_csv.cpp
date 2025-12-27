@@ -70,12 +70,13 @@ bool StructuredCSVWriter::open(const std::string& filename) {
         return false;
     }
     
-    // Write file format comment (for parsers)
-    file_ << "# QuantumLRET-Sim Structured CSV Output\n";
-    file_ << "# Format Version: 2.0\n";
-    file_ << "# Generated: " << get_timestamp() << "\n";
-    file_ << "# Sections can be parsed independently for Excel conversion\n";
-    file_ << "#\n";
+    // Write METADATA section (no comments - strictly tabular format)
+    file_ << "SECTION,METADATA\n";
+    file_ << "key,value\n";
+    file_ << "format,QuantumLRET-Sim Structured CSV\n";
+    file_ << "version,2.1\n";
+    file_ << "generated," << get_timestamp() << "\n";
+    file_ << "description,Sections can be parsed independently for Excel conversion\n";
     file_.flush();
     
     return true;
@@ -84,10 +85,8 @@ bool StructuredCSVWriter::open(const std::string& filename) {
 void StructuredCSVWriter::close() {
     std::lock_guard<std::mutex> lock(mutex_);
     
-    if (!current_section_.empty()) {
-        file_ << "END_SECTION," << current_section_ << "\n";
-        current_section_.clear();
-    }
+    // No END_SECTION needed - new SECTION implicitly ends previous
+    current_section_.clear();
     
     if (file_.is_open()) {
         file_.flush();
@@ -110,8 +109,9 @@ std::string StructuredCSVWriter::get_filepath() const {
 void StructuredCSVWriter::begin_section(const std::string& section_name) {
     std::lock_guard<std::mutex> lock(mutex_);
     
+    // New SECTION implicitly ends the previous one (no END_SECTION needed)
     if (!current_section_.empty()) {
-        file_ << "END_SECTION," << current_section_ << "\n\n";
+        file_ << "\n";  // Just a blank line for readability
     }
     
     current_section_ = section_name;
@@ -122,8 +122,9 @@ void StructuredCSVWriter::begin_section(const std::string& section_name) {
 void StructuredCSVWriter::end_section() {
     std::lock_guard<std::mutex> lock(mutex_);
     
+    // No END_SECTION tag needed - new SECTION implicitly ends previous
     if (!current_section_.empty()) {
-        file_ << "END_SECTION," << current_section_ << "\n\n";
+        file_ << "\n";  // Blank line for readability
         file_.flush();
         current_section_.clear();
     }
@@ -306,23 +307,24 @@ void StructuredCSVWriter::write_fdm_metrics(const FDMResult& fdm_result,
                                              const NoiseStats& noise_stats) {
     begin_section("FDM_METRICS");
     
-    write_csv_row({"metric", "value", "unit", "description"});
+    // Units folded into metric names for Excel numeric compatibility
+    write_csv_row({"metric", "value", "description"});
     
     if (fdm_result.was_run) {
-        write_csv_row({"status", "SUCCESS", "", "FDM simulation completed"});
-        write_csv_row({"time_seconds", format_double(fdm_result.time_seconds, 6), "s", "Total FDM execution time"});
-        write_csv_row({"trace", format_double(fdm_result.trace_value, 10), "", "Tr(rho)"});
-        write_csv_row({"dimension", std::to_string(1ULL << num_qubits), "", "Hilbert space dimension 2^n"});
-        write_csv_row({"matrix_size_bytes", std::to_string((1ULL << (2*num_qubits)) * 16), "bytes", "Full density matrix size"});
-        write_csv_row({"matrix_size_gb", format_double((1ULL << (2*num_qubits)) * 16.0 / (1024*1024*1024), 3), "GB", "Full density matrix size"});
+        write_csv_row({"status", "SUCCESS", "FDM simulation completed"});
+        write_csv_row({"time_s", format_double(fdm_result.time_seconds, 6), "Total FDM execution time"});
+        write_csv_row({"trace", format_double(fdm_result.trace_value, 10), "Tr(rho)"});
+        write_csv_row({"dimension", std::to_string(1ULL << num_qubits), "Hilbert space dimension 2^n"});
+        write_csv_row({"matrix_size_bytes", std::to_string((1ULL << (2*num_qubits)) * 16), "Full density matrix size"});
+        write_csv_row({"matrix_size_gb", format_double((1ULL << (2*num_qubits)) * 16.0 / (1024*1024*1024), 3), "Full density matrix size"});
         
         // Noise breakdown
-        write_csv_row({"total_noise_ops", std::to_string(noise_stats.total_count()), "", "Total noise operations applied"});
-        write_csv_row({"depolarizing_ops", std::to_string(noise_stats.depolarizing_count), "", "Depolarizing noise count"});
-        write_csv_row({"amplitude_damping_ops", std::to_string(noise_stats.amplitude_damping_count), "", "Amplitude damping count"});
-        write_csv_row({"phase_damping_ops", std::to_string(noise_stats.phase_damping_count), "", "Phase damping count"});
+        write_csv_row({"total_noise_ops", std::to_string(noise_stats.total_count()), "Total noise operations applied"});
+        write_csv_row({"depolarizing_ops", std::to_string(noise_stats.depolarizing_count), "Depolarizing noise count"});
+        write_csv_row({"amplitude_damping_ops", std::to_string(noise_stats.amplitude_damping_count), "Amplitude damping count"});
+        write_csv_row({"phase_damping_ops", std::to_string(noise_stats.phase_damping_count), "Phase damping count"});
     } else {
-        write_csv_row({"status", "SKIPPED", "", fdm_result.skip_reason});
+        write_csv_row({"status", "SKIPPED", fdm_result.skip_reason});
     }
     
     end_section();
@@ -448,41 +450,42 @@ void StructuredCSVWriter::write_lret_mode_metrics(const std::string& mode,
                                                    const NoiseStats& noise_stats) {
     begin_section("LRET_METRICS_" + mode);
     
-    write_csv_row({"metric", "value", "unit", "description"});
+    // Units folded into metric names for Excel numeric compatibility
+    write_csv_row({"metric", "value", "description"});
     
     // Execution metrics
-    write_csv_row({"mode", mode, "", "Parallelization mode"});
-    write_csv_row({"time_seconds", format_double(result.time_seconds, 6), "s", "Execution time"});
-    write_csv_row({"final_rank", std::to_string(result.final_rank), "", "Final L-matrix rank"});
-    write_csv_row({"trace", format_double(result.trace_value, 10), "", "Tr(rho)"});
-    write_csv_row({"speedup", format_double(result.speedup, 4), "x", "vs sequential baseline"});
+    write_csv_row({"mode", mode, "Parallelization mode"});
+    write_csv_row({"time_s", format_double(result.time_seconds, 6), "Execution time"});
+    write_csv_row({"final_rank", std::to_string(result.final_rank), "Final L-matrix rank"});
+    write_csv_row({"trace", format_double(result.trace_value, 10), "Tr(rho)"});
+    write_csv_row({"speedup_x", format_double(result.speedup, 4), "vs sequential baseline"});
     
     // Distance metrics vs initial state
-    write_csv_row({"fidelity_vs_initial", format_double(vs_initial.fidelity, 10), "", "F(rho_final, rho_initial)"});
-    write_csv_row({"trace_distance_vs_initial", format_double(vs_initial.trace_distance, 10), "", "T(rho_final, rho_initial)"});
-    write_csv_row({"frobenius_distance_vs_initial", format_double(vs_initial.frobenius_distance, 10), "", "||rho_final - rho_initial||_F"});
-    write_csv_row({"variational_distance_vs_initial", format_double(vs_initial.variational_distance, 10), "", "D_var(rho_final, rho_initial)"});
+    write_csv_row({"fidelity_vs_initial", format_double(vs_initial.fidelity, 10), "F(rho_final, rho_initial)"});
+    write_csv_row({"trace_distance_vs_initial", format_double(vs_initial.trace_distance, 10), "T(rho_final, rho_initial)"});
+    write_csv_row({"frobenius_distance_vs_initial", format_double(vs_initial.frobenius_distance, 10), "||rho_final - rho_initial||_F"});
+    write_csv_row({"variational_distance_vs_initial", format_double(vs_initial.variational_distance, 10), "D_var(rho_final, rho_initial)"});
     
     // State metrics
-    write_csv_row({"purity", format_double(state_metrics.purity, 10), "", "Tr(rho^2)"});
-    write_csv_row({"von_neumann_entropy", format_double(state_metrics.entropy, 10), "bits", "S = -Tr(rho log2 rho)"});
-    write_csv_row({"linear_entropy", format_double(state_metrics.linear_entropy, 10), "", "S_L = 1 - Tr(rho^2)"});
+    write_csv_row({"purity", format_double(state_metrics.purity, 10), "Tr(rho^2)"});
+    write_csv_row({"von_neumann_entropy_bits", format_double(state_metrics.entropy, 10), "S = -Tr(rho log2 rho)"});
+    write_csv_row({"linear_entropy", format_double(state_metrics.linear_entropy, 10), "S_L = 1 - Tr(rho^2)"});
     
     if (state_metrics.concurrence >= 0) {
-        write_csv_row({"concurrence", format_double(state_metrics.concurrence, 10), "", "Entanglement (2-qubit only)"});
+        write_csv_row({"concurrence", format_double(state_metrics.concurrence, 10), "Entanglement (2-qubit only)"});
     }
     if (state_metrics.negativity >= 0) {
-        write_csv_row({"negativity", format_double(state_metrics.negativity, 10), "", "Bipartite negativity"});
+        write_csv_row({"negativity", format_double(state_metrics.negativity, 10), "Bipartite negativity"});
     }
     
-    write_csv_row({"rank", std::to_string(state_metrics.rank), "", "Effective rank of state"});
+    write_csv_row({"rank", std::to_string(state_metrics.rank), "Effective rank of state"});
     
     // Noise statistics
-    write_csv_row({"total_noise_ops", std::to_string(noise_stats.total_count()), "", "Total noise operations"});
+    write_csv_row({"total_noise_ops", std::to_string(noise_stats.total_count()), "Total noise operations"});
     
     // Distortion if computed
     if (result.distortion > 0) {
-        write_csv_row({"distortion_vs_sequential", format_double(result.distortion, 10), "", "||L_mode - L_seq||/||L_seq||"});
+        write_csv_row({"distortion_vs_sequential", format_double(result.distortion, 10), "||L_mode - L_seq||/||L_seq||"});
     }
     
     end_section();
@@ -493,18 +496,19 @@ void StructuredCSVWriter::write_lret_mode_metrics(const ModeResult& result, Para
     std::string mode_str = parallel_mode_to_string(mode);
     begin_section("LRET_METRICS_" + mode_str);
     
-    write_csv_row({"metric", "value", "unit", "description"});
+    // Units folded into metric names for Excel numeric compatibility
+    write_csv_row({"metric", "value", "description"});
     
     // Execution metrics
-    write_csv_row({"mode", mode_str, "", "Parallelization mode"});
-    write_csv_row({"time_seconds", format_double(result.time_seconds, 6), "s", "Execution time"});
-    write_csv_row({"final_rank", std::to_string(result.final_rank), "", "Final L-matrix rank"});
-    write_csv_row({"trace", format_double(result.trace_value, 10), "", "Tr(rho)"});
-    write_csv_row({"speedup", format_double(result.speedup, 4), "x", "vs sequential baseline"});
-    write_csv_row({"fidelity", format_double(result.fidelity, 10), "", "Fidelity vs baseline"});
-    write_csv_row({"trace_distance", format_double(result.trace_distance, 10), "", "Trace distance vs baseline"});
-    write_csv_row({"frobenius_distance", format_double(result.frobenius_distance, 10), "", "Frobenius distance vs baseline"});
-    write_csv_row({"distortion", format_double(result.distortion, 10), "", "Relative distortion"});
+    write_csv_row({"mode", mode_str, "Parallelization mode"});
+    write_csv_row({"time_s", format_double(result.time_seconds, 6), "Execution time"});
+    write_csv_row({"final_rank", std::to_string(result.final_rank), "Final L-matrix rank"});
+    write_csv_row({"trace", format_double(result.trace_value, 10), "Tr(rho)"});
+    write_csv_row({"speedup_x", format_double(result.speedup, 4), "vs sequential baseline"});
+    write_csv_row({"fidelity", format_double(result.fidelity, 10), "Fidelity vs baseline"});
+    write_csv_row({"trace_distance", format_double(result.trace_distance, 10), "Trace distance vs baseline"});
+    write_csv_row({"frobenius_distance", format_double(result.frobenius_distance, 10), "Frobenius distance vs baseline"});
+    write_csv_row({"distortion", format_double(result.distortion, 10), "Relative distortion"});
     
     end_section();
 }
@@ -516,33 +520,34 @@ void StructuredCSVWriter::write_lret_mode_metrics_full(const ModeResult& result,
     std::string mode_str = parallel_mode_to_string(result.mode);
     begin_section("LRET_METRICS_" + mode_str);
     
-    write_csv_row({"metric", "value", "unit", "description"});
+    // Units folded into metric names for Excel numeric compatibility
+    write_csv_row({"metric", "value", "description"});
     
     // Execution metrics
-    write_csv_row({"mode", mode_str, "", "Parallelization mode"});
-    write_csv_row({"num_qubits", std::to_string(num_qubits), "", "Number of qubits"});
-    write_csv_row({"time_seconds", format_double(result.time_seconds, 6), "s", "Execution time"});
-    write_csv_row({"final_rank", std::to_string(result.final_rank), "", "Final L-matrix rank"});
-    write_csv_row({"trace", format_double(result.trace_value, 10), "", "Tr(rho) - should be 1"});
-    write_csv_row({"speedup", format_double(result.speedup, 4), "x", "vs sequential baseline"});
+    write_csv_row({"mode", mode_str, "Parallelization mode"});
+    write_csv_row({"num_qubits", std::to_string(num_qubits), "Number of qubits"});
+    write_csv_row({"time_s", format_double(result.time_seconds, 6), "Execution time"});
+    write_csv_row({"final_rank", std::to_string(result.final_rank), "Final L-matrix rank"});
+    write_csv_row({"trace", format_double(result.trace_value, 10), "Tr(rho) - should be 1"});
+    write_csv_row({"speedup_x", format_double(result.speedup, 4), "vs sequential baseline"});
     
     // Distance metrics vs sequential baseline
-    write_csv_row({"fidelity_vs_seq", format_double(result.fidelity, 10), "", "Fidelity vs sequential"});
-    write_csv_row({"trace_distance_vs_seq", format_double(result.trace_distance, 10), "", "Trace distance vs sequential"});
-    write_csv_row({"frobenius_distance_vs_seq", format_double(result.frobenius_distance, 10), "", "||L - L_seq||_F"});
-    write_csv_row({"distortion_vs_seq", format_double(result.distortion, 10), "", "Relative distortion vs sequential"});
+    write_csv_row({"fidelity_vs_seq", format_double(result.fidelity, 10), "Fidelity vs sequential"});
+    write_csv_row({"trace_distance_vs_seq", format_double(result.trace_distance, 10), "Trace distance vs sequential"});
+    write_csv_row({"frobenius_distance_vs_seq", format_double(result.frobenius_distance, 10), "||L - L_seq||_F"});
+    write_csv_row({"distortion_vs_seq", format_double(result.distortion, 10), "Relative distortion vs sequential"});
     
     // State metrics (from quantum information theory)
-    write_csv_row({"purity", format_double(purity, 10), "", "Tr(rho^2) - 1 for pure, 1/d for maximally mixed"});
-    write_csv_row({"von_neumann_entropy", format_double(entropy, 10), "bits", "S = -Tr(rho log2 rho)"});
-    write_csv_row({"linear_entropy", format_double(linear_entropy, 10), "", "S_L = 1 - Tr(rho^2)"});
+    write_csv_row({"purity", format_double(purity, 10), "Tr(rho^2) - 1 for pure, 1/d for maximally mixed"});
+    write_csv_row({"von_neumann_entropy_bits", format_double(entropy, 10), "S = -Tr(rho log2 rho)"});
+    write_csv_row({"linear_entropy", format_double(linear_entropy, 10), "S_L = 1 - Tr(rho^2)"});
     
     // Entanglement metrics (conditional)
     if (concurrence >= 0) {
-        write_csv_row({"concurrence", format_double(concurrence, 10), "", "Entanglement measure (2-qubit only)"});
+        write_csv_row({"concurrence", format_double(concurrence, 10), "Entanglement measure (2-qubit only)"});
     }
     if (negativity >= 0) {
-        write_csv_row({"negativity", format_double(negativity, 10), "", "Bipartite negativity (half-half split)"});
+        write_csv_row({"negativity", format_double(negativity, 10), "Bipartite negativity (half-half split)"});
     }
     
     end_section();
@@ -556,9 +561,9 @@ void StructuredCSVWriter::write_mode_comparison(const std::vector<ModeResult>& r
                                                  const std::string& baseline_mode) {
     begin_section("MODE_COMPARISON");
     
-    // Header row
-    write_csv_row({"mode", "time_s", "speedup", "final_rank", "trace", 
-                   "fidelity_vs_baseline", "trace_distance", "frobenius_distance", "distortion"});
+    // Header row - units in header names for Excel compatibility
+    write_csv_row({"mode", "time_s", "speedup_x", "final_rank", "trace", 
+                   "fidelity", "trace_distance", "frobenius_distance", "distortion"});
     
     // Find baseline result
     const ModeResult* baseline = nullptr;
@@ -598,9 +603,10 @@ void StructuredCSVWriter::write_fdm_comparison(const std::vector<ModeResult>& re
                                                 const std::map<std::string, MetricsResult>& fdm_metrics) {
     begin_section("FDM_COMPARISON");
     
-    write_csv_row({"mode", "lret_time_s", "fdm_time_s", "speedup_vs_fdm",
-                   "fidelity_vs_fdm", "trace_distance_vs_fdm", 
-                   "frobenius_distance_vs_fdm", "variational_distance_vs_fdm"});
+    // Header row - units in header names for Excel compatibility
+    write_csv_row({"mode", "lret_time_s", "fdm_time_s", "speedup_x",
+                   "fidelity", "trace_distance", 
+                   "frobenius_distance", "variational_distance"});
     
     for (const auto& r : results) {
         std::string mode_name = parallel_mode_to_string(r.mode);
