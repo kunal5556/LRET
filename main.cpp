@@ -14,6 +14,7 @@
 #include <iostream>
 #include <iomanip>
 #include <memory>
+#include <sys/stat.h>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -74,15 +75,59 @@ int main(int argc, char* argv[]) {
         std::unique_ptr<StructuredCSVWriter> csv_writer;
         std::string csv_filename;
         
+        // Helper lambda to check if path is a directory
+        auto is_directory = [](const std::string& path) -> bool {
+            struct stat info;
+            if (stat(path.c_str(), &info) != 0) return false;
+            return (info.st_mode & S_IFDIR) != 0;
+        };
+        
+        // Helper lambda to check if path exists
+        auto path_exists = [](const std::string& path) -> bool {
+            struct stat info;
+            return stat(path.c_str(), &info) == 0;
+        };
+        
         if (opts.generate_output) {
             // -o flag was given
+            std::string default_filename = generate_default_csv_filename(opts);
+            
             if (opts.output_file && !opts.output_file->empty()) {
-                // Custom filename provided: -o myfile.csv
-                csv_filename = *opts.output_file;
-                std::cout << "Output file (custom): " << csv_filename << "\n";
+                std::string provided_path = *opts.output_file;
+                
+                // Check if the provided path is a directory
+                if (is_directory(provided_path)) {
+                    // It's a directory - append default filename
+                    if (provided_path.back() != '/' && provided_path.back() != '\\') {
+                        provided_path += '/';
+                    }
+                    csv_filename = provided_path + default_filename;
+                    std::cout << "Output file (auto in dir): " << csv_filename << "\n";
+                } else {
+                    // It's a file path - use as-is
+                    csv_filename = provided_path;
+                    std::cout << "Output file (custom): " << csv_filename << "\n";
+                }
             } else {
-                // No filename provided: -o (alone)
-                csv_filename = generate_default_csv_filename(opts);
+                // No path provided: -o (alone)
+                // Check for common mounted directories in order of preference
+                std::vector<std::string> output_dirs = {"/app/output", "/myoutput", "/output", "."};
+                std::string output_dir = ".";  // fallback
+                
+                for (const auto& dir : output_dirs) {
+                    if (is_directory(dir)) {
+                        output_dir = dir;
+                        break;
+                    }
+                }
+                
+                if (output_dir != "." && output_dir.back() != '/') {
+                    output_dir += '/';
+                } else if (output_dir == ".") {
+                    output_dir = "./";
+                }
+                
+                csv_filename = output_dir + default_filename;
                 std::cout << "Output file (default): " << csv_filename << "\n";
             }
             
