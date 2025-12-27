@@ -465,7 +465,7 @@ void StructuredCSVWriter::write_lret_mode_metrics(const std::string& mode,
     
     // State metrics
     write_csv_row({"purity", format_double(state_metrics.purity, 10), "", "Tr(rho^2)"});
-    write_csv_row({"von_neumann_entropy", format_double(state_metrics.entropy, 10), "nats", "S = -Tr(rho log rho)"});
+    write_csv_row({"von_neumann_entropy", format_double(state_metrics.entropy, 10), "bits", "S = -Tr(rho log2 rho)"});
     write_csv_row({"linear_entropy", format_double(state_metrics.linear_entropy, 10), "", "S_L = 1 - Tr(rho^2)"});
     
     if (state_metrics.concurrence >= 0) {

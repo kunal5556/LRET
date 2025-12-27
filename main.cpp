@@ -345,8 +345,21 @@ int main(int argc, char* argv[]) {
             print_standard_output(opts, result, metrics, noise_in_circuit, 
                                   sequence.noise_stats, fdm_result, fdm_metrics, state_metrics);
             
-            // Log summary to structured CSV
+            // Log LRET metrics and summary to structured CSV
             if (g_structured_csv) {
+                // Write comprehensive LRET mode metrics (single mode)
+                g_structured_csv->write_lret_mode_metrics(
+                    parallel_mode_to_string(mode), result, metrics, state_metrics, sequence.noise_stats);
+                
+                // Write FDM comparison if FDM was run
+                if (fdm_result && fdm_result->was_run && fdm_metrics) {
+                    std::vector<ModeResult> single_result = {result};
+                    std::map<std::string, MetricsResult> fdm_metrics_map;
+                    fdm_metrics_map[parallel_mode_to_string(mode)] = *fdm_metrics;
+                    g_structured_csv->write_fdm_comparison(single_result, *fdm_result, fdm_metrics_map);
+                }
+                
+                // Write summary
                 auto wall_clock_end = std::chrono::steady_clock::now();
                 double total_wall_time = std::chrono::duration<double>(wall_clock_end - program_start_time).count();
                 double fdm_time = (fdm_result && fdm_result->was_run) ? fdm_result->time_seconds : 0;
