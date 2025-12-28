@@ -1,6 +1,7 @@
 /**
  * QuantumLRET-Sim - Main Program
  * Multi-mode parallelization with CLI support
+ * Parameter sweeps for LRET paper benchmarking
  */
 #include "cli_parser.h"
 #include "parallel_modes.h"
@@ -11,6 +12,7 @@
 #include "utils.h"
 #include "resource_monitor.h"
 #include "structured_csv.h"
+#include "benchmark_runner.h"
 #include <iostream>
 #include <iomanip>
 #include <memory>
@@ -21,6 +23,12 @@
 #endif
 
 using namespace qlret;
+
+// Forward declaration for sweep mode handling
+int run_sweep_mode(const CLIOptions& opts, StructuredCSVWriter* csv_writer);
+
+// Forward declaration for benchmark-all mode (runs all LRET paper benchmarks)
+int run_all_benchmarks(const CLIOptions& opts, StructuredCSVWriter* csv_writer);
 
 int main(int argc, char* argv[]) {
     auto program_start_time = std::chrono::steady_clock::now();
@@ -157,6 +165,24 @@ int main(int argc, char* argv[]) {
             omp_set_num_threads(opts.num_threads);
 #endif
         }
+        
+        //======================================================================
+        // Check for Benchmark-All Mode (Run all LRET paper benchmarks)
+        //======================================================================
+        if (opts.benchmark_all) {
+            return run_all_benchmarks(opts, csv_writer.get());
+        }
+        
+        //======================================================================
+        // Check for Parameter Sweep Mode (LRET Paper Benchmarking)
+        //======================================================================
+        if (opts.sweep_config.is_active()) {
+            return run_sweep_mode(opts, csv_writer.get());
+        }
+        
+        //======================================================================
+        // Regular Single-Run Simulation Mode
+        //======================================================================
         
         // Setup batch size
         size_t batch_size = opts.batch_size ? opts.batch_size 
@@ -432,4 +458,399 @@ int main(int argc, char* argv[]) {
     }
     
     return 0;
+}
+
+//==============================================================================
+// Parameter Sweep Mode (LRET Paper Benchmarking)
+//==============================================================================
+
+/**
+ * @brief Run parameter sweep mode for LRET paper benchmarking
+ * 
+ * Supports sweeps over:
+ * - Truncation threshold (epsilon): Shows accuracy vs speed tradeoff
+ * - Noise probability: Shows how noise affects rank growth
+ * - Number of qubits: Shows scaling behavior
+ * - Circuit depth: Shows time vs depth relationship
+ * - LRET vs FDM crossover: Finds where LRET becomes faster
+ */
+int run_sweep_mode(const CLIOptions& opts, StructuredCSVWriter* csv_writer) {
+    std::cout << "\n";
+    std::cout << "========================================\n";
+    std::cout << "   LRET Paper Benchmarking Mode\n";
+    std::cout << "========================================\n\n";
+    
+    auto sweep_start = std::chrono::steady_clock::now();
+    
+    // Print sweep configuration
+    std::cout << "Sweep type: " << sweep_type_to_string(opts.sweep_config.type) << "\n";
+    std::cout << "Sweep points: " << opts.sweep_config.num_points() << "\n";
+    if (opts.sweep_trials > 1) {
+        std::cout << "Trials per point: " << opts.sweep_trials << "\n";
+    }
+    if (opts.track_rank_evolution) {
+        std::cout << "Rank evolution tracking: ENABLED\n";
+    }
+    if (opts.enable_fdm) {
+        std::cout << "FDM comparison: ENABLED\n";
+    }
+    std::cout << "\n";
+    
+    // Write sweep header to CSV
+    if (csv_writer) {
+        csv_writer->write_sweep_header(
+            sweep_type_to_string(opts.sweep_config.type),
+            opts.sweep_config.num_points(),
+            opts.num_qubits,
+            opts.depth,
+            opts.noise_prob
+        );
+    }
+    
+    // Run the sweep
+    SweepResults results = run_parameter_sweep(opts);
+    
+    // Write results to CSV
+    if (csv_writer && !results.points.empty()) {
+        // Build data tuples for CSV
+        std::vector<std::tuple<double, double, size_t, double>> sweep_data;
+        
+        for (const auto& p : results.points) {
+            double param_value;
+            switch (opts.sweep_config.type) {
+                case SweepType::EPSILON:
+                    param_value = p.epsilon;
+                    break;
+                case SweepType::NOISE_PROB:
+                    param_value = p.noise_prob;
+                    break;
+                case SweepType::QUBITS:
+                case SweepType::CROSSOVER:
+                    param_value = static_cast<double>(p.num_qubits);
+                    break;
+                case SweepType::DEPTH:
+                    param_value = static_cast<double>(p.depth);
+                    break;
+                default:
+                    param_value = 0.0;
+            }
+            
+            sweep_data.emplace_back(
+                param_value,
+                p.lret_time_seconds,
+                p.lret_final_rank,
+                p.fidelity_vs_fdm
+            );
+        }
+        
+        csv_writer->write_sweep_results(
+            sweep_type_to_string(opts.sweep_config.type),
+            sweep_data
+        );
+        
+        // Write rank evolution if tracked (for first point only, to avoid huge files)
+        if (opts.track_rank_evolution && !results.points.empty() && 
+            !results.points[0].rank_evolution.empty()) {
+            
+            const auto& evolution = results.points[0].rank_evolution;
+            std::vector<std::tuple<size_t, std::string, size_t, size_t, double>> events;
+            
+            for (const auto& e : evolution.events) {
+                events.emplace_back(
+                    e.step,
+                    e.operation_name,
+                    e.rank_before,
+                    e.rank_after,
+                    e.time_seconds
+                );
+            }
+            
+            csv_writer->write_rank_evolution(events);
+            
+            // Write timing breakdown
+            TimingBreakdown timing = create_timing_breakdown(evolution);
+            csv_writer->write_timing_breakdown(
+                timing.gate_time,
+                timing.noise_time,
+                timing.truncation_time,
+                timing.total_time,
+                timing.truncation_count
+            );
+        }
+        
+        // Write crossover summary if applicable
+        if (opts.sweep_config.type == SweepType::CROSSOVER) {
+            csv_writer->write_crossover_summary(
+                results.crossover_qubit_count,
+                results.crossover_found
+            );
+        }
+        
+        // Write memory comparison for a representative point
+        if (!results.points.empty()) {
+            const auto& p = results.points.back();  // Use largest point
+            csv_writer->write_memory_comparison(
+                p.num_qubits,
+                p.lret_memory_bytes,
+                p.fdm_run ? p.fdm_memory_bytes : compute_fdm_memory_bytes(p.num_qubits),
+                p.lret_final_rank
+            );
+        }
+        
+        // Write summary
+        auto sweep_end = std::chrono::steady_clock::now();
+        double total_wall_time = std::chrono::duration<double>(sweep_end - sweep_start).count();
+        
+        double total_lret_time = 0.0, total_fdm_time = 0.0;
+        for (const auto& p : results.points) {
+            total_lret_time += p.lret_time_seconds;
+            if (p.fdm_run) total_fdm_time += p.fdm_time_seconds;
+        }
+        
+        csv_writer->write_summary(total_wall_time, total_lret_time, total_fdm_time, true, "");
+    }
+    
+    // Print summary
+    auto sweep_end = std::chrono::steady_clock::now();
+    double total_time = std::chrono::duration<double>(sweep_end - sweep_start).count();
+    
+    std::cout << "\n========================================\n";
+    std::cout << "   Sweep Complete\n";
+    std::cout << "========================================\n";
+    std::cout << "Total points: " << results.points.size() << "\n";
+    std::cout << "Total time: " << std::fixed << std::setprecision(2) << total_time << "s\n";
+    
+    if (csv_writer) {
+        std::cout << "Results exported to: " << csv_writer->get_filepath() << "\n";
+    }
+    
+    std::cout << "\n";
+    
+    return 0;
+}
+
+//==============================================================================
+// Run All Benchmarks Mode (--benchmark-all)
+// Runs all LRET paper benchmarks: epsilon sweep, noise sweep, qubit sweep,
+// crossover analysis, and rank evolution tracking
+//==============================================================================
+int run_all_benchmarks(const CLIOptions& original_opts, StructuredCSVWriter* csv_writer) {
+    std::cout << "\n";
+    std::cout << "========================================================\n";
+    std::cout << "   LRET Paper: COMPLETE BENCHMARK SUITE\n";
+    std::cout << "========================================================\n\n";
+    
+    auto total_start = std::chrono::steady_clock::now();
+    
+    std::cout << "This will run ALL paper benchmarks in sequence:\n";
+    std::cout << "  1. Epsilon (truncation threshold) sweep\n";
+    std::cout << "  2. Noise probability sweep\n";
+    std::cout << "  3. Qubit count sweep\n";
+    std::cout << "  4. LRET vs FDM crossover analysis\n";
+    std::cout << "  5. Rank evolution tracking\n";
+    std::cout << "\n";
+    
+    int overall_result = 0;
+    
+    //--------------------------------------------------------------------------
+    // 1. Epsilon Sweep: 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2
+    //--------------------------------------------------------------------------
+    {
+        std::cout << "------------------------------------------------------\n";
+        std::cout << "  [1/5] Epsilon Sweep\n";
+        std::cout << "------------------------------------------------------\n";
+        
+        CLIOptions opts = original_opts;
+        opts.sweep_config.type = SweepType::EPSILON;
+        opts.sweep_config.epsilon_values = {1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2};
+        opts.num_qubits = std::min(original_opts.num_qubits, static_cast<size_t>(12));
+        opts.depth = std::min(original_opts.depth, static_cast<size_t>(20));
+        
+        std::cout << "Parameters: n=" << opts.num_qubits << ", depth=" << opts.depth << "\n";
+        std::cout << "Epsilon values: 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2\n\n";
+        
+        SweepResults results = run_parameter_sweep(opts);
+        
+        if (csv_writer && !results.points.empty()) {
+            std::vector<std::tuple<double, double, size_t, double>> sweep_data;
+            for (const auto& p : results.points) {
+                sweep_data.emplace_back(p.epsilon, p.lret_time_seconds, p.lret_final_rank, p.fidelity_vs_fdm);
+            }
+            csv_writer->write_sweep_header("EPSILON", results.points.size(), opts.num_qubits, opts.depth, opts.noise_prob);
+            csv_writer->write_sweep_results("EPSILON", sweep_data);
+        }
+        
+        std::cout << "  Completed " << results.points.size() << " epsilon points.\n\n";
+    }
+    
+    //--------------------------------------------------------------------------
+    // 2. Noise Probability Sweep: 0.0, 0.01, 0.02, 0.05, 0.1, 0.2
+    //--------------------------------------------------------------------------
+    {
+        std::cout << "------------------------------------------------------\n";
+        std::cout << "  [2/5] Noise Probability Sweep\n";
+        std::cout << "------------------------------------------------------\n";
+        
+        CLIOptions opts = original_opts;
+        opts.sweep_config.type = SweepType::NOISE_PROB;
+        opts.sweep_config.noise_values = {0.0, 0.01, 0.02, 0.05, 0.1, 0.2};
+        opts.num_qubits = std::min(original_opts.num_qubits, static_cast<size_t>(10));
+        opts.depth = std::min(original_opts.depth, static_cast<size_t>(15));
+        
+        std::cout << "Parameters: n=" << opts.num_qubits << ", depth=" << opts.depth << "\n";
+        std::cout << "Noise values: 0.0, 0.01, 0.02, 0.05, 0.1, 0.2\n\n";
+        
+        SweepResults results = run_parameter_sweep(opts);
+        
+        if (csv_writer && !results.points.empty()) {
+            std::vector<std::tuple<double, double, size_t, double>> sweep_data;
+            for (const auto& p : results.points) {
+                sweep_data.emplace_back(p.noise_prob, p.lret_time_seconds, p.lret_final_rank, p.fidelity_vs_fdm);
+            }
+            csv_writer->write_sweep_header("NOISE_PROB", results.points.size(), opts.num_qubits, opts.depth, opts.noise_prob);
+            csv_writer->write_sweep_results("NOISE_PROB", sweep_data);
+        }
+        
+        std::cout << "  Completed " << results.points.size() << " noise points.\n\n";
+    }
+    
+    //--------------------------------------------------------------------------
+    // 3. Qubit Count Sweep: 5, 6, 7, ..., 15 (or user limit)
+    //--------------------------------------------------------------------------
+    {
+        std::cout << "------------------------------------------------------\n";
+        std::cout << "  [3/5] Qubit Count Sweep\n";
+        std::cout << "------------------------------------------------------\n";
+        
+        CLIOptions opts = original_opts;
+        opts.sweep_config.type = SweepType::QUBITS;
+        opts.sweep_config.qubit_values.clear();
+        
+        size_t max_qubits = std::min(original_opts.num_qubits, static_cast<size_t>(15));
+        for (size_t n = 5; n <= max_qubits; ++n) {
+            opts.sweep_config.qubit_values.push_back(n);
+        }
+        opts.depth = std::min(original_opts.depth, static_cast<size_t>(15));
+        
+        std::cout << "Parameters: depth=" << opts.depth << "\n";
+        std::cout << "Qubit range: 5 to " << max_qubits << "\n\n";
+        
+        SweepResults results = run_parameter_sweep(opts);
+        
+        if (csv_writer && !results.points.empty()) {
+            std::vector<std::tuple<double, double, size_t, double>> sweep_data;
+            for (const auto& p : results.points) {
+                sweep_data.emplace_back(static_cast<double>(p.num_qubits), p.lret_time_seconds, p.lret_final_rank, p.fidelity_vs_fdm);
+            }
+            csv_writer->write_sweep_header("QUBITS", results.points.size(), opts.num_qubits, opts.depth, opts.noise_prob);
+            csv_writer->write_sweep_results("QUBITS", sweep_data);
+        }
+        
+        std::cout << "  Completed " << results.points.size() << " qubit sweep points.\n\n";
+    }
+    
+    //--------------------------------------------------------------------------
+    // 4. LRET vs FDM Crossover Analysis (5-12 qubits)
+    //--------------------------------------------------------------------------
+    {
+        std::cout << "------------------------------------------------------\n";
+        std::cout << "  [4/5] LRET vs FDM Crossover Analysis\n";
+        std::cout << "------------------------------------------------------\n";
+        
+        CLIOptions opts = original_opts;
+        opts.sweep_config.type = SweepType::CROSSOVER;
+        opts.sweep_config.include_fdm = true;
+        opts.enable_fdm = true;
+        opts.sweep_config.qubit_values.clear();
+        
+        // Crossover limited to 5-12 qubits (FDM memory limits)
+        for (size_t n = 5; n <= 12; ++n) {
+            opts.sweep_config.qubit_values.push_back(n);
+        }
+        opts.depth = std::min(original_opts.depth, static_cast<size_t>(20));
+        
+        std::cout << "Parameters: depth=" << opts.depth << "\n";
+        std::cout << "Qubit range: 5 to 12 (FDM memory limit)\n\n";
+        
+        SweepResults results = run_parameter_sweep(opts);
+        
+        if (csv_writer && !results.points.empty()) {
+            std::vector<std::tuple<double, double, size_t, double>> sweep_data;
+            for (const auto& p : results.points) {
+                sweep_data.emplace_back(static_cast<double>(p.num_qubits), p.lret_time_seconds, p.lret_final_rank, p.fidelity_vs_fdm);
+            }
+            csv_writer->write_sweep_header("CROSSOVER", results.points.size(), opts.num_qubits, opts.depth, opts.noise_prob);
+            csv_writer->write_sweep_results("CROSSOVER", sweep_data);
+            csv_writer->write_crossover_summary(results.crossover_qubit_count, results.crossover_found);
+        }
+        
+        std::cout << "  Crossover point: ";
+        if (results.crossover_found) {
+            std::cout << results.crossover_qubit_count << " qubits\n";
+        } else {
+            std::cout << "Not found in range\n";
+        }
+        std::cout << "\n";
+    }
+    
+    //--------------------------------------------------------------------------
+    // 5. Rank Evolution Tracking (single run with tracking)
+    //--------------------------------------------------------------------------
+    {
+        std::cout << "------------------------------------------------------\n";
+        std::cout << "  [5/5] Rank Evolution Tracking\n";
+        std::cout << "------------------------------------------------------\n";
+        
+        CLIOptions opts = original_opts;
+        opts.sweep_config.type = SweepType::DEPTH;
+        opts.sweep_config.depth_values = {50};  // Single deep circuit
+        opts.sweep_config.track_rank_evolution = true;
+        opts.track_rank_evolution = true;
+        opts.num_qubits = std::min(original_opts.num_qubits, static_cast<size_t>(10));
+        
+        std::cout << "Parameters: n=" << opts.num_qubits << ", depth=50\n";
+        std::cout << "Tracking rank after each gate/noise/truncation\n\n";
+        
+        SweepResults results = run_parameter_sweep(opts);
+        
+        if (csv_writer && !results.points.empty() && !results.points[0].rank_evolution.empty()) {
+            const auto& evolution = results.points[0].rank_evolution;
+            std::vector<std::tuple<size_t, std::string, size_t, size_t, double>> events;
+            
+            for (const auto& e : evolution.events) {
+                events.emplace_back(e.step, e.operation_name, e.rank_before, e.rank_after, e.time_seconds);
+            }
+            csv_writer->write_rank_evolution(events);
+            
+            TimingBreakdown timing = create_timing_breakdown(evolution);
+            csv_writer->write_timing_breakdown(
+                timing.gate_time, timing.noise_time, timing.truncation_time,
+                timing.total_time, timing.truncation_count
+            );
+            
+            std::cout << "  Final rank: " << results.points[0].lret_final_rank << "\n";
+            std::cout << "  Operations tracked: " << evolution.events.size() << "\n";
+        }
+        std::cout << "\n";
+    }
+    
+    //--------------------------------------------------------------------------
+    // Summary
+    //--------------------------------------------------------------------------
+    auto total_end = std::chrono::steady_clock::now();
+    double total_time = std::chrono::duration<double>(total_end - total_start).count();
+    
+    std::cout << "========================================================\n";
+    std::cout << "   COMPLETE BENCHMARK SUITE FINISHED\n";
+    std::cout << "========================================================\n";
+    std::cout << "Total wall time: " << std::fixed << std::setprecision(2) << total_time << " seconds\n";
+    
+    if (csv_writer) {
+        csv_writer->write_summary(total_time, 0.0, 0.0, true, "Benchmark-all complete");
+        std::cout << "All results exported to: " << csv_writer->get_filepath() << "\n";
+    }
+    
+    std::cout << "\n";
+    
+    return overall_result;
 }

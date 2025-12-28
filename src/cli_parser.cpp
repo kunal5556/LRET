@@ -104,6 +104,25 @@ FDM (FULL DENSITY MATRIX) OPTIONS:
     --fdm                 Enable FDM comparison (if memory permits)
     --fdm-force           Force FDM even with insufficient memory (test limits)
 
+PARAMETER SWEEP OPTIONS (LRET Paper Benchmarking):
+    --benchmark-all       Run ALL paper benchmarks with default settings.
+                          Includes: epsilon sweep, noise sweep, qubit sweep,
+                          crossover analysis, and rank tracking. Output saved
+                          to benchmark_results.csv (or use -o to specify).
+    --sweep-epsilon STR   Sweep truncation threshold (epsilon).
+                          Format: "1e-7,1e-6,1e-5,1e-4" or "1e-7:1e-2:6" (log-spaced)
+    --sweep-noise STR     Sweep noise probability.
+                          Format: "0.0,0.01,0.05,0.1,0.2" or "0.0:0.2:11"
+    --sweep-qubits STR    Sweep number of qubits.
+                          Format: "5,8,10,12,15" or "5:20:1" (step=1)
+    --sweep-depth STR     Sweep circuit depth.
+                          Format: "10,20,50,100" or "10:100:10"
+    --sweep-rank STR      Sweep initial rank for parallel benchmarking.
+                          Format: "1,2,4,8,16,32" or "1:64:2" (powers)
+    --sweep-crossover     LRET vs FDM crossover analysis (varies qubits 5-15)
+    --track-rank          Track rank evolution after each operation
+    --sweep-trials N      Number of trials per sweep point (for statistics)
+
 RESOURCE MANAGEMENT OPTIONS:
     --allow-swap          Continue even if system is using swap memory
     --timeout TIME        Timeout for simulation. Formats supported:
@@ -148,6 +167,26 @@ EXAMPLES:
 
     # High-rank initial state for parallel benchmarking
     quantum_sim -n 12 --initial-rank 16 --mode compare
+
+    # ============ LRET Paper Benchmarking Examples ============
+
+    # Run ALL paper benchmarks at once (comprehensive analysis)
+    quantum_sim --benchmark-all -o paper_benchmarks.csv
+
+    # Sweep truncation threshold (Figure: epsilon vs time/rank)
+    quantum_sim -n 12 -d 20 --sweep-epsilon "1e-7:1e-2:6" -o epsilon_sweep.csv
+
+    # Sweep noise probability (Figure: noise vs time/rank)
+    quantum_sim -n 10 -d 15 --sweep-noise "0.0,0.01,0.05,0.1,0.2" -o noise_sweep.csv
+
+    # Sweep qubit count (Figure: n vs time)
+    quantum_sim -d 15 --sweep-qubits "5:18:1" --fdm -o qubit_sweep.csv
+
+    # LRET vs FDM crossover analysis
+    quantum_sim -d 20 --sweep-crossover --fdm -o crossover.csv
+
+    # Track rank evolution through circuit (Figure: rank vs depth)
+    quantum_sim -n 12 -d 50 --track-rank -o rank_evolution.csv
 
 For more information, see: https://github.com/kunal5556/LRET
 
@@ -289,8 +328,93 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
             continue;
         }
         
+        //======================================================================
+        // Parameter Sweep Options (LRET Paper Benchmarking)
+        //======================================================================
+        
+        // Run ALL paper benchmarks
+        if (arg == "--benchmark-all") {
+            opts.benchmark_all = true;
+            // This sets up a special mode that runs all sweeps sequentially
+            // Individual sweep values will be set up later in main.cpp
+            continue;
+        }
+        
+        // Sweep truncation threshold (epsilon)
+        if (arg == "--sweep-epsilon" && i + 1 < argc) {
+            opts.sweep_epsilon_str = argv[++i];
+            opts.sweep_config.type = SweepType::EPSILON;
+            opts.sweep_config.epsilon_values = SweepConfig::parse_double_sweep(opts.sweep_epsilon_str);
+            continue;
+        }
+        
+        // Sweep noise probability
+        if (arg == "--sweep-noise" && i + 1 < argc) {
+            opts.sweep_noise_str = argv[++i];
+            opts.sweep_config.type = SweepType::NOISE_PROB;
+            opts.sweep_config.noise_values = SweepConfig::parse_double_sweep(opts.sweep_noise_str);
+            continue;
+        }
+        
+        // Sweep qubit count
+        if (arg == "--sweep-qubits" && i + 1 < argc) {
+            opts.sweep_qubits_str = argv[++i];
+            opts.sweep_config.type = SweepType::QUBITS;
+            opts.sweep_config.qubit_values = SweepConfig::parse_size_sweep(opts.sweep_qubits_str);
+            continue;
+        }
+        
+        // Sweep circuit depth
+        if (arg == "--sweep-depth" && i + 1 < argc) {
+            opts.sweep_depth_str = argv[++i];
+            opts.sweep_config.type = SweepType::DEPTH;
+            opts.sweep_config.depth_values = SweepConfig::parse_size_sweep(opts.sweep_depth_str);
+            continue;
+        }
+        
+        // Sweep initial rank
+        if (arg == "--sweep-rank" && i + 1 < argc) {
+            opts.sweep_rank_str = argv[++i];
+            opts.sweep_config.type = SweepType::INITIAL_RANK;
+            opts.sweep_config.rank_values = SweepConfig::parse_size_sweep(opts.sweep_rank_str);
+            continue;
+        }
+        
+        // LRET vs FDM crossover analysis
+        if (arg == "--sweep-crossover") {
+            opts.sweep_crossover = true;
+            opts.sweep_config.type = SweepType::CROSSOVER;
+            opts.sweep_config.include_fdm = true;
+            // Default crossover range: 5-15 qubits
+            opts.sweep_config.qubit_values.clear();
+            for (size_t n = opts.sweep_config.crossover_min_qubits; 
+                 n <= opts.sweep_config.crossover_max_qubits; ++n) {
+                opts.sweep_config.qubit_values.push_back(n);
+            }
+            continue;
+        }
+        
+        // Track rank evolution
+        if (arg == "--track-rank") {
+            opts.track_rank_evolution = true;
+            opts.sweep_config.track_rank_evolution = true;
+            continue;
+        }
+        
+        // Number of trials per sweep point
+        if (arg == "--sweep-trials" && i + 1 < argc) {
+            opts.sweep_trials = std::stoul(argv[++i]);
+            opts.sweep_config.num_trials = opts.sweep_trials;
+            continue;
+        }
+        
         // Unknown option
         std::cerr << "Warning: Unknown option '" << arg << "'\n";
+    }
+    
+    // Post-processing: if FDM is enabled and sweep is active, propagate flag
+    if (opts.enable_fdm && opts.sweep_config.is_active()) {
+        opts.sweep_config.include_fdm = true;
     }
     
     return opts;

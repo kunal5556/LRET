@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include "benchmark_types.h"
 #include <string>
 #include <optional>
 
@@ -62,6 +63,24 @@ struct CLIOptions {
     bool verbose = false;
     std::optional<std::string> output_file;
     bool generate_output = false;  // True if -o flag was given (with or without filename)
+    
+    //==========================================================================
+    // Parameter Sweep Options (LRET Paper Benchmarking)
+    //==========================================================================
+    SweepConfig sweep_config;          // Sweep configuration
+    
+    // Sweep strings (parsed into sweep_config)
+    std::string sweep_epsilon_str;     // --sweep-epsilon "1e-7:1e-2:6"
+    std::string sweep_noise_str;       // --sweep-noise "0.0,0.01,0.05,0.1,0.2"
+    std::string sweep_qubits_str;      // --sweep-qubits "5:20:1"
+    std::string sweep_depth_str;       // --sweep-depth "10,20,50,100"
+    std::string sweep_rank_str;        // --sweep-rank "1,2,4,8,16"
+    
+    bool sweep_crossover = false;      // --sweep-crossover (LRET vs FDM analysis)
+    bool track_rank_evolution = false; // --track-rank (record rank after each op)
+    size_t sweep_trials = 1;           // --sweep-trials N (repeat for statistics)
+    
+    bool benchmark_all = false;        // --benchmark-all (run all paper benchmarks)
     
     // Flags
     bool show_help = false;

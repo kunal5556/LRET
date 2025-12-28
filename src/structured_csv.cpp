@@ -718,6 +718,131 @@ void StructuredCSVWriter::write_summary(double total_wall_time, double lret_time
 }
 
 //==============================================================================
+// Parameter Sweep Output (LRET Paper Benchmarking)
+//==============================================================================
+
+void StructuredCSVWriter::write_sweep_header(const std::string& sweep_type, size_t num_points,
+                                              size_t base_qubits, size_t base_depth, double base_noise) {
+    begin_section("SWEEP_CONFIG");
+    
+    write_csv_row({"parameter", "value"});
+    write_csv_row({"sweep_type", sweep_type});
+    write_csv_row({"num_points", std::to_string(num_points)});
+    write_csv_row({"base_qubits", std::to_string(base_qubits)});
+    write_csv_row({"base_depth", std::to_string(base_depth)});
+    write_csv_row({"base_noise", format_double(base_noise)});
+    write_csv_row({"sweep_start", get_timestamp()});
+    
+    end_section();
+}
+
+void StructuredCSVWriter::write_sweep_results(const std::string& sweep_type,
+                                               const std::vector<std::tuple<double, double, size_t, double>>& data) {
+    begin_section("SWEEP_RESULTS");
+    
+    // Determine column name based on sweep type
+    std::string param_name;
+    if (sweep_type == "epsilon") param_name = "epsilon";
+    else if (sweep_type == "noise") param_name = "noise_prob";
+    else if (sweep_type == "qubits") param_name = "num_qubits";
+    else if (sweep_type == "depth") param_name = "depth";
+    else param_name = "parameter";
+    
+    // Header row with units in column names (v2.1 format)
+    write_csv_row({param_name, "time_s", "final_rank", "fidelity_vs_fdm"});
+    
+    // Data rows
+    for (const auto& [param, time, rank, fidelity] : data) {
+        write_csv_row({
+            format_double(param, 8),  // High precision for epsilon values
+            format_double(time, 6),
+            std::to_string(rank),
+            format_double(fidelity, 6)
+        });
+    }
+    
+    end_section();
+}
+
+void StructuredCSVWriter::write_rank_evolution(
+    const std::vector<std::tuple<size_t, std::string, size_t, size_t, double>>& events
+) {
+    begin_section("RANK_EVOLUTION");
+    
+    // Header with descriptive column names
+    write_csv_row({"step", "operation", "rank_before", "rank_after", "time_s"});
+    
+    for (const auto& [step, op, rank_before, rank_after, time] : events) {
+        write_csv_row({
+            std::to_string(step),
+            op,
+            std::to_string(rank_before),
+            std::to_string(rank_after),
+            format_double(time, 8)
+        });
+    }
+    
+    end_section();
+}
+
+void StructuredCSVWriter::write_timing_breakdown(double gate_time, double noise_time, 
+                                                  double truncation_time, double total_time,
+                                                  size_t truncation_count) {
+    begin_section("TIMING_BREAKDOWN");
+    
+    write_csv_row({"component", "time_s", "percent"});
+    
+    auto pct = [total_time](double t) -> std::string {
+        if (total_time <= 0) return "0.0";
+        return std::to_string(100.0 * t / total_time);
+    };
+    
+    write_csv_row({"gate_application", format_double(gate_time, 6), pct(gate_time)});
+    write_csv_row({"noise_kraus", format_double(noise_time, 6), pct(noise_time)});
+    write_csv_row({"truncation_svd", format_double(truncation_time, 6), pct(truncation_time)});
+    
+    double overhead = total_time - gate_time - noise_time - truncation_time;
+    if (overhead < 0) overhead = 0;
+    write_csv_row({"overhead", format_double(overhead, 6), pct(overhead)});
+    
+    write_csv_row({"total", format_double(total_time, 6), "100.0"});
+    write_csv_row({"truncation_count", std::to_string(truncation_count), ""});
+    
+    end_section();
+}
+
+void StructuredCSVWriter::write_memory_comparison(size_t num_qubits, size_t lret_bytes, 
+                                                   size_t fdm_bytes, size_t lret_rank) {
+    begin_section("MEMORY_COMPARISON");
+    
+    write_csv_row({"metric", "value", "description"});
+    write_csv_row({"num_qubits", std::to_string(num_qubits), "Number of qubits"});
+    write_csv_row({"lret_memory_bytes", std::to_string(lret_bytes), "LRET L matrix memory"});
+    write_csv_row({"fdm_memory_bytes", std::to_string(fdm_bytes), "FDM rho matrix memory"});
+    write_csv_row({"lret_rank", std::to_string(lret_rank), "Final rank of L"});
+    
+    double ratio = (lret_bytes > 0) ? static_cast<double>(fdm_bytes) / lret_bytes : 0;
+    write_csv_row({"memory_savings_x", format_double(ratio, 1), "FDM/LRET memory ratio"});
+    
+    end_section();
+}
+
+void StructuredCSVWriter::write_crossover_summary(size_t crossover_qubit, bool found) {
+    begin_section("CROSSOVER_ANALYSIS");
+    
+    write_csv_row({"metric", "value"});
+    write_csv_row({"crossover_found", found ? "true" : "false"});
+    if (found) {
+        write_csv_row({"crossover_qubit_count", std::to_string(crossover_qubit)});
+        write_csv_row({"interpretation", "LRET faster than FDM for n >= " + std::to_string(crossover_qubit)});
+    } else {
+        write_csv_row({"interpretation", "No crossover found in tested range"});
+    }
+    
+    end_section();
+}
+
+//==============================================================================
 // Error/Warning/Interrupt
 //==============================================================================
 

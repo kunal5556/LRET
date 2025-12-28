@@ -161,6 +161,34 @@ public:
                        bool success, const std::string& message);
     
     //==========================================================================
+    // Parameter Sweep Output (LRET Paper Benchmarking)
+    //==========================================================================
+    
+    // Write sweep header with configuration
+    void write_sweep_header(const std::string& sweep_type, size_t num_points,
+                            size_t base_qubits, size_t base_depth, double base_noise);
+    
+    // Write sweep data table (main results)
+    void write_sweep_results(const std::string& sweep_type,
+                             const std::vector<std::tuple<double, double, size_t, double>>& data);
+    // Parameters: sweep_value, time_seconds, final_rank, fidelity_vs_fdm
+    
+    // Write rank evolution data
+    void write_rank_evolution(const std::vector<std::tuple<size_t, std::string, size_t, size_t, double>>& events);
+    // Parameters: step, operation, rank_before, rank_after, time_seconds
+    
+    // Write timing breakdown
+    void write_timing_breakdown(double gate_time, double noise_time, double truncation_time,
+                                double total_time, size_t truncation_count);
+    
+    // Write memory comparison
+    void write_memory_comparison(size_t num_qubits, size_t lret_bytes, size_t fdm_bytes,
+                                 size_t lret_rank);
+    
+    // Write crossover analysis summary
+    void write_crossover_summary(size_t crossover_qubit, bool found);
+    
+    //==========================================================================
     // Error/Warning/Interrupt Logging
     //==========================================================================
     void log_error(const std::string& context, const std::string& message);

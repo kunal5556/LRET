@@ -38,6 +38,8 @@ set(LIB_SOURCES
     src/resource_monitor.cpp
     src/progressive_csv.cpp
     src/structured_csv.cpp
+    src/benchmark_types.cpp
+    src/benchmark_runner.cpp
 )
 
 # Create static library
