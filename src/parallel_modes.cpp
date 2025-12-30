@@ -260,16 +260,21 @@ inline MatrixXcd apply_fused_single_gate(const MatrixXcd& L, const MatrixXcd& U,
 
 // Apply two-qubit gate - NO vector allocation version
 // Uses direct iteration instead of pre-computed indices
+// Two-qubit gate parallel application
+// Gate matrix convention: row/col index = (q1_bit << 1) | q2_bit
 MatrixXcd apply_two_qubit_gate_parallel(const MatrixXcd& L, const MatrixXcd& U,
                                          size_t q1, size_t q2, size_t num_qubits) {
     size_t dim = L.rows();
     size_t rank = L.cols();
     MatrixXcd result = L;
     
+    // Bit steps for each qubit
+    size_t step_q1 = 1ULL << q1;
+    size_t step_q2 = 1ULL << q2;
+    
+    // For iteration, we need the min and max to skip properly
     size_t qmin = std::min(q1, q2);
     size_t qmax = std::max(q1, q2);
-    bool swapped = (q1 > q2);
-    
     size_t step_min = 1ULL << qmin;
     size_t step_max = 1ULL << qmax;
     
@@ -282,13 +287,12 @@ MatrixXcd apply_two_qubit_gate_parallel(const MatrixXcd& L, const MatrixXcd& U,
         // Skip if either qubit bit is set
         if ((base & step_min) != 0 || (base & step_max) != 0) continue;
         
+        // idx[k] where k = (q1_bit << 1) | q2_bit
         size_t idx[4];
-        idx[0] = base;
-        idx[1] = base | step_min;
-        idx[2] = base | step_max;
-        idx[3] = base | step_min | step_max;
-        
-        if (swapped) std::swap(idx[1], idx[2]);
+        idx[0] = base;                          // q1=0, q2=0
+        idx[1] = base | step_q2;                // q1=0, q2=1
+        idx[2] = base | step_q1;                // q1=1, q2=0
+        idx[3] = base | step_q1 | step_q2;      // q1=1, q2=1
         
         for (size_t r = 0; r < rank; ++r) {
             Complex v[4];
@@ -389,12 +393,18 @@ MatrixXcd apply_gate_column_parallel(const MatrixXcd& L, const GateOp& gate, siz
             result.col(r) = new_col;
         }
     } else {
+        // Two-qubit gate: convention is row/col = (q1_bit << 1) | q2_bit
         MatrixXcd U = get_two_qubit_gate(gate.type, gate.params);
         size_t q1 = gate.qubits[0];
         size_t q2 = gate.qubits[1];
+        
+        // Bit steps for each qubit
+        size_t step_q1 = 1ULL << q1;
+        size_t step_q2 = 1ULL << q2;
+        
+        // For iteration, use min/max to skip properly
         size_t qmin = std::min(q1, q2);
         size_t qmax = std::max(q1, q2);
-        bool swapped = (q1 > q2);
         size_t step_min = 1ULL << qmin;
         size_t step_max = 1ULL << qmax;
         
@@ -408,13 +418,12 @@ MatrixXcd apply_gate_column_parallel(const MatrixXcd& L, const GateOp& gate, siz
             for (size_t base = 0; base < dim; ++base) {
                 if ((base & step_min) != 0 || (base & step_max) != 0) continue;
                 
+                // idx[k] where k = (q1_bit << 1) | q2_bit
                 size_t idx[4];
-                idx[0] = base;
-                idx[1] = base | step_min;
-                idx[2] = base | step_max;
-                idx[3] = base | step_min | step_max;
-                
-                if (swapped) std::swap(idx[1], idx[2]);
+                idx[0] = base;                          // q1=0, q2=0
+                idx[1] = base | step_q2;                // q1=0, q2=1
+                idx[2] = base | step_q1;                // q1=1, q2=0
+                idx[3] = base | step_q1 | step_q2;      // q1=1, q2=1
                 
                 Complex v[4];
                 for (int k = 0; k < 4; ++k) v[k] = col(idx[k]);
