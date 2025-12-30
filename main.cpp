@@ -30,6 +30,9 @@ int run_sweep_mode(const CLIOptions& opts, StructuredCSVWriter* csv_writer);
 // Forward declaration for benchmark-all mode (runs all LRET paper benchmarks)
 int run_all_benchmarks(const CLIOptions& opts, StructuredCSVWriter* csv_writer);
 
+// Forward declaration for compound benchmark mode (--bench-* options)
+int run_compound_benchmarks(const CLIOptions& opts, StructuredCSVWriter* csv_writer);
+
 int main(int argc, char* argv[]) {
     auto program_start_time = std::chrono::steady_clock::now();
     
@@ -171,6 +174,13 @@ int main(int argc, char* argv[]) {
         //======================================================================
         if (opts.benchmark_all) {
             return run_all_benchmarks(opts, csv_writer.get());
+        }
+        
+        //======================================================================
+        // Check for Compound Benchmark Mode (--bench-* options)
+        //======================================================================
+        if (!opts.benchmark_specs.empty()) {
+            return run_compound_benchmarks(opts, csv_writer.get());
         }
         
         //======================================================================
@@ -847,6 +857,143 @@ int run_all_benchmarks(const CLIOptions& original_opts, StructuredCSVWriter* csv
     
     if (csv_writer) {
         csv_writer->write_summary(total_time, 0.0, 0.0, true, "Benchmark-all complete");
+        std::cout << "All results exported to: " << csv_writer->get_filepath() << "\n";
+    }
+    
+    std::cout << "\n";
+    
+    return overall_result;
+}
+
+//==============================================================================
+// Run Compound Benchmarks Mode (--bench-* options)
+// Each benchmark can have its own range AND fixed parameters
+//==============================================================================
+int run_compound_benchmarks(const CLIOptions& original_opts, StructuredCSVWriter* csv_writer) {
+    std::cout << "\n";
+    std::cout << "========================================================\n";
+    std::cout << "   COMPOUND BENCHMARK SUITE\n";
+    std::cout << "========================================================\n\n";
+    
+    auto total_start = std::chrono::steady_clock::now();
+    
+    size_t num_benchmarks = original_opts.benchmark_specs.size();
+    std::cout << "Running " << num_benchmarks << " benchmark(s) with custom settings:\n\n";
+    
+    int overall_result = 0;
+    size_t bench_idx = 0;
+    
+    for (const auto& spec : original_opts.benchmark_specs) {
+        bench_idx++;
+        
+        // Create options for this specific benchmark
+        CLIOptions opts = original_opts;
+        
+        // Apply fixed parameter overrides from the spec
+        if (spec.fixed_qubits.has_value()) {
+            opts.num_qubits = spec.fixed_qubits.value();
+        }
+        if (spec.fixed_depth.has_value()) {
+            opts.depth = spec.fixed_depth.value();
+        }
+        if (spec.fixed_noise.has_value()) {
+            opts.noise_prob = spec.fixed_noise.value();
+        }
+        if (spec.fixed_epsilon.has_value()) {
+            opts.truncation_threshold = spec.fixed_epsilon.value();
+        }
+        if (spec.fixed_rank.has_value()) {
+            opts.initial_rank = spec.fixed_rank.value();
+        }
+        
+        // Set up sweep config based on type
+        opts.sweep_config.type = spec.type;
+        
+        std::string type_name;
+        switch (spec.type) {
+            case SweepType::EPSILON:
+                type_name = "EPSILON";
+                opts.sweep_config.epsilon_values = SweepConfig::parse_double_sweep(spec.range_str);
+                break;
+            case SweepType::NOISE_PROB:
+                type_name = "NOISE";
+                opts.sweep_config.noise_values = SweepConfig::parse_double_sweep(spec.range_str);
+                break;
+            case SweepType::QUBITS:
+                type_name = "QUBITS";
+                opts.sweep_config.qubit_values = SweepConfig::parse_size_sweep(spec.range_str);
+                break;
+            case SweepType::DEPTH:
+                type_name = "DEPTH";
+                opts.sweep_config.depth_values = SweepConfig::parse_size_sweep(spec.range_str);
+                break;
+            case SweepType::CROSSOVER:
+                type_name = "CROSSOVER";
+                opts.sweep_config.qubit_values = SweepConfig::parse_size_sweep(spec.range_str);
+                opts.sweep_config.include_fdm = true;
+                opts.enable_fdm = true;
+                break;
+            case SweepType::INITIAL_RANK:
+                type_name = "RANK";
+                opts.sweep_config.rank_values = SweepConfig::parse_size_sweep(spec.range_str);
+                break;
+            default:
+                continue;
+        }
+        
+        std::cout << "------------------------------------------------------\n";
+        std::cout << "  [" << bench_idx << "/" << num_benchmarks << "] " << type_name << " Sweep\n";
+        std::cout << "------------------------------------------------------\n";
+        std::cout << "  Range: " << spec.range_str << "\n";
+        std::cout << "  Fixed: n=" << opts.num_qubits 
+                  << ", d=" << opts.depth 
+                  << ", noise=" << opts.noise_prob 
+                  << ", epsilon=" << opts.truncation_threshold << "\n\n";
+        
+        // Run the sweep
+        SweepResults results = run_parameter_sweep(opts);
+        
+        // Write results to CSV
+        if (csv_writer && !results.points.empty()) {
+            std::vector<std::tuple<double, double, size_t, double>> sweep_data;
+            for (const auto& p : results.points) {
+                double param_value = 0;
+                switch (spec.type) {
+                    case SweepType::EPSILON: param_value = p.epsilon; break;
+                    case SweepType::NOISE_PROB: param_value = p.noise_prob; break;
+                    case SweepType::QUBITS: param_value = static_cast<double>(p.num_qubits); break;
+                    case SweepType::DEPTH: param_value = static_cast<double>(p.depth); break;
+                    case SweepType::CROSSOVER: param_value = static_cast<double>(p.num_qubits); break;
+                    case SweepType::INITIAL_RANK: param_value = static_cast<double>(p.initial_rank); break;
+                    default: break;
+                }
+                sweep_data.emplace_back(param_value, p.lret_time_seconds, p.lret_final_rank, p.fidelity_vs_fdm);
+            }
+            csv_writer->write_sweep_header(type_name, results.points.size(), opts.num_qubits, opts.depth, opts.noise_prob);
+            csv_writer->write_sweep_results(type_name, sweep_data);
+            
+            if (spec.type == SweepType::CROSSOVER) {
+                csv_writer->write_crossover_summary(results.crossover_qubit_count, results.crossover_found);
+            }
+        }
+        
+        std::cout << "  Completed " << results.points.size() << " points.\n\n";
+    }
+    
+    //--------------------------------------------------------------------------
+    // Summary
+    //--------------------------------------------------------------------------
+    auto total_end = std::chrono::steady_clock::now();
+    double total_time = std::chrono::duration<double>(total_end - total_start).count();
+    
+    std::cout << "========================================================\n";
+    std::cout << "   COMPOUND BENCHMARK SUITE FINISHED\n";
+    std::cout << "========================================================\n";
+    std::cout << "Benchmarks run: " << num_benchmarks << "\n";
+    std::cout << "Total wall time: " << std::fixed << std::setprecision(2) << total_time << " seconds\n";
+    
+    if (csv_writer) {
+        csv_writer->write_summary(total_time, 0.0, 0.0, true, "Compound benchmarks complete");
         std::cout << "All results exported to: " << csv_writer->get_filepath() << "\n";
     }
     

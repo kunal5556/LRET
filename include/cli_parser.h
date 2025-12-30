@@ -4,8 +4,28 @@
 #include "benchmark_types.h"
 #include <string>
 #include <optional>
+#include <vector>
 
 namespace qlret {
+
+//==============================================================================
+// Compound Benchmark Specification
+// Allows each benchmark to have its own range AND fixed parameters
+//==============================================================================
+struct BenchmarkSpec {
+    SweepType type = SweepType::NONE;
+    std::string range_str;              // e.g., "1e-7:1e-2:6" or "0.0,0.01,0.05"
+    
+    // Fixed parameters for this specific benchmark (optional overrides)
+    std::optional<size_t> fixed_qubits;
+    std::optional<size_t> fixed_depth;
+    std::optional<double> fixed_noise;
+    std::optional<double> fixed_epsilon;
+    std::optional<size_t> fixed_rank;
+    
+    // Parse a compound spec string like "range=1e-7:1e-2:6,n=12,d=20,noise=0.01"
+    static BenchmarkSpec parse(const std::string& spec_str, SweepType type);
+};
 
 // Parallelization modes
 enum class ParallelMode {
@@ -81,6 +101,11 @@ struct CLIOptions {
     size_t sweep_trials = 1;           // --sweep-trials N (repeat for statistics)
     
     bool benchmark_all = false;        // --benchmark-all (run all paper benchmarks)
+    
+    //==========================================================================
+    // Compound Benchmark Specs (--bench-* options with custom ranges + params)
+    //==========================================================================
+    std::vector<BenchmarkSpec> benchmark_specs;  // Multiple benchmarks to run
     
     // Flags
     bool show_help = false;

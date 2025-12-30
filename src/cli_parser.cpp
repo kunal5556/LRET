@@ -2,8 +2,63 @@
 #include <iostream>
 #include <algorithm>
 #include <cstring>
+#include <sstream>
 
 namespace qlret {
+
+//==============================================================================
+// BenchmarkSpec parsing
+//==============================================================================
+
+// Parse a compound spec string like "range=1e-7:1e-2:6,n=12,d=20,noise=0.01"
+// or simpler "1e-7:1e-2:6" (just range, use global defaults for fixed params)
+BenchmarkSpec BenchmarkSpec::parse(const std::string& spec_str, SweepType type) {
+    BenchmarkSpec spec;
+    spec.type = type;
+    
+    // Check if it's a compound format (contains '=')
+    if (spec_str.find('=') != std::string::npos) {
+        // Parse key=value pairs separated by commas
+        std::stringstream ss(spec_str);
+        std::string token;
+        
+        while (std::getline(ss, token, ',')) {
+            // Trim whitespace
+            size_t start = token.find_first_not_of(" \t");
+            size_t end = token.find_last_not_of(" \t");
+            if (start == std::string::npos) continue;
+            token = token.substr(start, end - start + 1);
+            
+            size_t eq_pos = token.find('=');
+            if (eq_pos == std::string::npos) continue;
+            
+            std::string key = token.substr(0, eq_pos);
+            std::string value = token.substr(eq_pos + 1);
+            
+            // Normalize key
+            std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+            
+            if (key == "range" || key == "r") {
+                spec.range_str = value;
+            } else if (key == "n" || key == "qubits") {
+                spec.fixed_qubits = std::stoul(value);
+            } else if (key == "d" || key == "depth") {
+                spec.fixed_depth = std::stoul(value);
+            } else if (key == "noise" || key == "p") {
+                spec.fixed_noise = std::stod(value);
+            } else if (key == "epsilon" || key == "eps" || key == "e" || key == "t") {
+                spec.fixed_epsilon = std::stod(value);
+            } else if (key == "rank") {
+                spec.fixed_rank = std::stoul(value);
+            }
+        }
+    } else {
+        // Simple format: just the range string
+        spec.range_str = spec_str;
+    }
+    
+    return spec;
+}
 
 std::string parallel_mode_to_string(ParallelMode mode) {
     switch (mode) {
@@ -137,6 +192,26 @@ PARAMETER SWEEP OPTIONS (LRET Paper Benchmarking):
     --track-rank          Track rank evolution after each operation
     --sweep-trials N      Number of trials per sweep point (for statistics)
 
+COMPOUND BENCHMARK OPTIONS (Run multiple benchmarks with individual settings):
+    These options allow running multiple benchmarks in a single command, each
+    with its OWN range AND fixed parameters. Can be combined freely.
+    
+    Format: --bench-TYPE "range=START:END:STEP,n=N,d=D,noise=P,epsilon=E"
+    Short:  --bench-TYPE "START:END:STEP" (uses global -n, -d, etc.)
+    
+    --bench-epsilon STR   Epsilon sweep with custom fixed params.
+                          Example: --bench-epsilon "range=1e-7:1e-2:6,n=12,d=20"
+    --bench-noise STR     Noise sweep with custom fixed params.
+                          Example: --bench-noise "range=0:0.2:11,n=10,d=15"
+    --bench-qubits STR    Qubit sweep with custom fixed params.
+                          Example: --bench-qubits "range=8:18:1,d=20,noise=0.02"
+    --bench-depth STR     Depth sweep with custom fixed params.
+                          Example: --bench-depth "range=10:100:10,n=12,noise=0.01"
+    --bench-crossover STR Crossover analysis with custom fixed params.
+                          Example: --bench-crossover "range=5:15:1,d=25,noise=0.01"
+    --bench-rank STR      Rank sweep with custom fixed params.
+                          Example: --bench-rank "range=1:32:2,n=10,d=20"
+
 RESOURCE MANAGEMENT OPTIONS:
     --allow-swap          Continue even if system is using swap memory
     --timeout TIME        Timeout for simulation. Formats supported:
@@ -205,6 +280,24 @@ EXAMPLES:
 
     # Track rank evolution through circuit (Figure: rank vs depth)
     quantum_sim -n 12 -d 50 --track-rank -o rank_evolution.csv
+
+    # ============ Compound Benchmarks (Multiple with Individual Settings) ============
+    
+    # Run BOTH epsilon AND noise sweeps with DIFFERENT fixed params each
+    quantum_sim --bench-epsilon "range=1e-7:1e-2:6,n=12,d=20,noise=0.01" \
+                --bench-noise "range=0:0.2:11,n=10,d=15,epsilon=1e-4" \
+                -o combined.csv
+
+    # Run comprehensive suite: epsilon, noise, qubits, crossover - each customized
+    quantum_sim --bench-epsilon "range=1e-7:1e-2:6,n=15,d=25" \
+                --bench-noise "range=0:0.2:11,n=12,d=20" \
+                --bench-qubits "range=8:20:1,d=20,noise=0.02" \
+                --bench-crossover "range=6:14:1,d=25" \
+                -o full_custom.csv
+
+    # Simple compound (no custom params - uses global -n, -d, etc.)
+    quantum_sim -n 12 -d 20 --bench-epsilon "1e-7:1e-2:6" \
+                            --bench-noise "0:0.2:11" -o both.csv
 
 For more information, see: https://github.com/kunal5556/LRET
 
@@ -436,6 +529,52 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
         if (arg == "--sweep-trials" && i + 1 < argc) {
             opts.sweep_trials = std::stoul(argv[++i]);
             opts.sweep_config.num_trials = opts.sweep_trials;
+            continue;
+        }
+        
+        //======================================================================
+        // Compound Benchmark Options (--bench-* with custom ranges + params)
+        //======================================================================
+        
+        // Compound epsilon benchmark
+        if (arg == "--bench-epsilon" && i + 1 < argc) {
+            auto spec = BenchmarkSpec::parse(argv[++i], SweepType::EPSILON);
+            opts.benchmark_specs.push_back(spec);
+            continue;
+        }
+        
+        // Compound noise benchmark
+        if (arg == "--bench-noise" && i + 1 < argc) {
+            auto spec = BenchmarkSpec::parse(argv[++i], SweepType::NOISE_PROB);
+            opts.benchmark_specs.push_back(spec);
+            continue;
+        }
+        
+        // Compound qubits benchmark
+        if (arg == "--bench-qubits" && i + 1 < argc) {
+            auto spec = BenchmarkSpec::parse(argv[++i], SweepType::QUBITS);
+            opts.benchmark_specs.push_back(spec);
+            continue;
+        }
+        
+        // Compound depth benchmark
+        if (arg == "--bench-depth" && i + 1 < argc) {
+            auto spec = BenchmarkSpec::parse(argv[++i], SweepType::DEPTH);
+            opts.benchmark_specs.push_back(spec);
+            continue;
+        }
+        
+        // Compound crossover benchmark
+        if (arg == "--bench-crossover" && i + 1 < argc) {
+            auto spec = BenchmarkSpec::parse(argv[++i], SweepType::CROSSOVER);
+            opts.benchmark_specs.push_back(spec);
+            continue;
+        }
+        
+        // Compound rank benchmark
+        if (arg == "--bench-rank" && i + 1 < argc) {
+            auto spec = BenchmarkSpec::parse(argv[++i], SweepType::INITIAL_RANK);
+            opts.benchmark_specs.push_back(spec);
             continue;
         }
         
