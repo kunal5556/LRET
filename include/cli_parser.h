@@ -22,8 +22,9 @@ struct BenchmarkSpec {
     std::optional<double> fixed_noise;
     std::optional<double> fixed_epsilon;
     std::optional<size_t> fixed_rank;
+    std::optional<size_t> trials;       // Per-benchmark trial count
     
-    // Parse a compound spec string like "range=1e-7:1e-2:6,n=12,d=20,noise=0.01"
+    // Parse a compound spec string like "range=1e-7:1e-2:6,n=12,d=20,noise=0.01,trials=5"
     static BenchmarkSpec parse(const std::string& spec_str, SweepType type);
 };
 

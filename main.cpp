@@ -906,6 +906,11 @@ int run_compound_benchmarks(const CLIOptions& original_opts, StructuredCSVWriter
             opts.initial_rank = spec.fixed_rank.value();
         }
         
+        // Apply per-benchmark trials (overrides global --sweep-trials)
+        size_t num_trials = spec.trials.value_or(original_opts.sweep_trials);
+        opts.sweep_trials = num_trials;
+        opts.sweep_config.num_trials = num_trials;
+        
         // Set up sweep config based on type
         opts.sweep_config.type = spec.type;
         
@@ -948,7 +953,8 @@ int run_compound_benchmarks(const CLIOptions& original_opts, StructuredCSVWriter
         std::cout << "  Fixed: n=" << opts.num_qubits 
                   << ", d=" << opts.depth 
                   << ", noise=" << opts.noise_prob 
-                  << ", epsilon=" << opts.truncation_threshold << "\n\n";
+                  << ", epsilon=" << opts.truncation_threshold << "\n";
+        std::cout << "  Trials: " << num_trials << "\n\n";
         
         // Run the sweep
         SweepResults results = run_parameter_sweep(opts);

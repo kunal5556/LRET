@@ -50,6 +50,8 @@ BenchmarkSpec BenchmarkSpec::parse(const std::string& spec_str, SweepType type) 
                 spec.fixed_epsilon = std::stod(value);
             } else if (key == "rank") {
                 spec.fixed_rank = std::stoul(value);
+            } else if (key == "trials" || key == "tr") {
+                spec.trials = std::stoul(value);
             }
         }
     } else {
@@ -196,15 +198,25 @@ COMPOUND BENCHMARK OPTIONS (Run multiple benchmarks with individual settings):
     These options allow running multiple benchmarks in a single command, each
     with its OWN range AND fixed parameters. Can be combined freely.
     
-    Format: --bench-TYPE "range=START:END:STEP,n=N,d=D,noise=P,epsilon=E"
-    Short:  --bench-TYPE "START:END:STEP" (uses global -n, -d, etc.)
+    Format: --bench-TYPE "range=START:END:STEP,n=N,d=D,noise=P,epsilon=E,trials=T"
+    Short:  --bench-TYPE "START:END:STEP" (uses global -n, -d, --sweep-trials)
+    Values: --bench-TYPE "val1,val2,val3" (explicit discrete values)
+    
+    Parameters:
+      range=STR     Sweep range or explicit values (required)
+      n=N           Fixed number of qubits
+      d=N           Fixed circuit depth
+      noise=F       Fixed noise probability
+      epsilon=F     Fixed truncation threshold
+      rank=N        Fixed initial rank
+      trials=N      Number of trials for THIS benchmark (default: --sweep-trials)
     
     --bench-epsilon STR   Epsilon sweep with custom fixed params.
-                          Example: --bench-epsilon "range=1e-7:1e-2:6,n=12,d=20"
+                          Example: --bench-epsilon "range=1e-7:1e-2:6,n=12,d=20,trials=3"
     --bench-noise STR     Noise sweep with custom fixed params.
-                          Example: --bench-noise "range=0:0.2:11,n=10,d=15"
+                          Example: --bench-noise "range=0:0.2:11,n=10,d=15,trials=5"
     --bench-qubits STR    Qubit sweep with custom fixed params.
-                          Example: --bench-qubits "range=8:18:1,d=20,noise=0.02"
+                          Example: --bench-qubits "3,5,8,12,17,d=20,noise=0.02"
     --bench-depth STR     Depth sweep with custom fixed params.
                           Example: --bench-depth "range=10:100:10,n=12,noise=0.01"
     --bench-crossover STR Crossover analysis with custom fixed params.
@@ -283,21 +295,27 @@ EXAMPLES:
 
     # ============ Compound Benchmarks (Multiple with Individual Settings) ============
     
-    # Run BOTH epsilon AND noise sweeps with DIFFERENT fixed params each
-    quantum_sim --bench-epsilon "range=1e-7:1e-2:6,n=12,d=20,noise=0.01" \
-                --bench-noise "range=0:0.2:11,n=10,d=15,epsilon=1e-4" \
+    # Run BOTH epsilon AND noise sweeps with DIFFERENT fixed params AND trials
+    quantum_sim --bench-epsilon "range=1e-7:1e-2:6,n=12,d=20,noise=0.01,trials=3" \
+                --bench-noise "range=0:0.2:11,n=10,d=15,epsilon=1e-4,trials=5" \
                 -o combined.csv
 
+    # Sweep over explicit discrete values (not ranges)
+    quantum_sim --bench-qubits "3,5,8,12,17,d=20,noise=0.02" \
+                --bench-epsilon "1e-7,1e-5,1e-3,n=12,d=20" \
+                -o discrete.csv
+
     # Run comprehensive suite: epsilon, noise, qubits, crossover - each customized
-    quantum_sim --bench-epsilon "range=1e-7:1e-2:6,n=15,d=25" \
-                --bench-noise "range=0:0.2:11,n=12,d=20" \
+    quantum_sim --bench-epsilon "range=1e-7:1e-2:6,n=15,d=25,trials=3" \
+                --bench-noise "range=0:0.2:11,n=12,d=20,trials=5" \
                 --bench-qubits "range=8:20:1,d=20,noise=0.02" \
                 --bench-crossover "range=6:14:1,d=25" \
                 -o full_custom.csv
 
-    # Simple compound (no custom params - uses global -n, -d, etc.)
-    quantum_sim -n 12 -d 20 --bench-epsilon "1e-7:1e-2:6" \
-                            --bench-noise "0:0.2:11" -o both.csv
+    # Simple compound (uses global -n, -d, --sweep-trials for defaults)
+    quantum_sim -n 12 -d 20 --sweep-trials 3 \
+                --bench-epsilon "1e-7:1e-2:6" \
+                --bench-noise "0:0.2:11" -o both.csv
 
 For more information, see: https://github.com/kunal5556/LRET
 
