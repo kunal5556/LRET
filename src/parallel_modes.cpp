@@ -26,6 +26,7 @@
 #include "simulator.h"
 #include "utils.h"
 #include "structured_csv.h"
+#include "resource_monitor.h"
 #include <iostream>
 #include <thread>
 #include <unordered_map>
