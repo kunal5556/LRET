@@ -19,8 +19,10 @@ BenchmarkSpec BenchmarkSpec::parse(const std::string& spec_str, SweepType type) 
     // Check if it's a compound format (contains '=')
     if (spec_str.find('=') != std::string::npos) {
         // Parse key=value pairs separated by commas
+        // Also collect tokens without '=' at the start as discrete range values
         std::stringstream ss(spec_str);
         std::string token;
+        std::vector<std::string> discrete_values;
         
         while (std::getline(ss, token, ',')) {
             // Trim whitespace
@@ -30,7 +32,11 @@ BenchmarkSpec BenchmarkSpec::parse(const std::string& spec_str, SweepType type) 
             token = token.substr(start, end - start + 1);
             
             size_t eq_pos = token.find('=');
-            if (eq_pos == std::string::npos) continue;
+            if (eq_pos == std::string::npos) {
+                // No '=' - this is a discrete value for the range
+                discrete_values.push_back(token);
+                continue;
+            }
             
             std::string key = token.substr(0, eq_pos);
             std::string value = token.substr(eq_pos + 1);
@@ -52,6 +58,15 @@ BenchmarkSpec BenchmarkSpec::parse(const std::string& spec_str, SweepType type) 
                 spec.fixed_rank = std::stoul(value);
             } else if (key == "trials" || key == "tr") {
                 spec.trials = std::stoul(value);
+            }
+        }
+        
+        // If we collected discrete values and no range= was specified, use them
+        if (!discrete_values.empty() && spec.range_str.empty()) {
+            // Join discrete values with commas to form the range string
+            for (size_t i = 0; i < discrete_values.size(); ++i) {
+                if (i > 0) spec.range_str += ",";
+                spec.range_str += discrete_values[i];
             }
         }
     } else {

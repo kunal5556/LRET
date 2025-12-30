@@ -434,7 +434,77 @@ SweepResults run_noise_sweep(
         results.add_point(point);
         
         std::cout << std::fixed << std::setprecision(4) << point.lret_time_seconds << "s, "
-                  << "rank=" << point.lret_final_rank << "\n";
+                  << "rank=" << point.lret_final_rank;
+        if (point.fdm_run) {
+            std::cout << ", FDM=" << point.fdm_time_seconds << "s"
+                      << ", speedup=" << std::setprecision(1) << point.speedup_vs_fdm() << "x";
+        }
+        std::cout << "\n";
+    }
+    
+    results.end_time = std::chrono::system_clock::now();
+    results.total_wall_time_seconds = std::chrono::duration<double>(
+        results.end_time - results.start_time).count();
+    
+    return results;
+}
+
+SweepResults run_rank_sweep(
+    const CLIOptions& opts,
+    const std::vector<size_t>& rank_values
+) {
+    SweepResults results;
+    results.type = SweepType::INITIAL_RANK;
+    results.sweep_parameter_name = "initial_rank";
+    results.start_time = std::chrono::system_clock::now();
+    
+    std::cout << "Running initial rank sweep: " << rank_values.size() << " points\n";
+    std::cout << "  Fixed: n=" << opts.num_qubits << ", d=" << opts.depth 
+              << ", noise=" << opts.noise_prob 
+              << ", epsilon=" << std::scientific << opts.truncation_threshold << "\n\n";
+    
+    // Generate circuit once (same for all rank values)
+    auto sequence = generate_quantum_sequences(
+        opts.num_qubits, opts.depth, true, opts.noise_prob, opts.random_seed
+    );
+    
+    SimConfig config;
+    config.truncation_threshold = opts.truncation_threshold;
+    config.do_truncation = true;
+    config.batch_size = opts.batch_size ? opts.batch_size : auto_select_batch_size(opts.num_qubits);
+    
+    size_t max_rank = 1ULL << opts.num_qubits;
+    
+    for (size_t i = 0; i < rank_values.size(); ++i) {
+        size_t rank = rank_values[i];
+        size_t actual_rank = std::min(rank, max_rank);
+        
+        std::cout << "  [" << (i+1) << "/" << rank_values.size() << "] "
+                  << "rank=" << std::setw(4) << actual_rank << " ... " << std::flush;
+        
+        // Create initial state with specified rank
+        MatrixXcd L_init;
+        if (actual_rank > 1) {
+            L_init = create_random_mixed_state(opts.num_qubits, actual_rank, opts.random_seed);
+        } else {
+            L_init = create_zero_state(opts.num_qubits);
+        }
+        
+        auto point = run_single_benchmark(
+            L_init, sequence, opts.num_qubits, config,
+            opts.track_rank_evolution, opts.enable_fdm
+        );
+        point.initial_rank = actual_rank;
+        
+        results.add_point(point);
+        
+        std::cout << std::fixed << std::setprecision(4) << point.lret_time_seconds << "s, "
+                  << "final_rank=" << point.lret_final_rank;
+        if (point.fdm_run) {
+            std::cout << ", FDM=" << point.fdm_time_seconds << "s"
+                      << ", speedup=" << std::setprecision(1) << point.speedup_vs_fdm() << "x";
+        }
+        std::cout << "\n";
     }
     
     results.end_time = std::chrono::system_clock::now();
@@ -552,7 +622,12 @@ SweepResults run_depth_sweep(
         results.add_point(point);
         
         std::cout << std::fixed << std::setprecision(4) << point.lret_time_seconds << "s, "
-                  << "rank=" << point.lret_final_rank << "\n";
+                  << "rank=" << point.lret_final_rank;
+        if (point.fdm_run) {
+            std::cout << ", FDM=" << point.fdm_time_seconds << "s"
+                      << ", speedup=" << std::setprecision(1) << point.speedup_vs_fdm() << "x";
+        }
+        std::cout << "\n";
     }
     
     results.end_time = std::chrono::system_clock::now();
@@ -570,10 +645,14 @@ SweepResults run_crossover_analysis(
     std::cout << "\n=== LRET vs FDM Crossover Analysis ===\n";
     std::cout << "Finding where LRET becomes faster than FDM...\n\n";
     
-    // Build qubit values
+    // Use qubit_values from config if available, otherwise build from min/max
     std::vector<size_t> qubit_values;
-    for (size_t n = min_qubits; n <= max_qubits; ++n) {
-        qubit_values.push_back(n);
+    if (!opts.sweep_config.qubit_values.empty()) {
+        qubit_values = opts.sweep_config.qubit_values;
+    } else {
+        for (size_t n = min_qubits; n <= max_qubits; ++n) {
+            qubit_values.push_back(n);
+        }
     }
     
     // Create modified options with FDM enabled
@@ -642,6 +721,9 @@ SweepResults run_parameter_sweep(
             
         case SweepType::DEPTH:
             return run_depth_sweep(opts, config.depth_values);
+            
+        case SweepType::INITIAL_RANK:
+            return run_rank_sweep(opts, config.rank_values);
             
         case SweepType::CROSSOVER:
             return run_crossover_analysis(

@@ -79,6 +79,18 @@ SweepResults run_noise_sweep(
 );
 
 /**
+ * @brief Run initial rank sweep
+ * 
+ * Paper Figure: Runtime vs. initial rank
+ * Fixed: n, d, epsilon, noise_prob
+ * Vary: rank = {1, 2, 4, 8, 16, ...}
+ */
+SweepResults run_rank_sweep(
+    const CLIOptions& opts,
+    const std::vector<size_t>& rank_values
+);
+
+/**
  * @brief Run qubit count sweep
  * 
  * Paper Figure: Runtime vs. number of qubits
