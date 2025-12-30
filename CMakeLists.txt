@@ -64,6 +64,12 @@ else()
     set(BUILD_DEMO_BATCH FALSE)
 endif()
 
+# Fidelity debug test
+if(EXISTS "${CMAKE_SOURCE_DIR}/test_fidelity.cpp")
+    add_executable(test_fidelity test_fidelity.cpp)
+    target_link_libraries(test_fidelity PRIVATE qlret_lib)
+endif()
+
 # Compiler optimizations for Release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

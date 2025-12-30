@@ -110,6 +110,14 @@ MatrixXcd truncate_L(const MatrixXcd& L, double threshold, size_t max_rank) {
     // Using thin QR: L_new = Q * R, we want L_new' such that L_new' * L_new'† = L_new * L_new†
     // Actually, for ρ = L L†, we just need L_new directly
     
+    // IMPORTANT: Renormalize to preserve trace
+    // Truncation discards eigenvalues, which reduces Tr[ρ] = Tr[L L†]
+    // We need to scale L so that Tr[ρ] = 1
+    double new_trace = L_new.squaredNorm();  // Tr[L L†] = ||L||_F^2
+    if (new_trace > 1e-10) {
+        L_new /= std::sqrt(new_trace);  // Now Tr[ρ] = 1
+    }
+    
     return L_new;
 }
 

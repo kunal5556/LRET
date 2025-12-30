@@ -551,7 +551,20 @@ MatrixXcd run_hybrid(
     constexpr size_t ROW_RANK_THRESHOLD = 4;
     constexpr size_t COL_RANK_THRESHOLD = 16;
     
+    size_t step = 0;
+    size_t total_ops = sequence.operations.size();
+    
     for (const auto& op : sequence.operations) {
+        step++;
+        
+        // Check for abort
+        if (should_abort()) {
+            if (config.verbose) {
+                std::cout << "\nHybrid mode: Aborted at step " << step << "/" << total_ops << std::endl;
+            }
+            break;
+        }
+        
         if (std::holds_alternative<GateOp>(op)) {
             const auto& gate = std::get<GateOp>(op);
             size_t rank = L.cols();
@@ -572,6 +585,11 @@ MatrixXcd run_hybrid(
             } else {
                 // High rank + large dim: column parallelism is better
                 L = parallel_ops::apply_gate_column_parallel(L, gate, num_qubits);
+            }
+            
+            if (config.verbose && step % 100 == 0) {
+                std::cout << "Hybrid step " << step << "/" << total_ops 
+                          << " rank=" << L.cols() << std::endl;
             }
         } else {
             const auto& noise = std::get<NoiseOp>(op);
