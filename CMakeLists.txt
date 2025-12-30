@@ -70,6 +70,12 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/test_fidelity.cpp")
     target_link_libraries(test_fidelity PRIVATE qlret_lib)
 endif()
 
+# Minimal debug test
+if(EXISTS "${CMAKE_SOURCE_DIR}/test_minimal.cpp")
+    add_executable(test_minimal test_minimal.cpp)
+    target_link_libraries(test_minimal PRIVATE qlret_lib)
+endif()
+
 # Compiler optimizations for Release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
