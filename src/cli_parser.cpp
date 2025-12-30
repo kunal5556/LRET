@@ -105,21 +105,33 @@ FDM (FULL DENSITY MATRIX) OPTIONS:
     --fdm-force           Force FDM even with insufficient memory (test limits)
 
 PARAMETER SWEEP OPTIONS (LRET Paper Benchmarking):
+    When running a sweep, the parameter being swept varies while other parameters
+    stay FIXED at values set by -n, -d, --noise, and -t options.
+    
+    Example: To sweep epsilon with fixed n=15, d=20, noise=0.05:
+             quantum_sim -n 15 -d 20 --noise 0.05 --sweep-epsilon "1e-7:1e-2:6"
+
     --benchmark-all       Run ALL paper benchmarks with default settings.
                           Includes: epsilon sweep, noise sweep, qubit sweep,
                           crossover analysis, and rank tracking. Output saved
                           to benchmark_results.csv (or use -o to specify).
     --sweep-epsilon STR   Sweep truncation threshold (epsilon).
+                          Fixed: -n (qubits), -d (depth), --noise (noise prob)
                           Format: "1e-7,1e-6,1e-5,1e-4" or "1e-7:1e-2:6" (log-spaced)
     --sweep-noise STR     Sweep noise probability.
+                          Fixed: -n (qubits), -d (depth), -t (epsilon)
                           Format: "0.0,0.01,0.05,0.1,0.2" or "0.0:0.2:11"
     --sweep-qubits STR    Sweep number of qubits.
+                          Fixed: -d (depth), --noise (noise prob), -t (epsilon)
                           Format: "5,8,10,12,15" or "5:20:1" (step=1)
     --sweep-depth STR     Sweep circuit depth.
+                          Fixed: -n (qubits), --noise (noise prob), -t (epsilon)
                           Format: "10,20,50,100" or "10:100:10"
     --sweep-rank STR      Sweep initial rank for parallel benchmarking.
+                          Fixed: -n (qubits), -d (depth), --noise, -t (epsilon)
                           Format: "1,2,4,8,16,32" or "1:64:2" (powers)
     --sweep-crossover STR LRET vs FDM crossover analysis.
+                          Fixed: -d (depth), --noise (noise prob), -t (epsilon)
                           Format: "5:15" (min:max qubits) or "5:15:1" (min:max:step)
                           Default: "5:15:1" if no argument given
     --track-rank          Track rank evolution after each operation
@@ -171,21 +183,25 @@ EXAMPLES:
     quantum_sim -n 12 --initial-rank 16 --mode compare
 
     # ============ LRET Paper Benchmarking Examples ============
+    # For all sweeps, use -n, -d, --noise, -t to set FIXED parameters
 
     # Run ALL paper benchmarks at once (comprehensive analysis)
     quantum_sim --benchmark-all -o paper_benchmarks.csv
 
-    # Sweep truncation threshold (Figure: epsilon vs time/rank)
-    quantum_sim -n 12 -d 20 --sweep-epsilon "1e-7:1e-2:6" -o epsilon_sweep.csv
+    # Sweep truncation threshold with FIXED n=15, d=20, noise=0.05
+    quantum_sim -n 15 -d 20 --noise 0.05 --sweep-epsilon "1e-7:1e-2:6" -o eps.csv
 
-    # Sweep noise probability (Figure: noise vs time/rank)
-    quantum_sim -n 10 -d 15 --sweep-noise "0.0,0.01,0.05,0.1,0.2" -o noise_sweep.csv
+    # Sweep noise probability with FIXED n=12, d=25, epsilon=1e-5
+    quantum_sim -n 12 -d 25 -t 1e-5 --sweep-noise "0.0:0.2:11" -o noise.csv
 
-    # Sweep qubit count (Figure: n vs time)
-    quantum_sim -d 15 --sweep-qubits "5:18:1" --fdm -o qubit_sweep.csv
+    # Sweep qubit count with FIXED d=20, noise=0.02, epsilon=1e-4
+    quantum_sim -d 20 --noise 0.02 -t 1e-4 --sweep-qubits "8:18:1" --fdm -o qubits.csv
 
-    # LRET vs FDM crossover analysis (custom range)
-    quantum_sim -d 20 --sweep-crossover "8:20:1" --fdm -o crossover.csv
+    # Sweep depth with FIXED n=12, noise=0.01, epsilon=1e-4
+    quantum_sim -n 12 --noise 0.01 -t 1e-4 --sweep-depth "10:100:10" -o depth.csv
+
+    # LRET vs FDM crossover analysis with FIXED d=20, noise=0.01
+    quantum_sim -d 20 --noise 0.01 --sweep-crossover "8:20:1" --fdm -o crossover.csv
 
     # Track rank evolution through circuit (Figure: rank vs depth)
     quantum_sim -n 12 -d 50 --track-rank -o rank_evolution.csv
