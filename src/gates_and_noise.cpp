@@ -253,39 +253,39 @@ MatrixXcd apply_single_gate_direct(const MatrixXcd& L, const MatrixXcd& gate, si
 }
 
 // Apply two-qubit gate directly to L matrix
+// Gate matrix convention: row/col index = (q1_bit << 1) | q2_bit
+// where q1 is the first qubit argument (control for CNOT) and q2 is the second
 MatrixXcd apply_two_qubit_gate_direct(const MatrixXcd& L, const MatrixXcd& gate, 
                                        size_t q1, size_t q2, size_t num_qubits) {
     size_t dim = L.rows();
     size_t rank = L.cols();
     MatrixXcd result = L;
     
-    // Ensure q1 < q2 for consistent indexing
+    // Bit steps for each qubit
+    size_t step_q1 = 1ULL << q1;
+    size_t step_q2 = 1ULL << q2;
+    
+    // For iteration, we need the min and max to skip properly
     size_t qmin = std::min(q1, q2);
     size_t qmax = std::max(q1, q2);
-    bool swapped = (q1 > q2);
-    
     size_t step_min = 1ULL << qmin;
     size_t step_max = 1ULL << qmax;
-    
-    // Calculate number of blocks to process
-    size_t num_blocks = dim / (1ULL << (qmax + 1));
-    if (num_blocks == 0) num_blocks = 1;
     
     for (size_t base = 0; base < dim; ++base) {
         // Only process if both qubit positions are 0
         if ((base & step_min) != 0 || (base & step_max) != 0) continue;
         
-        // Four basis states for the two qubits
+        // Four basis states indexed by gate matrix convention:
+        // idx[k] where k = (q1_bit << 1) | q2_bit
+        // idx[0] = q1=0, q2=0
+        // idx[1] = q1=0, q2=1
+        // idx[2] = q1=1, q2=0
+        // idx[3] = q1=1, q2=1
         size_t idx[4];
-        idx[0] = base;                          // 00
-        idx[1] = base | step_min;               // 01 (qmin=1)
-        idx[2] = base | step_max;               // 10 (qmax=1)
-        idx[3] = base | step_min | step_max;    // 11
-        
-        // Reorder if qubits were swapped to match gate convention
-        if (swapped) {
-            std::swap(idx[1], idx[2]);
-        }
+        idx[0] = base;                          // q1=0, q2=0
+        idx[1] = base | step_q2;                // q1=0, q2=1
+        idx[2] = base | step_q1;                // q1=1, q2=0
+        idx[3] = base | step_q1 | step_q2;      // q1=1, q2=1
         
         for (size_t r = 0; r < rank; ++r) {
             Complex v[4];
