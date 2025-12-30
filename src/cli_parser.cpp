@@ -119,7 +119,9 @@ PARAMETER SWEEP OPTIONS (LRET Paper Benchmarking):
                           Format: "10,20,50,100" or "10:100:10"
     --sweep-rank STR      Sweep initial rank for parallel benchmarking.
                           Format: "1,2,4,8,16,32" or "1:64:2" (powers)
-    --sweep-crossover     LRET vs FDM crossover analysis (varies qubits 5-15)
+    --sweep-crossover STR LRET vs FDM crossover analysis.
+                          Format: "5:15" (min:max qubits) or "5:15:1" (min:max:step)
+                          Default: "5:15:1" if no argument given
     --track-rank          Track rank evolution after each operation
     --sweep-trials N      Number of trials per sweep point (for statistics)
 
@@ -182,8 +184,8 @@ EXAMPLES:
     # Sweep qubit count (Figure: n vs time)
     quantum_sim -d 15 --sweep-qubits "5:18:1" --fdm -o qubit_sweep.csv
 
-    # LRET vs FDM crossover analysis
-    quantum_sim -d 20 --sweep-crossover --fdm -o crossover.csv
+    # LRET vs FDM crossover analysis (custom range)
+    quantum_sim -d 20 --sweep-crossover "8:20:1" --fdm -o crossover.csv
 
     # Track rank evolution through circuit (Figure: rank vs depth)
     quantum_sim -n 12 -d 50 --track-rank -o rank_evolution.csv
@@ -385,11 +387,24 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
             opts.sweep_crossover = true;
             opts.sweep_config.type = SweepType::CROSSOVER;
             opts.sweep_config.include_fdm = true;
-            // Default crossover range: 5-15 qubits
-            opts.sweep_config.qubit_values.clear();
-            for (size_t n = opts.sweep_config.crossover_min_qubits; 
-                 n <= opts.sweep_config.crossover_max_qubits; ++n) {
-                opts.sweep_config.qubit_values.push_back(n);
+            
+            // Check if next argument is a range specification (not another flag)
+            if (i + 1 < argc && argv[i + 1][0] != '-') {
+                std::string range_str = argv[++i];
+                // Parse range: "min:max" or "min:max:step"
+                auto values = SweepConfig::parse_size_sweep(range_str);
+                if (!values.empty()) {
+                    opts.sweep_config.qubit_values = values;
+                    opts.sweep_config.crossover_min_qubits = values.front();
+                    opts.sweep_config.crossover_max_qubits = values.back();
+                }
+            } else {
+                // Default crossover range: 5-15 qubits with step 1
+                opts.sweep_config.qubit_values.clear();
+                for (size_t n = opts.sweep_config.crossover_min_qubits; 
+                     n <= opts.sweep_config.crossover_max_qubits; ++n) {
+                    opts.sweep_config.qubit_values.push_back(n);
+                }
             }
             continue;
         }
