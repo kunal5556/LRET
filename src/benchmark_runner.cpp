@@ -332,8 +332,8 @@ std::vector<ModePointResult> run_all_modes_benchmark(
         ParallelMode::SEQUENTIAL,
         ParallelMode::ROW,
         ParallelMode::COLUMN,
-        ParallelMode::HYBRID,
-        ParallelMode::ADAPTIVE
+        ParallelMode::BATCH,
+        ParallelMode::HYBRID
     };
     
     double seq_time = 0.0;  // For computing speedup
