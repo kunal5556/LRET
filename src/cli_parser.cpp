@@ -208,6 +208,8 @@ PARAMETER SWEEP OPTIONS (LRET Paper Benchmarking):
                           Default: "5:15:1" if no argument given
     --track-rank          Track rank evolution after each operation
     --sweep-trials N      Number of trials per sweep point (for statistics)
+    --sweep-all-modes     Run all LRET modes (seq, row, col, hybrid, adaptive)
+                          for each benchmark point (5x slower but comprehensive)
 
 COMPOUND BENCHMARK OPTIONS (Run multiple benchmarks with individual settings):
     These options allow running multiple benchmarks in a single command, each
@@ -562,6 +564,12 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
         if (arg == "--sweep-trials" && i + 1 < argc) {
             opts.sweep_trials = std::stoul(argv[++i]);
             opts.sweep_config.num_trials = opts.sweep_trials;
+            continue;
+        }
+        
+        // Run all LRET modes for each benchmark point
+        if (arg == "--sweep-all-modes") {
+            opts.sweep_config.run_all_modes = true;
             continue;
         }
         

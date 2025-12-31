@@ -3,6 +3,7 @@
 #include "types.h"
 #include "cli_parser.h"
 #include "output_formatter.h"
+#include "benchmark_types.h"
 #include <string>
 #include <fstream>
 #include <chrono>
@@ -168,10 +169,19 @@ public:
     void write_sweep_header(const std::string& sweep_type, size_t num_points,
                             size_t base_qubits, size_t base_depth, double base_noise);
     
-    // Write sweep data table (main results)
+    // Write sweep data table (main results - basic)
     void write_sweep_results(const std::string& sweep_type,
                              const std::vector<std::tuple<double, double, size_t, double>>& data);
     // Parameters: sweep_value, time_seconds, final_rank, fidelity_vs_fdm
+    
+    // Write comprehensive sweep results with all metrics
+    void write_sweep_results_full(const std::string& sweep_type,
+                                  const std::vector<SweepPointResult>& points);
+    
+    // Write all-modes comparison table for a sweep point
+    void write_all_modes_comparison(const std::vector<ModePointResult>& modes,
+                                    const std::string& sweep_param_name,
+                                    double sweep_param_value);
     
     // Write rank evolution data
     void write_rank_evolution(const std::vector<std::tuple<size_t, std::string, size_t, size_t, double>>& events);

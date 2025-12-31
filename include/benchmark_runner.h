@@ -35,6 +35,22 @@ SweepPointResult run_single_benchmark(
 );
 
 /**
+ * @brief Run all LRET modes for a single benchmark point
+ * 
+ * Runs sequential, row, column, hybrid, and adaptive modes
+ * and returns results for each.
+ */
+std::vector<ModePointResult> run_all_modes_benchmark(
+    const MatrixXcd& L_init,
+    const QuantumSequence& sequence,
+    size_t num_qubits,
+    const SimConfig& config,
+    size_t batch_size,
+    bool include_fdm = false,
+    const MatrixXcd* fdm_rho_final = nullptr
+);
+
+/**
  * @brief Run a complete parameter sweep
  * 
  * Executes the simulation at each sweep point and collects results.

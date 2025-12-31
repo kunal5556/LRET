@@ -153,12 +153,23 @@ FDMResult run_fdm_simulation(
     size_t num_qubits,
     bool verbose
 ) {
+    // Default to |0><0| initial state
+    MatrixXcd rho_init = create_zero_density_matrix(num_qubits);
+    return run_fdm_simulation(sequence, num_qubits, rho_init, verbose);
+}
+
+FDMResult run_fdm_simulation(
+    const QuantumSequence& sequence,
+    size_t num_qubits,
+    const MatrixXcd& rho_init,
+    bool verbose
+) {
     FDMResult result;
     
     Timer timer;
     
-    // Initialize |0><0|
-    MatrixXcd rho = create_zero_density_matrix(num_qubits);
+    // Use provided initial state
+    MatrixXcd rho = rho_init;
     
     size_t step = 0;
     size_t total_gates = 0;

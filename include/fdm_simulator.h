@@ -27,6 +27,14 @@ FDMResult run_fdm_simulation(
     bool verbose = false
 );
 
+// Run FDM simulation with custom initial state
+FDMResult run_fdm_simulation(
+    const QuantumSequence& sequence,
+    size_t num_qubits,
+    const MatrixXcd& rho_init,
+    bool verbose = false
+);
+
 // Create initial density matrix |0><0|
 MatrixXcd create_zero_density_matrix(size_t num_qubits);
 

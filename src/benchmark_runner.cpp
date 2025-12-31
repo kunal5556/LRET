@@ -1,6 +1,7 @@
 #include "benchmark_runner.h"
 #include "simulator.h"
 #include "fdm_simulator.h"
+#include "parallel_modes.h"
 #include "utils.h"
 #include "gates_and_noise.h"
 #include "resource_monitor.h"
@@ -276,13 +277,22 @@ SweepPointResult run_single_benchmark(
     // Compute state metrics
     result.lret_purity = compute_purity(L_final);
     result.lret_entropy = compute_entropy(L_final);
+    result.lret_linear_entropy = compute_linear_entropy(L_final);
+    
+    // Negativity for bipartite split (half-half)
+    if (num_qubits >= 2) {
+        size_t split = num_qubits / 2;
+        result.lret_negativity = compute_negativity(L_final, split, num_qubits);
+    }
     
     // Run FDM if requested and feasible
     if (include_fdm) {
         auto fdm_check = check_fdm_feasibility(num_qubits, true, false);
         if (fdm_check.should_run) {
             try {
-                auto fdm_result = run_fdm_simulation(sequence, num_qubits, false);
+                // Convert L_init to density matrix for FDM (same initial state!)
+                MatrixXcd rho_init = L_init * L_init.adjoint();
+                auto fdm_result = run_fdm_simulation(sequence, num_qubits, rho_init, false);
                 result.fdm_run = fdm_result.was_run;
                 result.fdm_time_seconds = fdm_result.time_seconds;
                 result.fdm_memory_bytes = compute_fdm_memory_bytes(num_qubits);
@@ -300,6 +310,67 @@ SweepPointResult run_single_benchmark(
     }
     
     return result;
+}
+
+//==============================================================================
+// All Modes Benchmark (runs sequential, row, column, hybrid, adaptive)
+//==============================================================================
+
+std::vector<ModePointResult> run_all_modes_benchmark(
+    const MatrixXcd& L_init,
+    const QuantumSequence& sequence,
+    size_t num_qubits,
+    const SimConfig& config,
+    size_t batch_size,
+    bool include_fdm,
+    const MatrixXcd* fdm_rho_final  // Optional: pre-computed FDM result
+) {
+    std::vector<ModePointResult> results;
+    
+    // Define modes to run
+    std::vector<ParallelMode> modes = {
+        ParallelMode::SEQUENTIAL,
+        ParallelMode::ROW,
+        ParallelMode::COLUMN,
+        ParallelMode::HYBRID,
+        ParallelMode::ADAPTIVE
+    };
+    
+    double seq_time = 0.0;  // For computing speedup
+    
+    for (auto mode : modes) {
+        if (should_abort()) break;
+        
+        ModePointResult mpr;
+        mpr.mode_name = parallel_mode_to_string(mode);
+        
+        // Run this mode
+        auto mode_result = run_with_mode(L_init, sequence, num_qubits, mode, config, batch_size);
+        
+        mpr.time_seconds = mode_result.time_seconds;
+        mpr.final_rank = mode_result.final_rank;
+        mpr.purity = compute_purity(mode_result.L_final);
+        mpr.entropy = compute_entropy(mode_result.L_final);
+        
+        // Compute speedup vs sequential
+        if (mode == ParallelMode::SEQUENTIAL) {
+            seq_time = mpr.time_seconds;
+            mpr.speedup_vs_seq = 1.0;
+        } else if (seq_time > 0) {
+            mpr.speedup_vs_seq = seq_time / mpr.time_seconds;
+        }
+        
+        // Compute fidelity vs FDM if available
+        if (include_fdm && fdm_rho_final) {
+            MatrixXcd rho_lret = mode_result.L_final * mode_result.L_final.adjoint();
+            mpr.fidelity_vs_fdm = compute_fidelity_rho(rho_lret, *fdm_rho_final);
+            mpr.trace_distance_vs_fdm = compute_trace_distance_rho(rho_lret, *fdm_rho_final);
+        }
+        
+        results.push_back(mpr);
+    }
+    
+    return results;
 }
 
 //==============================================================================
@@ -370,12 +441,38 @@ SweepResults run_epsilon_sweep(
         }
         
         point.epsilon = eps;
+        
+        // Run all LRET modes if requested
+        if (opts.sweep_config.run_all_modes) {
+            size_t batch = opts.batch_size ? opts.batch_size : auto_select_batch_size(opts.num_qubits);
+            
+            // Get FDM result if available
+            const MatrixXcd* fdm_rho = nullptr;
+            MatrixXcd fdm_rho_storage;
+            if (point.fdm_run && opts.enable_fdm) {
+                // Re-run FDM to get the final state (we need it for comparison)
+                MatrixXcd rho_init = L_init * L_init.adjoint();
+                auto fdm_result = run_fdm_simulation(sequence, opts.num_qubits, rho_init, false);
+                if (fdm_result.was_run) {
+                    fdm_rho_storage = fdm_result.rho_final;
+                    fdm_rho = &fdm_rho_storage;
+                }
+            }
+            
+            point.all_modes_results = run_all_modes_benchmark(
+                L_init, sequence, opts.num_qubits, config, batch, opts.enable_fdm, fdm_rho
+            );
+        }
+        
         results.add_point(point);
         
         std::cout << std::fixed << std::setprecision(4) << point.lret_time_seconds << "s, "
                   << "rank=" << point.lret_final_rank;
         if (point.fdm_run) {
             std::cout << ", speedup=" << std::setprecision(1) << point.speedup_vs_fdm() << "x";
+        }
+        if (!point.all_modes_results.empty()) {
+            std::cout << ", modes=" << point.all_modes_results.size();
         }
         std::cout << "\n";
     }

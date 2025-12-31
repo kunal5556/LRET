@@ -152,6 +152,7 @@ struct SweepConfig {
     size_t num_trials = 1;          // Repeat each point for statistics
     bool include_fdm = false;       // Compare with FDM at each point
     bool track_rank_evolution = false; // Track rank at each operation
+    bool run_all_modes = false;     // Run all LRET modes (seq, row, col, hybrid, adaptive)
     
     // Output
     std::string output_prefix = "sweep";  // Prefix for output files
@@ -182,6 +183,20 @@ struct SweepConfig {
 //==============================================================================
 
 /**
+ * @brief Results for a single LRET mode at one sweep point
+ */
+struct ModePointResult {
+    std::string mode_name;          // "sequential", "row", "column", "hybrid", "adaptive"
+    double time_seconds = 0.0;
+    size_t final_rank = 0;
+    double purity = 0.0;
+    double entropy = 0.0;
+    double speedup_vs_seq = 1.0;    // speedup relative to sequential
+    double fidelity_vs_fdm = 0.0;
+    double trace_distance_vs_fdm = 0.0;
+};
+
+/**
  * @brief Result from a single point in a parameter sweep
  */
 struct SweepPointResult {
@@ -192,13 +207,18 @@ struct SweepPointResult {
     size_t depth = 13;
     size_t initial_rank = 1;
     
-    // LRET results
+    // LRET results (primary mode - sequential by default)
     double lret_time_seconds = 0.0;
     size_t lret_final_rank = 0;
     size_t lret_max_rank = 0;
     double lret_purity = 0.0;
     double lret_entropy = 0.0;
+    double lret_linear_entropy = 0.0;
+    double lret_negativity = 0.0;
     size_t lret_memory_bytes = 0;
+    
+    // All modes results (if run_all_modes enabled)
+    std::vector<ModePointResult> all_modes_results;
     
     // Timing breakdown
     double gate_time = 0.0;

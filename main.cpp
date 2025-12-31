@@ -682,12 +682,8 @@ int run_all_benchmarks(const CLIOptions& original_opts, StructuredCSVWriter* csv
         SweepResults results = run_parameter_sweep(opts);
         
         if (csv_writer && !results.points.empty()) {
-            std::vector<std::tuple<double, double, size_t, double>> sweep_data;
-            for (const auto& p : results.points) {
-                sweep_data.emplace_back(p.epsilon, p.lret_time_seconds, p.lret_final_rank, p.fidelity_vs_fdm);
-            }
             csv_writer->write_sweep_header("EPSILON", results.points.size(), opts.num_qubits, opts.depth, opts.noise_prob);
-            csv_writer->write_sweep_results("EPSILON", sweep_data);
+            csv_writer->write_sweep_results_full("EPSILON", results.points);
         }
         
         std::cout << "  Completed " << results.points.size() << " epsilon points.\n\n";
@@ -713,12 +709,8 @@ int run_all_benchmarks(const CLIOptions& original_opts, StructuredCSVWriter* csv
         SweepResults results = run_parameter_sweep(opts);
         
         if (csv_writer && !results.points.empty()) {
-            std::vector<std::tuple<double, double, size_t, double>> sweep_data;
-            for (const auto& p : results.points) {
-                sweep_data.emplace_back(p.noise_prob, p.lret_time_seconds, p.lret_final_rank, p.fidelity_vs_fdm);
-            }
             csv_writer->write_sweep_header("NOISE_PROB", results.points.size(), opts.num_qubits, opts.depth, opts.noise_prob);
-            csv_writer->write_sweep_results("NOISE_PROB", sweep_data);
+            csv_writer->write_sweep_results_full("NOISE_PROB", results.points);
         }
         
         std::cout << "  Completed " << results.points.size() << " noise points.\n\n";
@@ -748,12 +740,8 @@ int run_all_benchmarks(const CLIOptions& original_opts, StructuredCSVWriter* csv
         SweepResults results = run_parameter_sweep(opts);
         
         if (csv_writer && !results.points.empty()) {
-            std::vector<std::tuple<double, double, size_t, double>> sweep_data;
-            for (const auto& p : results.points) {
-                sweep_data.emplace_back(static_cast<double>(p.num_qubits), p.lret_time_seconds, p.lret_final_rank, p.fidelity_vs_fdm);
-            }
             csv_writer->write_sweep_header("QUBITS", results.points.size(), opts.num_qubits, opts.depth, opts.noise_prob);
-            csv_writer->write_sweep_results("QUBITS", sweep_data);
+            csv_writer->write_sweep_results_full("QUBITS", results.points);
         }
         
         std::cout << "  Completed " << results.points.size() << " qubit sweep points.\n\n";
@@ -785,12 +773,8 @@ int run_all_benchmarks(const CLIOptions& original_opts, StructuredCSVWriter* csv
         SweepResults results = run_parameter_sweep(opts);
         
         if (csv_writer && !results.points.empty()) {
-            std::vector<std::tuple<double, double, size_t, double>> sweep_data;
-            for (const auto& p : results.points) {
-                sweep_data.emplace_back(static_cast<double>(p.num_qubits), p.lret_time_seconds, p.lret_final_rank, p.fidelity_vs_fdm);
-            }
             csv_writer->write_sweep_header("CROSSOVER", results.points.size(), opts.num_qubits, opts.depth, opts.noise_prob);
-            csv_writer->write_sweep_results("CROSSOVER", sweep_data);
+            csv_writer->write_sweep_results_full("CROSSOVER", results.points);
             csv_writer->write_crossover_summary(results.crossover_qubit_count, results.crossover_found);
         }
         
@@ -960,23 +944,10 @@ int run_compound_benchmarks(const CLIOptions& original_opts, StructuredCSVWriter
         SweepResults results = run_parameter_sweep(opts);
         
         // Write results to CSV
+        // Use comprehensive output with all metrics
         if (csv_writer && !results.points.empty()) {
-            std::vector<std::tuple<double, double, size_t, double>> sweep_data;
-            for (const auto& p : results.points) {
-                double param_value = 0;
-                switch (spec.type) {
-                    case SweepType::EPSILON: param_value = p.epsilon; break;
-                    case SweepType::NOISE_PROB: param_value = p.noise_prob; break;
-                    case SweepType::QUBITS: param_value = static_cast<double>(p.num_qubits); break;
-                    case SweepType::DEPTH: param_value = static_cast<double>(p.depth); break;
-                    case SweepType::CROSSOVER: param_value = static_cast<double>(p.num_qubits); break;
-                    case SweepType::INITIAL_RANK: param_value = static_cast<double>(p.initial_rank); break;
-                    default: break;
-                }
-                sweep_data.emplace_back(param_value, p.lret_time_seconds, p.lret_final_rank, p.fidelity_vs_fdm);
-            }
             csv_writer->write_sweep_header(type_name, results.points.size(), opts.num_qubits, opts.depth, opts.noise_prob);
-            csv_writer->write_sweep_results(type_name, sweep_data);
+            csv_writer->write_sweep_results_full(type_name, results.points);
             
             if (spec.type == SweepType::CROSSOVER) {
                 csv_writer->write_crossover_summary(results.crossover_qubit_count, results.crossover_found);
