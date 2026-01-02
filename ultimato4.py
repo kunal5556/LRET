@@ -6,19 +6,7 @@ LRET Scientific Benchmarking Report Generator
 Converts structured CSV output from LRET quantum simulator to a professional
 Excel report suitable for scientific publication and analysis.
 
-Based on the LRET (Low-Rank Evolution with Truncation) paper methodology for
-benchmarking quantum simulation algorithms.
-
-Output Structure (6-7 sheets max):
-1. DASHBOARD    - Executive summary with key findings and navigation
-2. CONFIG       - Simulation configuration and parameters  
-3. SWEEP_DATA   - All sweep results consolidated (main data table)
-4. STATISTICS   - Aggregated statistics with mean/std per sweep parameter
-5. MODE_PERF    - Mode performance comparison (all parallelization modes)
-6. LOGS         - Execution progress logs (optional, can be hidden)
-
-Author: LRET Benchmarking Suite
-Version: 3.0 (Scientific Format)
+Version: 4.0 - Reader-friendly with sweep-separated tabs and comprehensive guide
 """
 
 import pandas as pd
@@ -27,18 +15,12 @@ import io
 import re
 import sys
 from datetime import datetime
+from collections import OrderedDict
 
 
 def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
     """
     Generate a professional scientific benchmarking Excel report.
-    
-    Args:
-        input_csv: Path to the structured CSV file from LRET simulator
-        output_xlsx: Path for output Excel file
-        
-    Returns:
-        True on success, False on error
     """
     try:
         # =====================================================================
@@ -47,7 +29,7 @@ def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
         with open(input_csv, 'r', encoding='utf-8', errors='replace') as f:
             lines = f.readlines()
         
-        sections = {}  # name -> list of data lines (excluding SECTION/END_SECTION markers)
+        sections = {}
         progress_logs = []
         
         current_section = None
@@ -58,7 +40,6 @@ def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
             if not raw or raw.startswith('#'):
                 continue
                 
-            # Section start
             if raw.startswith('SECTION,'):
                 if current_section and current_data:
                     if current_section not in sections:
@@ -68,7 +49,6 @@ def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
                 current_data = []
                 continue
             
-            # Section end
             if raw.startswith('END_SECTION,'):
                 if current_section and current_data:
                     if current_section not in sections:
@@ -78,16 +58,12 @@ def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
                 current_data = []
                 continue
             
-            # Data line
             if current_section:
                 current_data.append(raw)
             else:
-                # Orphaned data - likely progress logs
-                # Check if it looks like a timestamp-prefixed log
                 if raw[:4].isdigit():
                     progress_logs.append(raw)
         
-        # Save any remaining data
         if current_section and current_data:
             if current_section not in sections:
                 sections[current_section] = []
@@ -98,7 +74,6 @@ def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
         # =====================================================================
         
         def lines_to_df(lines):
-            """Convert CSV lines to DataFrame."""
             if not lines:
                 return pd.DataFrame()
             try:
@@ -106,10 +81,10 @@ def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
             except:
                 return pd.read_csv(io.StringIO('\n'.join(lines)), header=None)
         
-        # Parse key sections
-        config_data = {}
-        sweep_dfs = []
-        modes_dfs = []
+        # Parse sections into organized data
+        config_data = OrderedDict()
+        sweep_data_by_type = {}  # sweep_type -> DataFrame
+        modes_data_by_type = {}  # sweep_type -> DataFrame
         
         for name, lines in sections.items():
             if name in ['HEADER', 'SWEEP_CONFIG', 'METADATA']:
@@ -122,16 +97,16 @@ def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
                         config_data[str(row['key'])] = str(row['value'])
             
             elif name.startswith('SWEEP_RESULTS_'):
+                sweep_type = name.replace('SWEEP_RESULTS_', '')
                 df = lines_to_df(lines)
                 if not df.empty:
-                    df['sweep_type'] = name.replace('SWEEP_RESULTS_', '')
-                    sweep_dfs.append(df)
+                    sweep_data_by_type[sweep_type] = df
             
             elif name.startswith('ALL_MODES_'):
+                sweep_type = name.replace('ALL_MODES_', '')
                 df = lines_to_df(lines)
                 if not df.empty:
-                    df['sweep_type'] = name.replace('ALL_MODES_', '')
-                    modes_dfs.append(df)
+                    modes_data_by_type[sweep_type] = df
             
             elif name == 'SUMMARY':
                 df = lines_to_df(lines)
@@ -139,103 +114,114 @@ def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
                     for _, row in df.iterrows():
                         config_data[f"summary_{row['metric']}"] = str(row['value'])
         
-        # Merge all sweep data
-        all_sweep_data = pd.concat(sweep_dfs, ignore_index=True) if sweep_dfs else pd.DataFrame()
-        all_modes_data = pd.concat(modes_dfs, ignore_index=True) if modes_dfs else pd.DataFrame()
-        
         # =====================================================================
-        # PHASE 3: COMPUTE STATISTICS
+        # PHASE 3: COMPUTE STATISTICS PER SWEEP TYPE
         # =====================================================================
         
-        def compute_sweep_statistics(df):
-            """Compute mean/std/min/max grouped by sweep parameter."""
+        def get_sweep_param_col(df, sweep_type):
+            """Determine the sweep parameter column based on sweep type."""
+            type_to_col = {
+                'EPSILON': 'epsilon',
+                'NOISE_PROB': 'noise_prob',
+                'QUBITS': 'n',
+                'DEPTH': 'd',
+                'INITIAL_RANK': 'initial_rank',
+                'CROSSOVER': 'n',
+            }
+            
+            # First try the mapped column
+            col = type_to_col.get(sweep_type.upper())
+            if col and col in df.columns:
+                return col
+            
+            # Fallback: check common columns
+            for c in ['epsilon', 'noise_prob', 'n', 'd', 'num_qubits', 'depth', 'initial_rank']:
+                if c in df.columns:
+                    return c
+            
+            return df.columns[0] if len(df.columns) > 0 else None
+        
+        def compute_statistics_for_sweep(df, sweep_type):
+            """Compute statistics for a single sweep type."""
             if df.empty:
                 return pd.DataFrame()
             
-            # Identify sweep parameter column
-            sweep_cols = ['epsilon', 'noise_prob', 'num_qubits', 'n', 'd', 'depth', 'initial_rank']
-            param_col = None
-            for col in sweep_cols:
-                if col in df.columns:
-                    param_col = col
-                    break
-            
+            param_col = get_sweep_param_col(df, sweep_type)
             if param_col is None:
-                param_col = df.columns[0]
+                return pd.DataFrame()
             
             # Metrics to aggregate
             metric_cols = ['lret_time_s', 'final_rank', 'lret_final_rank', 'purity', 'lret_purity',
                           'entropy', 'lret_entropy', 'fidelity_vs_fdm', 'speedup', 
-                          'fdm_time_s', 'gate_time_s', 'noise_time_s', 'truncation_time_s']
+                          'fdm_time_s', 'gate_time_s', 'noise_time_s', 'truncation_time_s',
+                          'lret_memory_bytes', 'fdm_memory_bytes', 'truncation_count']
             
             available_metrics = [c for c in metric_cols if c in df.columns]
             
             if not available_metrics:
                 return pd.DataFrame()
             
-            # Group and aggregate
             stats_rows = []
             for param_val, group in df.groupby(param_col):
-                row = {
-                    'sweep_param': param_col,
-                    'param_value': param_val,
-                    'n_trials': len(group),
-                }
+                row = OrderedDict()
+                row[param_col] = param_val
+                row['n_trials'] = len(group)
+                
+                # Add qubit/depth info if available and not the sweep param
+                if 'n' in df.columns and param_col != 'n':
+                    row['n'] = group['n'].iloc[0] if len(group) > 0 else ''
+                if 'd' in df.columns and param_col != 'd':
+                    row['d'] = group['d'].iloc[0] if len(group) > 0 else ''
                 
                 for col in available_metrics:
                     data = pd.to_numeric(group[col], errors='coerce').dropna()
                     if len(data) > 0:
                         row[f'{col}_mean'] = data.mean()
-                        row[f'{col}_std'] = data.std() if len(data) > 1 else 0
-                        row[f'{col}_min'] = data.min()
-                        row[f'{col}_max'] = data.max()
+                        row[f'{col}_std'] = data.std() if len(data) > 1 else 0.0
                 
                 stats_rows.append(row)
             
             return pd.DataFrame(stats_rows)
         
-        def compute_mode_statistics(df):
-            """Compute mode performance statistics grouped by sweep param and mode."""
+        def compute_mode_statistics_for_sweep(df, sweep_type):
+            """Compute mode statistics for a single sweep type."""
             if df.empty or 'mode' not in df.columns:
                 return pd.DataFrame()
             
-            # Identify sweep parameter column
-            sweep_cols = ['epsilon', 'noise_prob', 'num_qubits', 'n', 'd', 'depth', 'initial_rank']
-            param_col = None
-            for col in sweep_cols:
-                if col in df.columns:
-                    param_col = col
-                    break
-            
+            param_col = get_sweep_param_col(df, sweep_type)
             if param_col is None:
                 return pd.DataFrame()
             
-            # Metrics to aggregate
             metric_cols = ['time_s', 'final_rank', 'purity', 'entropy', 
-                          'speedup_vs_seq', 'fidelity_vs_fdm']
+                          'speedup_vs_seq', 'fidelity_vs_fdm', 'trace_distance_vs_fdm']
             available_metrics = [c for c in metric_cols if c in df.columns]
             
-            # Group by sweep param and mode
             stats_rows = []
             for (param_val, mode), group in df.groupby([param_col, 'mode']):
-                row = {
-                    param_col: param_val,
-                    'mode': mode,
-                    'n_trials': len(group),
-                }
+                row = OrderedDict()
+                row[param_col] = param_val
+                row['mode'] = mode
+                row['n_trials'] = len(group)
                 
                 for col in available_metrics:
                     data = pd.to_numeric(group[col], errors='coerce').dropna()
                     if len(data) > 0:
                         row[f'{col}_mean'] = data.mean()
-                        row[f'{col}_std'] = data.std() if len(data) > 1 else 0
+                        row[f'{col}_std'] = data.std() if len(data) > 1 else 0.0
                 
                 stats_rows.append(row)
             
             return pd.DataFrame(stats_rows)
         
-        sweep_stats = compute_sweep_statistics(all_sweep_data)
-        mode_stats = compute_mode_statistics(all_modes_data)
+        # Compute statistics per sweep type
+        stats_by_type = {}
+        mode_stats_by_type = {}
+        
+        for sweep_type, df in sweep_data_by_type.items():
+            stats_by_type[sweep_type] = compute_statistics_for_sweep(df, sweep_type)
+        
+        for sweep_type, df in modes_data_by_type.items():
+            mode_stats_by_type[sweep_type] = compute_mode_statistics_for_sweep(df, sweep_type)
         
         # =====================================================================
         # PHASE 4: CREATE EXCEL WORKBOOK
@@ -246,21 +232,22 @@ def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
             workbook = writer.book
             
             # -----------------------------------------------------------------
-            # STYLES (Professional Scientific Look)
+            # STYLES
             # -----------------------------------------------------------------
             NAVY = '#1F4E79'
             LIGHT_BLUE = '#D6DCE4'
             LIGHT_GREEN = '#E2EFDA'
-            LIGHT_ORANGE = '#FCE4D6'
             WHITE = '#FFFFFF'
             
             fmt_title = workbook.add_format({
-                'bold': True, 'font_size': 20, 'font_color': NAVY,
-                'font_name': 'Calibri'
+                'bold': True, 'font_size': 22, 'font_color': NAVY, 'font_name': 'Calibri'
             })
             fmt_subtitle = workbook.add_format({
                 'bold': True, 'font_size': 14, 'font_color': NAVY,
                 'bottom': 2, 'bottom_color': NAVY, 'font_name': 'Calibri'
+            })
+            fmt_section = workbook.add_format({
+                'bold': True, 'font_size': 12, 'font_color': NAVY, 'font_name': 'Calibri'
             })
             fmt_header = workbook.add_format({
                 'bold': True, 'font_color': WHITE, 'bg_color': NAVY,
@@ -268,8 +255,7 @@ def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
                 'font_name': 'Calibri', 'font_size': 10, 'text_wrap': True
             })
             fmt_data = workbook.add_format({
-                'border': 1, 'font_name': 'Calibri', 'font_size': 10,
-                'valign': 'vcenter'
+                'border': 1, 'font_name': 'Calibri', 'font_size': 10, 'valign': 'vcenter'
             })
             fmt_data_alt = workbook.add_format({
                 'border': 1, 'font_name': 'Calibri', 'font_size': 10,
@@ -300,37 +286,45 @@ def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
                 'font_name': 'Calibri', 'font_size': 10
             })
             fmt_link = workbook.add_format({
-                'font_color': 'blue', 'underline': 1, 'font_name': 'Calibri'
+                'font_color': 'blue', 'underline': 1, 'font_name': 'Calibri', 'font_size': 11
             })
-            fmt_config_key = workbook.add_format({
+            fmt_key = workbook.add_format({
                 'bold': True, 'font_name': 'Calibri', 'font_size': 10,
                 'bg_color': LIGHT_BLUE, 'border': 1
             })
-            fmt_config_val = workbook.add_format({
+            fmt_val = workbook.add_format({
                 'font_name': 'Calibri', 'font_size': 10, 'border': 1
             })
+            fmt_guide = workbook.add_format({
+                'font_name': 'Calibri', 'font_size': 10, 'text_wrap': True, 'valign': 'top'
+            })
+            fmt_guide_header = workbook.add_format({
+                'bold': True, 'font_name': 'Calibri', 'font_size': 11, 
+                'font_color': NAVY, 'valign': 'top'
+            })
+            fmt_note = workbook.add_format({
+                'font_name': 'Calibri', 'font_size': 10, 'font_color': '#666666',
+                'text_wrap': True
+            })
             
-            sheet_names = []
+            sheet_info = []  # List of (sheet_name, description) for navigation
             
             # -----------------------------------------------------------------
             # HELPER: Write DataFrame to Sheet
             # -----------------------------------------------------------------
-            def write_data_sheet(name, df, description=""):
-                """Write a DataFrame to an Excel sheet with professional formatting."""
+            def write_data_sheet(name, df, description="", start_row=2):
                 if df.empty:
                     return None
                 
-                # Sanitize sheet name
                 safe_name = re.sub(r'[\[\]:*?/\\]', '', name)[:31]
-                
-                # Handle duplicates
+                existing = [s[0] for s in sheet_info]
                 base_name = safe_name
                 counter = 1
-                while safe_name in sheet_names:
+                while safe_name in existing:
                     safe_name = f"{base_name[:28]}_{counter}"
                     counter += 1
                 
-                df.to_excel(writer, sheet_name=safe_name, index=False, startrow=2)
+                df.to_excel(writer, sheet_name=safe_name, index=False, startrow=start_row)
                 ws = writer.sheets[safe_name]
                 ws.hide_gridlines(2)
                 
@@ -345,187 +339,113 @@ def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
                 
                 # Format headers
                 for c, col_name in enumerate(df.columns):
-                    ws.write(2, c, col_name, fmt_header)
-                    # Auto-width with min/max constraints
+                    ws.write(start_row, c, col_name, fmt_header)
                     max_len = max(len(str(col_name)), 
                                  df[col_name].astype(str).str.len().max() if len(df) > 0 else 0)
-                    ws.set_column(c, c, min(max(max_len + 2, 10), 25))
+                    ws.set_column(c, c, min(max(max_len + 2, 10), 22))
                 
                 # Format data rows
                 for r in range(nrows):
                     is_alt = r % 2 == 1
                     for c in range(ncols):
                         val = df.iloc[r, c]
-                        col_name = df.columns[c].lower()
                         
                         if pd.isna(val):
-                            ws.write_blank(r + 3, c, None, fmt_data_alt if is_alt else fmt_data)
+                            ws.write_blank(r + start_row + 1, c, None, fmt_data_alt if is_alt else fmt_data)
                         elif isinstance(val, (int, np.integer)):
-                            ws.write_number(r + 3, c, int(val), fmt_int_alt if is_alt else fmt_int)
+                            ws.write_number(r + start_row + 1, c, int(val), fmt_int_alt if is_alt else fmt_int)
                         elif isinstance(val, (float, np.floating)):
-                            ws.write_number(r + 3, c, float(val), fmt_number_alt if is_alt else fmt_number)
+                            ws.write_number(r + start_row + 1, c, float(val), fmt_number_alt if is_alt else fmt_number)
                         else:
-                            ws.write(r + 3, c, str(val), fmt_data_alt if is_alt else fmt_data)
+                            ws.write(r + start_row + 1, c, str(val), fmt_data_alt if is_alt else fmt_data)
                 
-                # Conditional formatting for speedup columns
+                # Conditional formatting
                 for c, col_name in enumerate(df.columns):
                     if 'speedup' in col_name.lower():
-                        ws.conditional_format(3, c, nrows + 2, c, {
+                        ws.conditional_format(start_row + 1, c, nrows + start_row, c, {
                             'type': 'cell', 'criteria': '>', 'value': 1, 'format': fmt_good
                         })
-                        ws.conditional_format(3, c, nrows + 2, c, {
+                        ws.conditional_format(start_row + 1, c, nrows + start_row, c, {
                             'type': 'cell', 'criteria': '<', 'value': 1, 'format': fmt_bad
                         })
                     elif 'fidelity' in col_name.lower():
-                        ws.conditional_format(3, c, nrows + 2, c, {
+                        ws.conditional_format(start_row + 1, c, nrows + start_row, c, {
                             'type': 'cell', 'criteria': '>=', 'value': 0.99, 'format': fmt_good
                         })
-                        ws.conditional_format(3, c, nrows + 2, c, {
+                        ws.conditional_format(start_row + 1, c, nrows + start_row, c, {
                             'type': 'cell', 'criteria': '<', 'value': 0.9, 'format': fmt_bad
                         })
                 
-                # Freeze panes
-                ws.freeze_panes(3, 0)
+                ws.freeze_panes(start_row + 1, 0)
                 
-                sheet_names.append(safe_name)
+                sheet_info.append((safe_name, description))
                 return safe_name
             
             # -----------------------------------------------------------------
-            # SHEET 1: DASHBOARD
+            # SHEET 1: DASHBOARD (Created last, placeholder now)
             # -----------------------------------------------------------------
             dash = workbook.add_worksheet('DASHBOARD')
-            sheet_names.append('DASHBOARD')
-            dash.hide_gridlines(2)
-            dash.set_column('A:A', 3)
-            dash.set_column('B:B', 25)
-            dash.set_column('C:C', 30)
-            dash.set_column('D:D', 40)
-            
-            # Title
-            dash.write('B2', 'LRET Quantum Simulation', fmt_title)
-            dash.write('B3', 'Scientific Benchmarking Report', workbook.add_format({
-                'font_size': 14, 'font_color': '#666666', 'font_name': 'Calibri'
-            }))
-            
-            row = 5
-            
-            # Key Metrics Summary
-            dash.write(row, 1, 'Key Configuration', fmt_subtitle)
-            row += 1
-            
-            key_params = [
-                ('Qubits (n)', config_data.get('num_qubits', config_data.get('base_qubits', 'N/A'))),
-                ('Depth (d)', config_data.get('depth', config_data.get('base_depth', 'N/A'))),
-                ('Sweep Type', config_data.get('sweep_type', 'N/A')),
-                ('Noise Probability', config_data.get('noise_probability', config_data.get('base_noise', 'N/A'))),
-                ('Truncation Threshold (ε)', config_data.get('truncation_threshold', 'N/A')),
-                ('Parallel Mode', config_data.get('parallel_mode', 'N/A')),
-                ('FDM Enabled', config_data.get('fdm_enabled', 'N/A')),
-                ('Timestamp', config_data.get('timestamp', config_data.get('generated', 'N/A'))),
-            ]
-            
-            for key, val in key_params:
-                dash.write(row, 1, key, fmt_config_key)
-                dash.write(row, 2, val, fmt_config_val)
-                row += 1
-            
-            row += 1
-            
-            # Summary statistics
-            if not all_sweep_data.empty:
-                dash.write(row, 1, 'Summary Statistics', fmt_subtitle)
-                row += 1
-                
-                n_points = len(all_sweep_data)
-                n_trials = all_sweep_data['trial_id'].nunique() if 'trial_id' in all_sweep_data.columns else 1
-                
-                summary_stats = [
-                    ('Total Data Points', str(n_points)),
-                    ('Unique Trials', str(n_trials)),
-                ]
-                
-                if 'lret_time_s' in all_sweep_data.columns:
-                    avg_time = all_sweep_data['lret_time_s'].mean()
-                    summary_stats.append(('Avg LRET Time (s)', f'{avg_time:.4f}'))
-                
-                if 'fidelity_vs_fdm' in all_sweep_data.columns:
-                    avg_fid = all_sweep_data['fidelity_vs_fdm'].mean()
-                    summary_stats.append(('Avg Fidelity vs FDM', f'{avg_fid:.6f}'))
-                
-                if 'speedup' in all_sweep_data.columns:
-                    avg_speedup = all_sweep_data['speedup'].mean()
-                    summary_stats.append(('Avg Speedup vs FDM', f'{avg_speedup:.2f}x'))
-                
-                for key, val in summary_stats:
-                    dash.write(row, 1, key, fmt_config_key)
-                    dash.write(row, 2, val, fmt_config_val)
-                    row += 1
-            
-            row += 2
-            
-            # Navigation
-            dash.write(row, 1, 'Report Navigation', fmt_subtitle)
-            row += 1
+            sheet_info.append(('DASHBOARD', 'Executive summary, configuration, and user guide'))
             
             # -----------------------------------------------------------------
-            # SHEET 2: CONFIG (Full Configuration)
+            # SHEET 2: CONFIG
             # -----------------------------------------------------------------
             if config_data:
                 config_df = pd.DataFrame([
                     {'Parameter': k, 'Value': v} for k, v in config_data.items()
                 ])
                 write_data_sheet('CONFIG', config_df, 'Full simulation configuration and metadata')
-                dash.write_url(row, 1, "internal:'CONFIG'!A1", string='→ Configuration', cell_format=fmt_link)
-                row += 1
             
             # -----------------------------------------------------------------
-            # SHEET 3: SWEEP_DATA (Main Results)
+            # SHEETS: SWEEP DATA (One per sweep type)
             # -----------------------------------------------------------------
-            if not all_sweep_data.empty:
-                # Reorder columns for clarity
-                priority_cols = ['sweep_type', 'epsilon', 'noise_prob', 'n', 'd', 'num_qubits', 
-                                'depth', 'initial_rank', 'trial_id', 'lret_time_s', 'final_rank',
-                                'lret_final_rank', 'fidelity_vs_fdm', 'speedup', 'purity', 'lret_purity',
-                                'entropy', 'lret_entropy']
+            for sweep_type, df in sweep_data_by_type.items():
+                # Select most important columns for readability
+                param_col = get_sweep_param_col(df, sweep_type)
                 
-                ordered_cols = [c for c in priority_cols if c in all_sweep_data.columns]
-                remaining_cols = [c for c in all_sweep_data.columns if c not in ordered_cols]
-                all_sweep_data = all_sweep_data[ordered_cols + remaining_cols]
+                priority_cols = [param_col, 'trial_id', 'n', 'd', 'epsilon', 'noise_prob',
+                                'lret_time_s', 'lret_final_rank', 'lret_purity', 'lret_entropy',
+                                'fidelity_vs_fdm', 'speedup', 'fdm_time_s', 'fdm_executed']
                 
-                write_data_sheet('SWEEP_DATA', all_sweep_data, 
-                               'Complete sweep results - one row per trial per parameter value')
-                dash.write_url(row, 1, "internal:'SWEEP_DATA'!A1", string='→ Sweep Data (Raw)', cell_format=fmt_link)
-                row += 1
+                ordered_cols = [c for c in priority_cols if c in df.columns]
+                remaining = [c for c in df.columns if c not in ordered_cols]
+                display_df = df[ordered_cols + remaining].copy()
+                
+                sheet_name = f"DATA_{sweep_type[:20]}"
+                desc = f"Raw sweep data for {sweep_type} - one row per trial"
+                write_data_sheet(sheet_name, display_df, desc)
             
             # -----------------------------------------------------------------
-            # SHEET 4: STATISTICS (Aggregated)
+            # SHEETS: STATISTICS (One per sweep type)
             # -----------------------------------------------------------------
-            if not sweep_stats.empty:
-                write_data_sheet('STATISTICS', sweep_stats,
-                               'Aggregated statistics: mean, std, min, max per sweep parameter')
-                dash.write_url(row, 1, "internal:'STATISTICS'!A1", string='→ Statistics (Aggregated)', cell_format=fmt_link)
-                row += 1
+            for sweep_type, df in stats_by_type.items():
+                if not df.empty:
+                    sheet_name = f"STATS_{sweep_type[:19]}"
+                    desc = f"Aggregated statistics for {sweep_type} sweep (mean ± std)"
+                    write_data_sheet(sheet_name, df, desc)
             
             # -----------------------------------------------------------------
-            # SHEET 5: MODE_PERF (Mode Performance)
+            # SHEETS: MODE DATA (One per sweep type, if exists)
             # -----------------------------------------------------------------
-            if not all_modes_data.empty:
-                write_data_sheet('MODE_DATA', all_modes_data,
-                               'Parallelization mode performance - all modes, all trials')
-                dash.write_url(row, 1, "internal:'MODE_DATA'!A1", string='→ Mode Performance (Raw)', cell_format=fmt_link)
-                row += 1
-            
-            if not mode_stats.empty:
-                write_data_sheet('MODE_STATS', mode_stats,
-                               'Mode performance statistics: mean, std per sweep parameter and mode')
-                dash.write_url(row, 1, "internal:'MODE_STATS'!A1", string='→ Mode Statistics', cell_format=fmt_link)
-                row += 1
+            for sweep_type, df in modes_data_by_type.items():
+                if not df.empty:
+                    sheet_name = f"MODES_{sweep_type[:19]}"
+                    desc = f"Parallelization mode performance for {sweep_type}"
+                    write_data_sheet(sheet_name, df, desc)
             
             # -----------------------------------------------------------------
-            # SHEET 6: LOGS (Progress Logs)
+            # SHEETS: MODE STATS (One per sweep type, if exists)
+            # -----------------------------------------------------------------
+            for sweep_type, df in mode_stats_by_type.items():
+                if not df.empty:
+                    sheet_name = f"MSTAT_{sweep_type[:19]}"
+                    desc = f"Mode statistics for {sweep_type} (mean ± std per mode)"
+                    write_data_sheet(sheet_name, df, desc)
+            
+            # -----------------------------------------------------------------
+            # SHEET: LOGS
             # -----------------------------------------------------------------
             if progress_logs:
-                # Normalize log lines
                 max_cols = max(len(line.split(',')) for line in progress_logs)
                 normalized = []
                 for line in progress_logs:
@@ -535,7 +455,6 @@ def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
                     normalized.append(','.join(parts))
                 
                 log_df = pd.read_csv(io.StringIO('\n'.join(normalized)), header=None)
-                # Try to assign meaningful headers
                 log_headers = ['timestamp', 'elapsed_s', 'step', 'operation', 'detail', 
                               'time_s', 'memory_mb', 'cumulative_s', 'extra']
                 if len(log_df.columns) <= len(log_headers):
@@ -543,35 +462,191 @@ def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
                 else:
                     log_df.columns = [f'col_{i}' for i in range(len(log_df.columns))]
                 
-                write_data_sheet('LOGS', log_df, 'Execution progress logs')
-                dash.write_url(row, 1, "internal:'LOGS'!A1", string='→ Progress Logs', cell_format=fmt_link)
-                row += 1
+                write_data_sheet('LOGS', log_df, 'Execution progress and timing logs')
             
             # -----------------------------------------------------------------
             # FINALIZE DASHBOARD
             # -----------------------------------------------------------------
-            row += 2
-            dash.write(row, 1, 'Notes', fmt_subtitle)
+            dash.hide_gridlines(2)
+            dash.set_column('A:A', 3)
+            dash.set_column('B:B', 28)
+            dash.set_column('C:C', 35)
+            dash.set_column('D:D', 60)
+            
+            row = 1
+            
+            # Title
+            dash.write(row, 1, 'LRET Quantum Simulation Report', fmt_title)
             row += 1
-            notes = [
-                '• fdm_executed = true: FDM actually ran this trial (typically trial 0 only)',
-                '• fdm_run = true: FDM data available (may be copied from trial 0)',
-                '• Speedup > 1 (green): LRET is faster than FDM',
-                '• Fidelity ≥ 0.99 (green): High accuracy vs reference FDM simulation',
-                '• Statistics sheets contain mean ± std for multi-trial experiments',
+            dash.write(row, 1, 'Scientific Benchmarking Analysis', workbook.add_format({
+                'font_size': 14, 'font_color': '#666666', 'font_name': 'Calibri', 'italic': True
+            }))
+            row += 2
+            
+            # ----- SECTION 1: SIMULATION CONFIGURATION -----
+            dash.write(row, 1, 'Simulation Configuration', fmt_subtitle)
+            row += 1
+            
+            # Gather comprehensive config info
+            sweep_types_found = list(sweep_data_by_type.keys())
+            all_qubits = set()
+            all_depths = set()
+            all_trials = set()
+            total_points = 0
+            
+            for df in sweep_data_by_type.values():
+                total_points += len(df)
+                if 'n' in df.columns:
+                    all_qubits.update(df['n'].unique())
+                if 'd' in df.columns:
+                    all_depths.update(df['d'].unique())
+                if 'trial_id' in df.columns:
+                    all_trials.update(df['trial_id'].unique())
+            
+            # Build config display
+            config_display = [
+                ('Sweep Type(s)', ', '.join(sweep_types_found) if sweep_types_found else 'N/A'),
+                ('Qubits (n)', ', '.join(map(str, sorted(all_qubits))) if all_qubits else config_data.get('num_qubits', 'N/A')),
+                ('Depth (d)', ', '.join(map(str, sorted(all_depths))) if all_depths else config_data.get('depth', 'N/A')),
+                ('Number of Trials', str(len(all_trials)) if all_trials else '1'),
+                ('Total Data Points', str(total_points)),
+                ('Noise Probability', config_data.get('noise_probability', config_data.get('base_noise', 'See data sheets'))),
+                ('Truncation Threshold (ε)', config_data.get('truncation_threshold', 'Varies by sweep')),
+                ('FDM Reference', 'Enabled (trial 0 only)' if any('fdm_executed' in df.columns for df in sweep_data_by_type.values()) else 'Check data'),
+                ('Timestamp', config_data.get('timestamp', config_data.get('generated', datetime.now().strftime('%Y-%m-%d %H:%M')))),
             ]
-            for note in notes:
-                dash.write(row, 1, note, workbook.add_format({
-                    'font_name': 'Calibri', 'font_size': 10, 'font_color': '#666666'
-                }))
+            
+            for key, val in config_display:
+                dash.write(row, 1, key, fmt_key)
+                dash.write(row, 2, val, fmt_val)
                 row += 1
             
+            row += 1
+            
+            # ----- SECTION 2: KEY RESULTS SUMMARY -----
+            dash.write(row, 1, 'Key Results Summary', fmt_subtitle)
+            row += 1
+            
+            # Compute summary across all sweep data
+            all_lret_times = []
+            all_fidelities = []
+            all_speedups = []
+            
+            for df in sweep_data_by_type.values():
+                if 'lret_time_s' in df.columns:
+                    all_lret_times.extend(df['lret_time_s'].dropna().tolist())
+                if 'fidelity_vs_fdm' in df.columns:
+                    all_fidelities.extend(df['fidelity_vs_fdm'].dropna().tolist())
+                if 'speedup' in df.columns:
+                    all_speedups.extend(df['speedup'].dropna().tolist())
+            
+            results_display = []
+            if all_lret_times:
+                results_display.append(('Avg LRET Time', f'{np.mean(all_lret_times):.6f} s'))
+                results_display.append(('LRET Time Range', f'{np.min(all_lret_times):.6f} - {np.max(all_lret_times):.6f} s'))
+            if all_fidelities:
+                results_display.append(('Avg Fidelity vs FDM', f'{np.mean(all_fidelities):.6f}'))
+                results_display.append(('Min Fidelity', f'{np.min(all_fidelities):.6f}'))
+            if all_speedups:
+                results_display.append(('Avg Speedup vs FDM', f'{np.mean(all_speedups):.2f}x'))
+                results_display.append(('Max Speedup', f'{np.max(all_speedups):.2f}x'))
+            
+            if not results_display:
+                results_display.append(('Status', 'See data sheets for detailed results'))
+            
+            for key, val in results_display:
+                dash.write(row, 1, key, fmt_key)
+                dash.write(row, 2, val, fmt_val)
+                row += 1
+            
+            row += 1
+            
+            # ----- SECTION 3: SHEET NAVIGATION -----
+            dash.write(row, 1, 'Sheet Navigation', fmt_subtitle)
+            row += 1
+            
+            for sheet_name, desc in sheet_info:
+                if sheet_name != 'DASHBOARD':
+                    dash.write_url(row, 1, f"internal:'{sheet_name}'!A1", 
+                                  string=f"→ {sheet_name}", cell_format=fmt_link)
+                    dash.write(row, 2, desc, fmt_note)
+                    row += 1
+            
+            row += 1
+            
+            # ----- SECTION 4: USER GUIDE -----
+            dash.write(row, 1, 'How to Use This Report', fmt_subtitle)
+            row += 1
+            
+            guide_sections = [
+                ("Understanding Sheet Names", 
+                 "• DATA_* sheets contain raw trial data for each sweep type\n"
+                 "• STATS_* sheets contain aggregated statistics (mean, std) per sweep parameter\n"
+                 "• MODES_* sheets show performance of different parallelization modes\n"
+                 "• MSTAT_* sheets contain mode performance statistics\n"
+                 "• CONFIG contains full simulation parameters\n"
+                 "• LOGS contains execution timing details"),
+                
+                ("Reading the Data",
+                 "• Each DATA sheet has one row per trial per parameter value\n"
+                 "• 'trial_id' identifies which trial (0, 1, 2, ...) the row belongs to\n"
+                 "• 'n' = number of qubits, 'd' = circuit depth\n"
+                 "• 'lret_time_s' = LRET simulation time in seconds\n"
+                 "• 'fidelity_vs_fdm' = accuracy compared to full density matrix (1.0 = perfect)\n"
+                 "• 'speedup' = how much faster LRET is vs FDM (>1 means LRET is faster)"),
+                
+                ("Understanding FDM Columns",
+                 "• 'fdm_executed' = true means FDM actually ran (typically trial 0 only)\n"
+                 "• 'fdm_run' = true means FDM data is available (may be copied from trial 0)\n"
+                 "• FDM runs once per sweep point; other trials reuse the same FDM reference"),
+                
+                ("Comparing Results",
+                 "• Use STATS sheets for quick comparison - they show mean ± std\n"
+                 "• Green highlighting: speedup > 1 (LRET faster) or fidelity ≥ 0.99 (high accuracy)\n"
+                 "• Red highlighting: speedup < 1 (LRET slower) or fidelity < 0.9 (lower accuracy)\n"
+                 "• Compare across sweep parameters to see scaling behavior"),
+                
+                ("Mode Performance Analysis",
+                 "• MODES sheets compare parallelization strategies (sequential, omp, etc.)\n"
+                 "• 'speedup_vs_seq' shows speedup relative to sequential mode\n"
+                 "• Use MSTAT sheets to see which mode performs best on average"),
+                
+                ("Statistical Analysis",
+                 "• '_mean' columns show average across trials\n"
+                 "• '_std' columns show standard deviation (variability)\n"
+                 "• Low std relative to mean indicates consistent performance\n"
+                 "• Use trial data for detailed statistical tests"),
+            ]
+            
+            for title, content in guide_sections:
+                dash.write(row, 1, title, fmt_guide_header)
+                row += 1
+                # Write multi-line content
+                for line in content.split('\n'):
+                    dash.write(row, 1, line, fmt_guide)
+                    row += 1
+                row += 1
+            
+            # ----- SECTION 5: LEGEND -----
+            dash.write(row, 1, 'Color Legend', fmt_subtitle)
+            row += 1
+            dash.write(row, 1, '■ Green', fmt_good)
+            dash.write(row, 2, 'Good: Speedup > 1 or Fidelity ≥ 0.99', fmt_note)
+            row += 1
+            dash.write(row, 1, '■ Red', fmt_bad)
+            dash.write(row, 2, 'Warning: Speedup < 1 or Fidelity < 0.9', fmt_note)
             row += 2
-            dash.write(row, 1, f'Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
+            
+            # Footer
+            dash.write(row, 1, f'Report generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
+                      workbook.add_format({'italic': True, 'font_color': '#999999', 'font_name': 'Calibri'}))
+            dash.write(row + 1, 1, 'LRET Scientific Benchmarking Suite v4.0',
                       workbook.add_format({'italic': True, 'font_color': '#999999', 'font_name': 'Calibri'}))
         
         print(f"SUCCESS: Scientific report saved to '{output_xlsx}'")
-        print(f"         Total sheets: {len(sheet_names)}")
+        print(f"         Sheets created: {len(sheet_info)}")
+        for name, desc in sheet_info:
+            print(f"           - {name}: {desc[:50]}...")
         return True
         
     except Exception as e:
@@ -582,29 +657,21 @@ def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
 
 
 def main():
-    """Command-line entry point."""
     if len(sys.argv) < 3:
-        print("LRET Scientific Benchmarking Report Generator")
-        print("=" * 50)
+        print("LRET Scientific Benchmarking Report Generator v4.0")
+        print("=" * 55)
         print()
         print("Usage: python ultimato4.py <input.csv> <output.xlsx>")
         print()
-        print("Converts LRET structured CSV output to a professional")
-        print("Excel report suitable for scientific publication.")
-        print()
-        print("Output includes:")
-        print("  • Dashboard with key findings")
-        print("  • Consolidated sweep data")
-        print("  • Aggregated statistics (mean/std/min/max)")
+        print("Features:")
+        print("  • Separate sheets per sweep type for readability")
+        print("  • Aggregated statistics with mean/std")
+        print("  • Comprehensive dashboard with user guide")
+        print("  • Color-coded results (green=good, red=warning)")
         print("  • Mode performance comparison")
-        print("  • Execution logs")
         sys.exit(1)
     
-    input_csv = sys.argv[1]
-    output_xlsx = sys.argv[2]
-    
-    success = create_scientific_report(input_csv, output_xlsx)
-    sys.exit(0 if success else 1)
+    create_scientific_report(sys.argv[1], sys.argv[2])
 
 
 if __name__ == "__main__":
