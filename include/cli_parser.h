@@ -58,10 +58,15 @@ struct CLIOptions {
     double truncation_threshold = 1e-4;
     size_t batch_size = 0;  // 0 = auto
     
-    // Gate fusion optimization (Phase 1 of roadmap)
+    // Gate fusion optimization (Phase 1.1 of roadmap)
     bool enable_fusion = true;         // --fuse-gates / --no-fuse
     size_t min_fusion_gates = 2;       // --min-fusion N
     size_t max_fusion_depth = 50;      // --max-fusion-depth N
+    
+    // Circuit stratification (Phase 1.3 of roadmap - Cirq pattern)
+    bool enable_stratify = true;       // --stratify / --no-stratify
+    bool greedy_layers = true;         // --greedy-layers / --asap-layers
+    size_t min_layer_size = 1;         // --min-layer-size N
     
     // Noise type selection
     NoiseSelection noise_selection = NoiseSelection::ALL;

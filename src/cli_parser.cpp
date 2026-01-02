@@ -161,6 +161,11 @@ CIRCUIT OPTIMIZATION OPTIONS:
     --no-fuse             Disable gate fusion
     --min-fusion N        Minimum consecutive gates to fuse (default: 2)
     --max-fusion-depth N  Maximum gates per fusion group (default: 50)
+    --stratify            Enable circuit stratification (default: ON)
+    --no-stratify         Disable circuit stratification
+    --greedy-layers       Use greedy layer assignment (default)
+    --asap-layers         Use ASAP (as-soon-as-possible) scheduling
+    --min-layer-size N    Minimum gates per layer to parallelize (default: 1)
 
 PARALLELIZATION OPTIONS:
     --mode MODE           Parallelization strategy:
@@ -422,7 +427,7 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
             continue;
         }
         
-        // Gate fusion options (Phase 1 optimization)
+        // Gate fusion options (Phase 1.1 optimization)
         if (arg == "--fuse-gates") {
             opts.enable_fusion = true;
             continue;
@@ -437,6 +442,28 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
         }
         if (arg == "--max-fusion-depth" && i + 1 < argc) {
             opts.max_fusion_depth = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // Circuit stratification options (Phase 1.3 optimization)
+        if (arg == "--stratify") {
+            opts.enable_stratify = true;
+            continue;
+        }
+        if (arg == "--no-stratify") {
+            opts.enable_stratify = false;
+            continue;
+        }
+        if (arg == "--greedy-layers") {
+            opts.greedy_layers = true;
+            continue;
+        }
+        if (arg == "--asap-layers") {
+            opts.greedy_layers = false;
+            continue;
+        }
+        if (arg == "--min-layer-size" && i + 1 < argc) {
+            opts.min_layer_size = std::stoul(argv[++i]);
             continue;
         }
         

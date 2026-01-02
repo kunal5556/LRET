@@ -4,6 +4,7 @@
 #include "cli_parser.h"
 #include "output_formatter.h"
 #include "gate_fusion.h"
+#include "circuit_optimizer.h"
 #include <vector>
 
 namespace qlret {
@@ -17,7 +18,28 @@ size_t auto_select_batch_size(size_t num_qubits);
 // Get workload class string
 std::string get_workload_class(size_t num_qubits);
 
-// Run simulation with specific mode (with optional gate fusion)
+// Combined optimization configuration for run_with_mode
+struct OptimizationConfig {
+    FusionConfig fusion;
+    StratificationConfig stratification;
+    
+    OptimizationConfig() = default;
+    
+    // Constructor from CLI options
+    explicit OptimizationConfig(const CLIOptions& opts) {
+        fusion.enable_fusion = opts.enable_fusion;
+        fusion.min_gates_to_fuse = opts.min_fusion_gates;
+        fusion.max_fusion_depth = opts.max_fusion_depth;
+        fusion.verbose = opts.verbose;
+        
+        stratification.enable_stratification = opts.enable_stratify;
+        stratification.use_greedy_assignment = opts.greedy_layers;
+        stratification.min_layer_size = opts.min_layer_size;
+        stratification.verbose = opts.verbose;
+    }
+};
+
+// Run simulation with specific mode (with optional gate fusion and stratification)
 ModeResult run_with_mode(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -26,6 +48,17 @@ ModeResult run_with_mode(
     const SimConfig& config,
     size_t batch_size = 0,
     const FusionConfig* fusion_config = nullptr  // Optional fusion configuration
+);
+
+// Run simulation with combined optimization config
+ModeResult run_optimized(
+    const MatrixXcd& L_init,
+    const QuantumSequence& sequence,
+    size_t num_qubits,
+    ParallelMode mode,
+    const SimConfig& config,
+    const OptimizationConfig& opt_config,
+    size_t batch_size = 0
 );
 
 // Run simulation with pre-fused sequence

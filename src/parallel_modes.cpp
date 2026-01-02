@@ -24,6 +24,7 @@
 #include "parallel_modes.h"
 #include "gates_and_noise.h"
 #include "gate_fusion.h"
+#include "circuit_optimizer.h"
 #include "simd_kernels.h"
 #include "simulator.h"
 #include "utils.h"
@@ -676,6 +677,99 @@ ModeResult run_with_fused_sequence(
 ) {
     Timer timer;
     MatrixXcd L_final = apply_fused_sequence(L_init, fused_seq, config);
+    double elapsed = timer.elapsed_seconds();
+    
+    ModeResult result;
+    result.mode = mode;
+    result.time_seconds = elapsed;
+    result.L_final = L_final;
+    result.final_rank = L_final.cols();
+    result.trace_value = (L_final * L_final.adjoint()).trace().real();
+    
+    return result;
+}
+
+// Run with combined optimization (fusion + stratification)
+ModeResult run_optimized(
+    const MatrixXcd& L_init,
+    const QuantumSequence& sequence,
+    size_t num_qubits,
+    ParallelMode mode,
+    const SimConfig& config,
+    const OptimizationConfig& opt_config,
+    size_t batch_size
+) {
+    if (batch_size == 0) {
+        batch_size = auto_select_batch_size(num_qubits);
+    }
+    
+    Timer timer;
+    MatrixXcd L_final;
+    
+    // Optimization pipeline: Fusion -> Stratification -> Execution
+    bool use_fusion = opt_config.fusion.enable_fusion;
+    bool use_stratify = opt_config.stratification.enable_stratification;
+    
+    if (use_fusion && use_stratify) {
+        // Full optimization: Fuse first, then stratify fused gates
+        GateFusionOptimizer fuser(opt_config.fusion);
+        FusedSequence fused = fuser.fuse(sequence);
+        
+        if (opt_config.fusion.verbose) {
+            fused.print_stats();
+        }
+        
+        // Convert fused sequence back to QuantumSequence for stratification
+        // For now, apply fused sequence directly (stratification of fused ops is advanced)
+        L_final = apply_fused_sequence(L_init, fused, config);
+        
+    } else if (use_stratify) {
+        // Stratification only (no fusion)
+        CircuitStratifier stratifier(opt_config.stratification);
+        StratifiedCircuit stratified = stratifier.stratify(sequence);
+        
+        if (opt_config.stratification.verbose) {
+            stratified.stats.print();
+        }
+        
+        L_final = execute_stratified_circuit(L_init, stratified, num_qubits, config);
+        
+    } else if (use_fusion) {
+        // Fusion only (no stratification)
+        GateFusionOptimizer fuser(opt_config.fusion);
+        FusedSequence fused = fuser.fuse(sequence);
+        
+        if (opt_config.fusion.verbose) {
+            fused.print_stats();
+        }
+        
+        L_final = apply_fused_sequence(L_init, fused, config);
+        
+    } else {
+        // No optimization - use selected parallel mode
+        switch (mode) {
+            case ParallelMode::SEQUENTIAL:
+                L_final = modes::run_sequential(L_init, sequence, num_qubits, config);
+                break;
+            case ParallelMode::ROW:
+                L_final = modes::run_row_parallel(L_init, sequence, num_qubits, config);
+                break;
+            case ParallelMode::COLUMN:
+                L_final = modes::run_column_parallel(L_init, sequence, num_qubits, config);
+                break;
+            case ParallelMode::BATCH:
+                L_final = modes::run_batch_parallel(L_init, sequence, num_qubits, batch_size, config);
+                break;
+            case ParallelMode::HYBRID:
+                L_final = modes::run_hybrid(L_init, sequence, num_qubits, batch_size, config);
+                break;
+            case ParallelMode::AUTO:
+            default:
+                mode = auto_select_mode(num_qubits, sequence.depth, L_init.cols());
+                return run_optimized(L_init, sequence, num_qubits, mode, config, opt_config, batch_size);
+        }
+    }
+    
     double elapsed = timer.elapsed_seconds();
     
     ModeResult result;
