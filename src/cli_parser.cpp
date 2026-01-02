@@ -177,6 +177,18 @@ PARALLELIZATION OPTIONS:
                           hybrid     - Combined row/column strategy
                           compare    - Run all modes and compare performance
 
+GPU OPTIONS (Phase 2):
+    --device DEVICE       Device selection:
+                          auto       - Auto-select GPU if available (default)
+                          gpu        - Force GPU execution
+                          cpu        - Force CPU execution
+    --gpu                 Shorthand for --device=gpu
+    --gpu-id N            GPU device ID to use (default: 0)
+    --cuquantum           Use cuQuantum library if available (default)
+    --no-cuquantum        Use custom CUDA kernels instead
+    --gpu-memory-limit N  Maximum GPU memory in GB (0=no limit)
+    --gpu-info            Print GPU information and exit
+
 INITIAL STATE OPTIONS:
     --initial-rank N      Start with random mixed state of rank N (default: 1)
                           Rank=1 is pure state |0...0>.
@@ -464,6 +476,47 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
         }
         if (arg == "--min-layer-size" && i + 1 < argc) {
             opts.min_layer_size = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // GPU options (Phase 2)
+        if (arg == "--gpu") {
+            opts.enable_gpu = true;
+            opts.auto_device = false;
+            continue;
+        }
+        if (arg == "--device" && i + 1 < argc) {
+            std::string device = argv[++i];
+            if (device == "gpu") {
+                opts.enable_gpu = true;
+                opts.auto_device = false;
+            } else if (device == "cpu") {
+                opts.enable_gpu = false;
+                opts.auto_device = false;
+            } else if (device == "auto") {
+                opts.auto_device = true;
+            }
+            continue;
+        }
+        if (arg == "--gpu-id" && i + 1 < argc) {
+            opts.gpu_device_id = std::stoi(argv[++i]);
+            continue;
+        }
+        if (arg == "--cuquantum") {
+            opts.use_cuquantum = true;
+            continue;
+        }
+        if (arg == "--no-cuquantum") {
+            opts.use_cuquantum = false;
+            continue;
+        }
+        if (arg == "--gpu-memory-limit" && i + 1 < argc) {
+            opts.gpu_memory_limit = std::stoul(argv[++i]);
+            continue;
+        }
+        if (arg == "--gpu-info") {
+            // This will be handled in main.cpp
+            opts.show_version = true;  // Reuse version flag for now
             continue;
         }
         

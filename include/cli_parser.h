@@ -81,6 +81,13 @@ struct CLIOptions {
     ParallelMode parallel_mode = ParallelMode::AUTO;
     size_t num_threads = 0;  // 0 = use all cores
     
+    // GPU options (Phase 2 of roadmap)
+    bool enable_gpu = false;           // --gpu / --device=gpu
+    bool auto_device = true;           // --device=auto (default)
+    int gpu_device_id = 0;             // --gpu-id N
+    bool use_cuquantum = true;         // --cuquantum / --no-cuquantum
+    size_t gpu_memory_limit = 0;       // --gpu-memory-limit N (in GB, 0=no limit)
+    
     // FDM options
     bool enable_fdm = false;
     bool fdm_force = false;  // Bypass memory check, attempt FDM anyway

@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
-project(QuantumLRET-Sim VERSION 1.0.0 LANGUAGES CXX)
+
+# GPU Support Option (must be set before project())
+option(USE_GPU "Enable NVIDIA GPU acceleration via cuQuantum" OFF)
+
+if(USE_GPU)
+    project(QuantumLRET-Sim VERSION 1.0.0 LANGUAGES CXX CUDA)
+else()
+    project(QuantumLRET-Sim VERSION 1.0.0 LANGUAGES CXX)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,6 +30,48 @@ if(NOT Eigen3_FOUND)
 endif()
 
 find_package(OpenMP)
+
+#==============================================================================
+# GPU/CUDA Configuration (Phase 2)
+#==============================================================================
+if(USE_GPU)
+    # CUDA settings
+    set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    
+    # Find CUDA Toolkit
+    find_package(CUDAToolkit REQUIRED)
+    
+    # Find cuQuantum (NVIDIA's quantum simulation library)
+    # cuQuantum provides custatevec and cutensornet
+    find_path(CUQUANTUM_INCLUDE_DIR
+        NAMES custatevec.h
+        HINTS
+            ${CUQUANTUM_ROOT}/include
+            $ENV{CUQUANTUM_ROOT}/include
+            /usr/local/cuda/include
+            /opt/nvidia/cuquantum/include
+    )
+    
+    find_library(CUSTATEVEC_LIBRARY
+        NAMES custatevec
+        HINTS
+            ${CUQUANTUM_ROOT}/lib
+            ${CUQUANTUM_ROOT}/lib64
+            $ENV{CUQUANTUM_ROOT}/lib
+            $ENV{CUQUANTUM_ROOT}/lib64
+            /usr/local/cuda/lib64
+            /opt/nvidia/cuquantum/lib64
+    )
+    
+    if(CUQUANTUM_INCLUDE_DIR AND CUSTATEVEC_LIBRARY)
+        message(STATUS "Found cuQuantum: ${CUSTATEVEC_LIBRARY}")
+        set(CUQUANTUM_FOUND TRUE)
+    else()
+        message(WARNING "cuQuantum not found. GPU simulation will use custom CUDA kernels.")
+        set(CUQUANTUM_FOUND FALSE)
+    endif()
+endif()
 
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/include)
@@ -52,6 +102,53 @@ target_link_libraries(qlret_lib PUBLIC Eigen3::Eigen)
 if(OpenMP_CXX_FOUND)
     target_link_libraries(qlret_lib PUBLIC OpenMP::OpenMP_CXX)
     target_compile_definitions(qlret_lib PUBLIC USE_OPENMP)
+endif()
+
+#==============================================================================
+# GPU Library (Phase 2)
+#==============================================================================
+if(USE_GPU)
+    # GPU simulator CUDA source
+    set(GPU_SOURCES
+        src/gpu_simulator.cu
+    )
+    
+    # Create GPU library
+    add_library(qlret_gpu STATIC ${GPU_SOURCES})
+    
+    # CUDA compile options
+    set_target_properties(qlret_gpu PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_ARCHITECTURES "70;75;80;86;89;90"  # Volta, Turing, Ampere, Ada, Hopper
+    )
+    
+    target_include_directories(qlret_gpu PUBLIC 
+        ${CMAKE_SOURCE_DIR}/include
+        ${CUDAToolkit_INCLUDE_DIRS}
+    )
+    
+    target_link_libraries(qlret_gpu PUBLIC 
+        Eigen3::Eigen
+        CUDA::cudart
+        CUDA::cublas
+    )
+    
+    # Link cuQuantum if available
+    if(CUQUANTUM_FOUND)
+        target_include_directories(qlret_gpu PUBLIC ${CUQUANTUM_INCLUDE_DIR})
+        target_link_libraries(qlret_gpu PUBLIC ${CUSTATEVEC_LIBRARY})
+        target_compile_definitions(qlret_gpu PUBLIC USE_CUQUANTUM)
+    endif()
+    
+    target_compile_definitions(qlret_gpu PUBLIC USE_GPU)
+    
+    # Link GPU lib to main lib
+    target_link_libraries(qlret_lib PUBLIC qlret_gpu)
+    target_compile_definitions(qlret_lib PUBLIC USE_GPU)
+    
+    if(CUQUANTUM_FOUND)
+        target_compile_definitions(qlret_lib PUBLIC USE_CUQUANTUM)
+    endif()
 endif()
 
 # Main benchmark executable
@@ -116,5 +213,10 @@ message(STATUS "  Eigen3: ${EIGEN3_VERSION_STRING}")
 message(STATUS "  OpenMP: ${OpenMP_CXX_FOUND}")
 if(OpenMP_CXX_FOUND)
     message(STATUS "  OpenMP Version: ${OpenMP_CXX_VERSION}")
+endif()
+message(STATUS "  GPU Support: ${USE_GPU}")
+if(USE_GPU)
+    message(STATUS "  CUDA Toolkit: ${CUDAToolkit_VERSION}")
+    message(STATUS "  cuQuantum: ${CUQUANTUM_FOUND}")
 endif()
 message(STATUS "========================================")

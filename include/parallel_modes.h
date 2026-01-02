@@ -5,9 +5,17 @@
 #include "output_formatter.h"
 #include "gate_fusion.h"
 #include "circuit_optimizer.h"
+#include "gpu_simulator.h"
 #include <vector>
 
 namespace qlret {
+
+// Device selection
+enum class DeviceType {
+    CPU,
+    GPU,
+    AUTO
+};
 
 // Auto-select best mode based on problem size
 ParallelMode auto_select_mode(size_t num_qubits, size_t depth, size_t rank_estimate = 10);
@@ -22,6 +30,8 @@ std::string get_workload_class(size_t num_qubits);
 struct OptimizationConfig {
     FusionConfig fusion;
     StratificationConfig stratification;
+    GPUConfig gpu;
+    DeviceType device = DeviceType::AUTO;
     
     OptimizationConfig() = default;
     
@@ -36,6 +46,22 @@ struct OptimizationConfig {
         stratification.use_greedy_assignment = opts.greedy_layers;
         stratification.min_layer_size = opts.min_layer_size;
         stratification.verbose = opts.verbose;
+        
+        // GPU configuration
+        gpu.enable_gpu = opts.enable_gpu;
+        gpu.device_id = opts.gpu_device_id;
+        gpu.use_cuquantum = opts.use_cuquantum;
+        gpu.max_gpu_memory = opts.gpu_memory_limit * 1024ULL * 1024ULL * 1024ULL;
+        gpu.verbose = opts.verbose;
+        
+        // Device selection
+        if (opts.auto_device) {
+            device = DeviceType::AUTO;
+        } else if (opts.enable_gpu) {
+            device = DeviceType::GPU;
+        } else {
+            device = DeviceType::CPU;
+        }
     }
 };
 
