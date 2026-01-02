@@ -178,10 +178,11 @@ public:
     void write_sweep_results_full(const std::string& sweep_type,
                                   const std::vector<SweepPointResult>& points);
     
-    // Write all-modes comparison table for a sweep point
+    // Write all-modes comparison table for a sweep point (with trial_id for multi-trial support)
     void write_all_modes_comparison(const std::vector<ModePointResult>& modes,
                                     const std::string& sweep_param_name,
-                                    double sweep_param_value);
+                                    double sweep_param_value,
+                                    size_t trial_id = 0);
     
     // Write rank evolution data
     void write_rank_evolution(const std::vector<std::tuple<size_t, std::string, size_t, size_t, double>>& events);

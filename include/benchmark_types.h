@@ -231,7 +231,8 @@ struct SweepPointResult {
     size_t truncation_count = 0;
     
     // FDM results (if enabled)
-    bool fdm_run = false;
+    bool fdm_run = false;           // FDM data is available (may be copied from trial 0)
+    bool fdm_executed = false;      // FDM was actually executed THIS trial (only trial 0)
     double fdm_time_seconds = 0.0;
     size_t fdm_memory_bytes = 0;
     

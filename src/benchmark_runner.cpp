@@ -436,6 +436,7 @@ SweepResults run_epsilon_sweep(
             // For trials after first, copy FDM results from first trial
             if (trial == 0) {
                 first_trial_result = point;
+                point.fdm_executed = point.fdm_run;  // FDM actually executed on trial 0
                 if (point.fdm_run) {
                     have_fdm = true;
                     // Store FDM rho for all-modes comparison
@@ -448,14 +449,15 @@ SweepResults run_epsilon_sweep(
             } else if (have_fdm) {
                 // Copy FDM metrics from first trial (FDM is deterministic)
                 point.fdm_run = true;
+                point.fdm_executed = false;  // FDM was NOT executed this trial, just copied
                 point.fdm_time_seconds = first_trial_result.fdm_time_seconds;
                 point.fdm_memory_bytes = first_trial_result.fdm_memory_bytes;
                 point.fidelity_vs_fdm = first_trial_result.fidelity_vs_fdm;
                 point.trace_distance_vs_fdm = first_trial_result.trace_distance_vs_fdm;
             }
             
-            // Run all LRET modes only on first trial (expensive)
-            if (trial == 0 && opts.sweep_config.run_all_modes) {
+            // Run all LRET modes for EVERY trial (needed for proper statistical analysis)
+            if (opts.sweep_config.run_all_modes) {
                 size_t batch = opts.batch_size ? opts.batch_size : auto_select_batch_size(opts.num_qubits);
                 const MatrixXcd* fdm_rho = have_fdm ? &fdm_rho_storage : nullptr;
                 point.all_modes_results = run_all_modes_benchmark(
@@ -546,6 +548,7 @@ SweepResults run_noise_sweep(
             // For trials after first, copy FDM results from first trial
             if (trial == 0) {
                 first_trial_result = point;
+                point.fdm_executed = point.fdm_run;
                 if (point.fdm_run) {
                     have_fdm = true;
                     MatrixXcd rho_init = L_init * L_init.adjoint();
@@ -556,14 +559,15 @@ SweepResults run_noise_sweep(
                 }
             } else if (have_fdm) {
                 point.fdm_run = true;
+                point.fdm_executed = false;
                 point.fdm_time_seconds = first_trial_result.fdm_time_seconds;
                 point.fdm_memory_bytes = first_trial_result.fdm_memory_bytes;
                 point.fidelity_vs_fdm = first_trial_result.fidelity_vs_fdm;
                 point.trace_distance_vs_fdm = first_trial_result.trace_distance_vs_fdm;
             }
             
-            // Run all LRET modes only on first trial
-            if (trial == 0 && opts.sweep_config.run_all_modes) {
+            // Run all LRET modes for EVERY trial
+            if (opts.sweep_config.run_all_modes) {
                 size_t batch = opts.batch_size ? opts.batch_size : auto_select_batch_size(opts.num_qubits);
                 const MatrixXcd* fdm_rho = have_fdm ? &fdm_rho_storage : nullptr;
                 point.all_modes_results = run_all_modes_benchmark(
@@ -655,6 +659,7 @@ SweepResults run_rank_sweep(
             
             if (trial == 0) {
                 first_trial_result = point;
+                point.fdm_executed = point.fdm_run;
                 if (point.fdm_run) {
                     have_fdm = true;
                     MatrixXcd rho_init = L_init * L_init.adjoint();
@@ -665,13 +670,14 @@ SweepResults run_rank_sweep(
                 }
             } else if (have_fdm) {
                 point.fdm_run = true;
+                point.fdm_executed = false;
                 point.fdm_time_seconds = first_trial_result.fdm_time_seconds;
                 point.fdm_memory_bytes = first_trial_result.fdm_memory_bytes;
                 point.fidelity_vs_fdm = first_trial_result.fidelity_vs_fdm;
                 point.trace_distance_vs_fdm = first_trial_result.trace_distance_vs_fdm;
             }
             
-            if (trial == 0 && opts.sweep_config.run_all_modes) {
+            if (opts.sweep_config.run_all_modes) {
                 size_t batch = opts.batch_size ? opts.batch_size : auto_select_batch_size(opts.num_qubits);
                 const MatrixXcd* fdm_rho = have_fdm ? &fdm_rho_storage : nullptr;
                 point.all_modes_results = run_all_modes_benchmark(
@@ -758,6 +764,7 @@ SweepResults run_qubit_sweep(
             
             if (trial == 0) {
                 first_trial_result = point;
+                point.fdm_executed = point.fdm_run;
                 if (point.fdm_run) {
                     have_fdm = true;
                     MatrixXcd rho_init = L_init * L_init.adjoint();
@@ -768,13 +775,14 @@ SweepResults run_qubit_sweep(
                 }
             } else if (have_fdm) {
                 point.fdm_run = true;
+                point.fdm_executed = false;
                 point.fdm_time_seconds = first_trial_result.fdm_time_seconds;
                 point.fdm_memory_bytes = first_trial_result.fdm_memory_bytes;
                 point.fidelity_vs_fdm = first_trial_result.fidelity_vs_fdm;
                 point.trace_distance_vs_fdm = first_trial_result.trace_distance_vs_fdm;
             }
             
-            if (trial == 0 && opts.sweep_config.run_all_modes) {
+            if (opts.sweep_config.run_all_modes) {
                 size_t batch = opts.batch_size ? opts.batch_size : auto_select_batch_size(n);
                 const MatrixXcd* fdm_rho = have_fdm ? &fdm_rho_storage : nullptr;
                 point.all_modes_results = run_all_modes_benchmark(
@@ -862,6 +870,7 @@ SweepResults run_depth_sweep(
             
             if (trial == 0) {
                 first_trial_result = point;
+                point.fdm_executed = point.fdm_run;
                 if (point.fdm_run) {
                     have_fdm = true;
                     MatrixXcd rho_init = L_init * L_init.adjoint();
@@ -872,13 +881,14 @@ SweepResults run_depth_sweep(
                 }
             } else if (have_fdm) {
                 point.fdm_run = true;
+                point.fdm_executed = false;
                 point.fdm_time_seconds = first_trial_result.fdm_time_seconds;
                 point.fdm_memory_bytes = first_trial_result.fdm_memory_bytes;
                 point.fidelity_vs_fdm = first_trial_result.fidelity_vs_fdm;
                 point.trace_distance_vs_fdm = first_trial_result.trace_distance_vs_fdm;
             }
             
-            if (trial == 0 && opts.sweep_config.run_all_modes) {
+            if (opts.sweep_config.run_all_modes) {
                 size_t batch = opts.batch_size ? opts.batch_size : auto_select_batch_size(opts.num_qubits);
                 const MatrixXcd* fdm_rho = have_fdm ? &fdm_rho_storage : nullptr;
                 point.all_modes_results = run_all_modes_benchmark(
