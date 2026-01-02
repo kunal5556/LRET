@@ -24,6 +24,7 @@
 #include "parallel_modes.h"
 #include "gates_and_noise.h"
 #include "gate_fusion.h"
+#include "simd_kernels.h"
 #include "simulator.h"
 #include "utils.h"
 #include "structured_csv.h"
@@ -229,34 +230,8 @@ namespace parallel_ops {
 // No vector allocations, no dynamic scheduling
 inline MatrixXcd apply_fused_single_gate(const MatrixXcd& L, const MatrixXcd& U, 
                                    size_t target, size_t num_qubits) {
-    size_t dim = L.rows();
-    size_t rank = L.cols();
-    MatrixXcd result = L;
-    
-    size_t step = 1ULL << target;
-    
-    // Only use OpenMP for LARGE problems with enough work per thread
-    // dim > 4096 means n >= 12 qubits
-    // rank > 2 means there's meaningful work to parallelize
-#ifdef _OPENMP
-    #pragma omp parallel for schedule(static) if(dim > 4096 && rank > 2)
-#endif
-    for (size_t block = 0; block < dim; block += 2 * step) {
-        for (size_t i = block; i < block + step && i < dim; ++i) {
-            size_t i0 = i;
-            size_t i1 = i + step;
-            if (i1 >= dim) continue;
-            
-            for (size_t r = 0; r < rank; ++r) {
-                Complex v0 = L(i0, r);
-                Complex v1 = L(i1, r);
-                result(i0, r) = U(0, 0) * v0 + U(0, 1) * v1;
-                result(i1, r) = U(1, 0) * v0 + U(1, 1) * v1;
-            }
-        }
-    }
-    
-    return result;
+    // Dispatch to SIMD-friendly path with automatic fallback
+    return apply_single_qubit_simd(L, U, target, num_qubits);
 }
 
 // Apply two-qubit gate - NO vector allocation version
