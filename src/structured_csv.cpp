@@ -838,19 +838,67 @@ void StructuredCSVWriter::write_sweep_results_full(const std::string& sweep_type
     
     end_section();
     
-    // Write all-modes comparison sections if any point has them
+    // Write consolidated mode comparison data (single section with all data)
+    write_consolidated_modes_data(sweep_type, param_name, points);
+}
+
+void StructuredCSVWriter::write_consolidated_modes_data(
+    const std::string& sweep_type,
+    const std::string& param_name,
+    const std::vector<SweepPointResult>& points
+) {
+    // Check if any point has mode data
+    bool has_mode_data = false;
     for (const auto& p : points) {
         if (!p.all_modes_results.empty()) {
-            double param_val = 0;
-            if (param_name == "epsilon") param_val = p.epsilon;
-            else if (param_name == "noise_prob") param_val = p.noise_prob;
-            else if (param_name == "num_qubits") param_val = static_cast<double>(p.num_qubits);
-            else if (param_name == "depth") param_val = static_cast<double>(p.depth);
-            else if (param_name == "initial_rank") param_val = static_cast<double>(p.initial_rank);
-            
-            write_all_modes_comparison(p.all_modes_results, param_name, param_val, p.trial_id);
+            has_mode_data = true;
+            break;
         }
     }
+    
+    if (!has_mode_data) return;
+    
+    // Single consolidated section for all mode comparison data
+    std::string section_name = "ALL_MODES_" + sweep_type;
+    begin_section(section_name);
+    
+    // Comprehensive header with sweep parameter, trial, and mode info
+    write_csv_row({
+        param_name, "trial_id", "n", "d", "mode", 
+        "time_s", "final_rank", "purity", "entropy",
+        "speedup_vs_seq", "fidelity_vs_fdm", "trace_distance_vs_fdm"
+    });
+    
+    // Data rows - one row per mode per trial per sweep point
+    for (const auto& p : points) {
+        // Determine the sweep parameter value
+        std::string param_val;
+        if (param_name == "epsilon") param_val = format_double(p.epsilon, 8);
+        else if (param_name == "noise_prob") param_val = format_double(p.noise_prob, 6);
+        else if (param_name == "num_qubits") param_val = std::to_string(p.num_qubits);
+        else if (param_name == "depth") param_val = std::to_string(p.depth);
+        else if (param_name == "initial_rank") param_val = std::to_string(p.initial_rank);
+        else param_val = "0";
+        
+        for (const auto& m : p.all_modes_results) {
+            write_csv_row({
+                param_val,
+                std::to_string(p.trial_id),
+                std::to_string(p.num_qubits),
+                std::to_string(p.depth),
+                m.mode_name,
+                format_double(m.time_seconds, 6),
+                std::to_string(m.final_rank),
+                format_double(m.purity, 6),
+                format_double(m.entropy, 6),
+                format_double(m.speedup_vs_seq, 2),
+                format_double(m.fidelity_vs_fdm, 6),
+                format_double(m.trace_distance_vs_fdm, 6)
+            });
+        }
+    }
+    
+    end_section();
 }
 
 void StructuredCSVWriter::write_all_modes_comparison(
@@ -859,21 +907,25 @@ void StructuredCSVWriter::write_all_modes_comparison(
     double sweep_param_value,
     size_t trial_id
 ) {
-    // Include trial_id in section name for unique identification
-    std::string section_name = "MODE_COMPARISON_" + sweep_param_name + "_" + 
-                                format_double(sweep_param_value, 4) + "_trial" + 
-                                std::to_string(trial_id);
+    // Legacy function - kept for compatibility but now writes to consolidated format
+    // This function is no longer called from write_sweep_results_full
+    // It can be used for standalone mode comparisons outside of sweeps
+    
+    if (modes.empty()) return;
+    
+    std::string section_name = "MODE_COMPARISON";
     begin_section(section_name);
     
-    // Header with trial_id column
     write_csv_row({
-        "trial_id", "mode", "time_s", "final_rank", "purity", "entropy",
+        "sweep_param", "sweep_value", "trial_id", "mode", 
+        "time_s", "final_rank", "purity", "entropy",
         "speedup_vs_seq", "fidelity_vs_fdm", "trace_distance_vs_fdm"
     });
     
-    // Data rows
     for (const auto& m : modes) {
         write_csv_row({
+            sweep_param_name,
+            format_double(sweep_param_value, 4),
             std::to_string(trial_id),
             m.mode_name,
             format_double(m.time_seconds, 6),

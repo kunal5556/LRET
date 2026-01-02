@@ -178,7 +178,12 @@ public:
     void write_sweep_results_full(const std::string& sweep_type,
                                   const std::vector<SweepPointResult>& points);
     
-    // Write all-modes comparison table for a sweep point (with trial_id for multi-trial support)
+    // Write consolidated mode comparison data (single section for all sweep points)
+    void write_consolidated_modes_data(const std::string& sweep_type,
+                                       const std::string& param_name,
+                                       const std::vector<SweepPointResult>& points);
+    
+    // Write all-modes comparison table for a sweep point (legacy, kept for compatibility)
     void write_all_modes_comparison(const std::vector<ModePointResult>& modes,
                                     const std::string& sweep_param_name,
                                     double sweep_param_value,
