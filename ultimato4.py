@@ -340,8 +340,13 @@ def create_scientific_report(input_csv: str, output_xlsx: str) -> bool:
                 # Format headers
                 for c, col_name in enumerate(df.columns):
                     ws.write(start_row, c, col_name, fmt_header)
-                    max_len = max(len(str(col_name)), 
-                                 df[col_name].astype(str).str.len().max() if len(df) > 0 else 0)
+                    # Calculate max length for column width (handle duplicate column names)
+                    try:
+                        col_data = df.iloc[:, c].astype(str)
+                        max_data_len = col_data.str.len().max() if len(df) > 0 else 0
+                    except:
+                        max_data_len = 10
+                    max_len = max(len(str(col_name)), max_data_len if not pd.isna(max_data_len) else 0)
                     ws.set_column(c, c, min(max(max_len + 2, 10), 22))
                 
                 # Format data rows
