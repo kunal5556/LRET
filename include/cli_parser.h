@@ -36,7 +36,10 @@ enum class ParallelMode {
     COLUMN,     // Column-wise parallel
     BATCH,      // Gate batching
     HYBRID,     // Row + batch combined
-    COMPARE     // Run all and compare
+    COMPARE,    // Run all and compare
+    MPI_ROW,    // MPI row-wise distribution (Phase 3)
+    MPI_COLUMN, // MPI column-wise distribution (Phase 3)
+    MPI_HYBRID  // MPI + OpenMP hybrid (Phase 3)
 };
 
 // Noise selection for CLI (which noise types to enable)
@@ -80,6 +83,12 @@ struct CLIOptions {
     // Parallelization
     ParallelMode parallel_mode = ParallelMode::AUTO;
     size_t num_threads = 0;  // 0 = use all cores
+    
+    // MPI options (Phase 3 of roadmap)
+    bool enable_mpi = false;           // --mpi / --mode=mpi-row
+    bool mpi_row_dist = true;          // --mpi-row (default) / --mpi-column
+    bool mpi_verbose = false;          // --mpi-verbose
+    bool mpi_validate = false;         // --mpi-validate (check vs local)
     
     // GPU options (Phase 2 of roadmap)
     bool enable_gpu = false;           // --gpu / --device=gpu

@@ -32,6 +32,21 @@ endif()
 find_package(OpenMP)
 
 #==============================================================================
+# MPI Configuration (Phase 3)
+#==============================================================================
+option(USE_MPI "Enable MPI distributed parallelization" OFF)
+
+if(USE_MPI)
+    find_package(MPI REQUIRED)
+    
+    if(MPI_CXX_FOUND)
+        message(STATUS "Found MPI: ${MPI_CXX_COMPILER}")
+        message(STATUS "  MPI Include: ${MPI_CXX_INCLUDE_DIRS}")
+        message(STATUS "  MPI Libraries: ${MPI_CXX_LIBRARIES}")
+    endif()
+endif()
+
+#==============================================================================
 # GPU/CUDA Configuration (Phase 2)
 #==============================================================================
 if(USE_GPU)
@@ -95,6 +110,11 @@ set(LIB_SOURCES
     src/benchmark_runner.cpp
 )
 
+# Add MPI source if enabled
+if(USE_MPI)
+    list(APPEND LIB_SOURCES src/mpi_parallel.cpp)
+endif()
+
 # Create static library
 add_library(qlret_lib STATIC ${LIB_SOURCES})
 target_link_libraries(qlret_lib PUBLIC Eigen3::Eigen)
@@ -102,6 +122,20 @@ target_link_libraries(qlret_lib PUBLIC Eigen3::Eigen)
 if(OpenMP_CXX_FOUND)
     target_link_libraries(qlret_lib PUBLIC OpenMP::OpenMP_CXX)
     target_compile_definitions(qlret_lib PUBLIC USE_OPENMP)
+endif()
+
+#==============================================================================
+# MPI Library Linking (Phase 3)
+#==============================================================================
+if(USE_MPI AND MPI_CXX_FOUND)
+    target_include_directories(qlret_lib PUBLIC ${MPI_CXX_INCLUDE_DIRS})
+    target_link_libraries(qlret_lib PUBLIC ${MPI_CXX_LIBRARIES})
+    target_compile_definitions(qlret_lib PUBLIC USE_MPI)
+    
+    # Add MPI compile flags
+    if(MPI_CXX_COMPILE_FLAGS)
+        target_compile_options(qlret_lib PUBLIC ${MPI_CXX_COMPILE_FLAGS})
+    endif()
 endif()
 
 #==============================================================================
@@ -213,6 +247,10 @@ message(STATUS "  Eigen3: ${EIGEN3_VERSION_STRING}")
 message(STATUS "  OpenMP: ${OpenMP_CXX_FOUND}")
 if(OpenMP_CXX_FOUND)
     message(STATUS "  OpenMP Version: ${OpenMP_CXX_VERSION}")
+endif()
+message(STATUS "  MPI Support: ${USE_MPI}")
+if(USE_MPI AND MPI_CXX_FOUND)
+    message(STATUS "  MPI Compiler: ${MPI_CXX_COMPILER}")
 endif()
 message(STATUS "  GPU Support: ${USE_GPU}")
 if(USE_GPU)

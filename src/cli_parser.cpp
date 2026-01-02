@@ -86,6 +86,9 @@ std::string parallel_mode_to_string(ParallelMode mode) {
         case ParallelMode::BATCH:      return "batch";
         case ParallelMode::HYBRID:     return "hybrid";
         case ParallelMode::COMPARE:    return "compare";
+        case ParallelMode::MPI_ROW:    return "mpi-row";
+        case ParallelMode::MPI_COLUMN: return "mpi-column";
+        case ParallelMode::MPI_HYBRID: return "mpi-hybrid";
         default:                       return "unknown";
     }
 }
@@ -101,6 +104,9 @@ ParallelMode string_to_parallel_mode(const std::string& str) {
     if (lower == "batch")      return ParallelMode::BATCH;
     if (lower == "hybrid")     return ParallelMode::HYBRID;
     if (lower == "compare")    return ParallelMode::COMPARE;
+    if (lower == "mpi-row" || lower == "mpi_row")       return ParallelMode::MPI_ROW;
+    if (lower == "mpi-column" || lower == "mpi_column") return ParallelMode::MPI_COLUMN;
+    if (lower == "mpi-hybrid" || lower == "mpi_hybrid") return ParallelMode::MPI_HYBRID;
     
     return ParallelMode::AUTO;  // Default fallback
 }
@@ -188,6 +194,18 @@ GPU OPTIONS (Phase 2):
     --no-cuquantum        Use custom CUDA kernels instead
     --gpu-memory-limit N  Maximum GPU memory in GB (0=no limit)
     --gpu-info            Print GPU information and exit
+
+MPI OPTIONS (Phase 3 - Distributed Computing):
+    --mpi                 Enable MPI distributed simulation
+    --mode mpi-row        Use row-wise MPI distribution (default MPI mode)
+    --mode mpi-column     Use column-wise MPI distribution
+    --mpi-verbose         Print MPI communication statistics
+    --mpi-validate        Validate MPI results against local simulation
+    --mpi-info            Print MPI topology information
+
+    Usage with mpirun:
+        mpirun -np 4 ./lret -n 14 -d 100 --mpi --mode mpi-row
+        mpirun -np 8 ./lret -n 16 -d 200 --mpi --mpi-verbose
 
 INITIAL STATE OPTIONS:
     --initial-rank N      Start with random mixed state of rank N (default: 1)
@@ -519,6 +537,25 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
             opts.show_version = true;  // Reuse version flag for now
             continue;
         }
+        
+        // MPI options (Phase 3)
+        if (arg == "--mpi") {
+            opts.enable_mpi = true;
+            continue;
+        }
+        if (arg == "--mpi-verbose") {
+            opts.mpi_verbose = true;
+            continue;
+        }
+        if (arg == "--mpi-validate") {
+            opts.mpi_validate = true;
+            continue;
+        }
+        if (arg == "--mpi-info") {
+            opts.show_version = true;  // Will print MPI info
+            continue;
+        }
+        // Handle mpi-row and mpi-column in --mode parsing above
         
         // FDM enable
         if (arg == "--fdm") {
