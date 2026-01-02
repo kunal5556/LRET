@@ -156,6 +156,12 @@ NOISE OPTIONS:
                           realistic   - Realistic mix with varied rates
                           none        - No noise (pure unitary evolution)
 
+CIRCUIT OPTIMIZATION OPTIONS:
+    --fuse-gates          Enable gate fusion optimization (default: ON)
+    --no-fuse             Disable gate fusion
+    --min-fusion N        Minimum consecutive gates to fuse (default: 2)
+    --max-fusion-depth N  Maximum gates per fusion group (default: 50)
+
 PARALLELIZATION OPTIONS:
     --mode MODE           Parallelization strategy:
                           auto       - Auto-select best mode (default)
@@ -413,6 +419,24 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
         // Noise type
         if (arg == "--noise-type" && i + 1 < argc) {
             opts.noise_selection = string_to_noise_selection(argv[++i]);
+            continue;
+        }
+        
+        // Gate fusion options (Phase 1 optimization)
+        if (arg == "--fuse-gates") {
+            opts.enable_fusion = true;
+            continue;
+        }
+        if (arg == "--no-fuse") {
+            opts.enable_fusion = false;
+            continue;
+        }
+        if (arg == "--min-fusion" && i + 1 < argc) {
+            opts.min_fusion_gates = std::stoul(argv[++i]);
+            continue;
+        }
+        if (arg == "--max-fusion-depth" && i + 1 < argc) {
+            opts.max_fusion_depth = std::stoul(argv[++i]);
             continue;
         }
         

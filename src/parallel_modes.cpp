@@ -23,6 +23,7 @@
 
 #include "parallel_modes.h"
 #include "gates_and_noise.h"
+#include "gate_fusion.h"
 #include "simulator.h"
 #include "utils.h"
 #include "structured_csv.h"
@@ -626,37 +627,80 @@ ModeResult run_with_mode(
     size_t num_qubits,
     ParallelMode mode,
     const SimConfig& config,
-    size_t batch_size
+    size_t batch_size,
+    const FusionConfig* fusion_config
 ) {
     if (batch_size == 0) {
         batch_size = auto_select_batch_size(num_qubits);
     }
     
+    // Apply gate fusion if configured
+    bool use_fusion = fusion_config && fusion_config->enable_fusion;
+    FusedSequence fused_seq;
+    
+    if (use_fusion) {
+        GateFusionOptimizer optimizer(*fusion_config);
+        fused_seq = optimizer.fuse(sequence);
+        
+        if (fusion_config->verbose) {
+            fused_seq.print_stats();
+        }
+    }
+    
     Timer timer;
     MatrixXcd L_final;
     
-    switch (mode) {
-        case ParallelMode::SEQUENTIAL:
-            L_final = modes::run_sequential(L_init, sequence, num_qubits, config);
-            break;
-        case ParallelMode::ROW:
-            L_final = modes::run_row_parallel(L_init, sequence, num_qubits, config);
-            break;
-        case ParallelMode::COLUMN:
-            L_final = modes::run_column_parallel(L_init, sequence, num_qubits, config);
-            break;
-        case ParallelMode::BATCH:
-            L_final = modes::run_batch_parallel(L_init, sequence, num_qubits, batch_size, config);
-            break;
-        case ParallelMode::HYBRID:
-            L_final = modes::run_hybrid(L_init, sequence, num_qubits, batch_size, config);
-            break;
-        case ParallelMode::AUTO:
-        default:
-            mode = auto_select_mode(num_qubits, sequence.depth, L_init.cols());
-            return run_with_mode(L_init, sequence, num_qubits, mode, config, batch_size);
+    if (use_fusion) {
+        // Run with fused sequence
+        L_final = apply_fused_sequence(L_init, fused_seq, config);
+    } else {
+        // Run without fusion (original path)
+        switch (mode) {
+            case ParallelMode::SEQUENTIAL:
+                L_final = modes::run_sequential(L_init, sequence, num_qubits, config);
+                break;
+            case ParallelMode::ROW:
+                L_final = modes::run_row_parallel(L_init, sequence, num_qubits, config);
+                break;
+            case ParallelMode::COLUMN:
+                L_final = modes::run_column_parallel(L_init, sequence, num_qubits, config);
+                break;
+            case ParallelMode::BATCH:
+                L_final = modes::run_batch_parallel(L_init, sequence, num_qubits, batch_size, config);
+                break;
+            case ParallelMode::HYBRID:
+                L_final = modes::run_hybrid(L_init, sequence, num_qubits, batch_size, config);
+                break;
+            case ParallelMode::AUTO:
+            default:
+                mode = auto_select_mode(num_qubits, sequence.depth, L_init.cols());
+                return run_with_mode(L_init, sequence, num_qubits, mode, config, batch_size, fusion_config);
+        }
     }
     
+    double elapsed = timer.elapsed_seconds();
+    
+    ModeResult result;
+    result.mode = mode;
+    result.time_seconds = elapsed;
+    result.L_final = L_final;
+    result.final_rank = L_final.cols();
+    result.trace_value = (L_final * L_final.adjoint()).trace().real();
+    
+    return result;
+}
+
+// Run with pre-fused sequence (skip fusion analysis step)
+ModeResult run_with_fused_sequence(
+    const MatrixXcd& L_init,
+    const FusedSequence& fused_seq,
+    size_t num_qubits,
+    ParallelMode mode,
+    const SimConfig& config,
+    size_t batch_size
+) {
+    Timer timer;
+    MatrixXcd L_final = apply_fused_sequence(L_init, fused_seq, config);
     double elapsed = timer.elapsed_seconds();
     
     ModeResult result;

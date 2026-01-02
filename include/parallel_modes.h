@@ -3,6 +3,7 @@
 #include "types.h"
 #include "cli_parser.h"
 #include "output_formatter.h"
+#include "gate_fusion.h"
 #include <vector>
 
 namespace qlret {
@@ -16,10 +17,21 @@ size_t auto_select_batch_size(size_t num_qubits);
 // Get workload class string
 std::string get_workload_class(size_t num_qubits);
 
-// Run simulation with specific mode
+// Run simulation with specific mode (with optional gate fusion)
 ModeResult run_with_mode(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
+    size_t num_qubits,
+    ParallelMode mode,
+    const SimConfig& config,
+    size_t batch_size = 0,
+    const FusionConfig* fusion_config = nullptr  // Optional fusion configuration
+);
+
+// Run simulation with pre-fused sequence
+ModeResult run_with_fused_sequence(
+    const MatrixXcd& L_init,
+    const FusedSequence& fused_seq,
     size_t num_qubits,
     ParallelMode mode,
     const SimConfig& config,

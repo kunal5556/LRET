@@ -29,6 +29,7 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 # Source files
 set(LIB_SOURCES
     src/gates_and_noise.cpp
+    src/gate_fusion.cpp
     src/simulator.cpp
     src/utils.cpp
     src/cli_parser.cpp
