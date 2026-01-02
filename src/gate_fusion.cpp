@@ -15,6 +15,7 @@
  */
 
 #include "gate_fusion.h"
+#include "simulator.h"
 #include <iostream>
 #include <iomanip>
 #include <cmath>
