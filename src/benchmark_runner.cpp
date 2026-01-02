@@ -263,10 +263,11 @@ SweepPointResult run_single_benchmark(
         
         result.lret_time_seconds = lret_timer.elapsed_seconds();
     } else {
-        L_final = run_simulation_optimized(
-            L_init, sequence, num_qubits,
-            config.batch_size, config.do_truncation,
-            false, config.truncation_threshold
+        // Run with timing instrumentation (without full rank tracking)
+        L_final = run_simulation_with_timing(
+            L_init, sequence, num_qubits, config,
+            result.gate_time, result.noise_time, 
+            result.truncation_time, result.truncation_count
         );
         result.lret_time_seconds = lret_timer.elapsed_seconds();
     }
@@ -415,64 +416,67 @@ SweepResults run_epsilon_sweep(
         config.do_truncation = true;
         config.batch_size = opts.batch_size ? opts.batch_size : auto_select_batch_size(opts.num_qubits);
         
-        // Run multiple trials if requested
-        std::vector<double> trial_times;
-        SweepPointResult point;
+        // Cache FDM result for first trial (only run once per parameter point)
+        SweepPointResult first_trial_result;
+        MatrixXcd fdm_rho_storage;
+        bool have_fdm = false;
         
+        // Run each trial and output individually (no averaging - let Excel handle it)
         for (size_t trial = 0; trial < opts.sweep_trials; ++trial) {
-            auto trial_result = run_single_benchmark(
+            auto point = run_single_benchmark(
                 L_init, sequence, opts.num_qubits, config,
                 opts.track_rank_evolution && trial == 0,  // Track rank only on first trial
                 opts.enable_fdm && trial == 0             // FDM only on first trial
             );
             
-            trial_times.push_back(trial_result.lret_time_seconds);
+            point.trial_id = trial;
+            point.total_trials = opts.sweep_trials;
+            point.epsilon = eps;
             
+            // For trials after first, copy FDM results from first trial
             if (trial == 0) {
-                point = trial_result;
-            }
-        }
-        
-        // Compute statistics if multiple trials
-        if (opts.sweep_trials > 1) {
-            auto stats = compute_trial_stats(trial_times);
-            point.lret_time_seconds = stats.mean;
-            point.lret_time_stddev = stats.stddev;
-        }
-        
-        point.epsilon = eps;
-        
-        // Run all LRET modes if requested
-        if (opts.sweep_config.run_all_modes) {
-            size_t batch = opts.batch_size ? opts.batch_size : auto_select_batch_size(opts.num_qubits);
-            
-            // Get FDM result if available
-            const MatrixXcd* fdm_rho = nullptr;
-            MatrixXcd fdm_rho_storage;
-            if (point.fdm_run && opts.enable_fdm) {
-                // Re-run FDM to get the final state (we need it for comparison)
-                MatrixXcd rho_init = L_init * L_init.adjoint();
-                auto fdm_result = run_fdm_simulation(sequence, opts.num_qubits, rho_init, false);
-                if (fdm_result.was_run) {
-                    fdm_rho_storage = fdm_result.rho_final;
-                    fdm_rho = &fdm_rho_storage;
+                first_trial_result = point;
+                if (point.fdm_run) {
+                    have_fdm = true;
+                    // Store FDM rho for all-modes comparison
+                    MatrixXcd rho_init = L_init * L_init.adjoint();
+                    auto fdm_result = run_fdm_simulation(sequence, opts.num_qubits, rho_init, false);
+                    if (fdm_result.was_run) {
+                        fdm_rho_storage = fdm_result.rho_final;
+                    }
                 }
+            } else if (have_fdm) {
+                // Copy FDM metrics from first trial (FDM is deterministic)
+                point.fdm_run = true;
+                point.fdm_time_seconds = first_trial_result.fdm_time_seconds;
+                point.fdm_memory_bytes = first_trial_result.fdm_memory_bytes;
+                point.fidelity_vs_fdm = first_trial_result.fidelity_vs_fdm;
+                point.trace_distance_vs_fdm = first_trial_result.trace_distance_vs_fdm;
             }
             
-            point.all_modes_results = run_all_modes_benchmark(
-                L_init, sequence, opts.num_qubits, config, batch, opts.enable_fdm, fdm_rho
-            );
+            // Run all LRET modes only on first trial (expensive)
+            if (trial == 0 && opts.sweep_config.run_all_modes) {
+                size_t batch = opts.batch_size ? opts.batch_size : auto_select_batch_size(opts.num_qubits);
+                const MatrixXcd* fdm_rho = have_fdm ? &fdm_rho_storage : nullptr;
+                point.all_modes_results = run_all_modes_benchmark(
+                    L_init, sequence, opts.num_qubits, config, batch, opts.enable_fdm, fdm_rho
+                );
+            }
+            
+            results.add_point(point);
         }
         
-        results.add_point(point);
-        
-        std::cout << std::fixed << std::setprecision(4) << point.lret_time_seconds << "s, "
-                  << "rank=" << point.lret_final_rank;
-        if (point.fdm_run) {
-            std::cout << ", speedup=" << std::setprecision(1) << point.speedup_vs_fdm() << "x";
+        // Console output (summary for this epsilon value)
+        std::cout << std::fixed << std::setprecision(4) << first_trial_result.lret_time_seconds << "s";
+        if (opts.sweep_trials > 1) {
+            std::cout << " (" << opts.sweep_trials << " trials)";
         }
-        if (!point.all_modes_results.empty()) {
-            std::cout << ", modes=" << point.all_modes_results.size();
+        std::cout << ", rank=" << first_trial_result.lret_final_rank;
+        if (first_trial_result.fdm_run) {
+            std::cout << ", speedup=" << std::setprecision(1) << first_trial_result.speedup_vs_fdm() << "x";
+        }
+        if (!first_trial_result.all_modes_results.empty()) {
+            std::cout << ", modes=" << first_trial_result.all_modes_results.size();
         }
         std::cout << "\n";
     }
@@ -522,19 +526,64 @@ SweepResults run_noise_sweep(
         config.do_truncation = true;
         config.batch_size = opts.batch_size ? opts.batch_size : auto_select_batch_size(opts.num_qubits);
         
-        auto point = run_single_benchmark(
-            L_init, sequence, opts.num_qubits, config,
-            opts.track_rank_evolution, opts.enable_fdm
-        );
-        point.noise_prob = noise;
+        // Cache FDM result for first trial (only run once per parameter point)
+        SweepPointResult first_trial_result;
+        MatrixXcd fdm_rho_storage;
+        bool have_fdm = false;
         
-        results.add_point(point);
+        // Run each trial and output individually (no averaging - let Excel handle it)
+        for (size_t trial = 0; trial < opts.sweep_trials; ++trial) {
+            auto point = run_single_benchmark(
+                L_init, sequence, opts.num_qubits, config,
+                opts.track_rank_evolution && trial == 0,
+                opts.enable_fdm && trial == 0
+            );
+            
+            point.trial_id = trial;
+            point.total_trials = opts.sweep_trials;
+            point.noise_prob = noise;
+            
+            // For trials after first, copy FDM results from first trial
+            if (trial == 0) {
+                first_trial_result = point;
+                if (point.fdm_run) {
+                    have_fdm = true;
+                    MatrixXcd rho_init = L_init * L_init.adjoint();
+                    auto fdm_result = run_fdm_simulation(sequence, opts.num_qubits, rho_init, false);
+                    if (fdm_result.was_run) {
+                        fdm_rho_storage = fdm_result.rho_final;
+                    }
+                }
+            } else if (have_fdm) {
+                point.fdm_run = true;
+                point.fdm_time_seconds = first_trial_result.fdm_time_seconds;
+                point.fdm_memory_bytes = first_trial_result.fdm_memory_bytes;
+                point.fidelity_vs_fdm = first_trial_result.fidelity_vs_fdm;
+                point.trace_distance_vs_fdm = first_trial_result.trace_distance_vs_fdm;
+            }
+            
+            // Run all LRET modes only on first trial
+            if (trial == 0 && opts.sweep_config.run_all_modes) {
+                size_t batch = opts.batch_size ? opts.batch_size : auto_select_batch_size(opts.num_qubits);
+                const MatrixXcd* fdm_rho = have_fdm ? &fdm_rho_storage : nullptr;
+                point.all_modes_results = run_all_modes_benchmark(
+                    L_init, sequence, opts.num_qubits, config, batch, opts.enable_fdm, fdm_rho
+                );
+            }
+            
+            results.add_point(point);
+        }
         
-        std::cout << std::fixed << std::setprecision(4) << point.lret_time_seconds << "s, "
-                  << "rank=" << point.lret_final_rank;
-        if (point.fdm_run) {
-            std::cout << ", FDM=" << point.fdm_time_seconds << "s"
-                      << ", speedup=" << std::setprecision(1) << point.speedup_vs_fdm() << "x";
+        // Console output
+        std::cout << std::fixed << std::setprecision(4) << first_trial_result.lret_time_seconds << "s";
+        if (opts.sweep_trials > 1) std::cout << " (" << opts.sweep_trials << " trials)";
+        std::cout << ", rank=" << first_trial_result.lret_final_rank;
+        if (first_trial_result.fdm_run) {
+            std::cout << ", FDM=" << first_trial_result.fdm_time_seconds << "s"
+                      << ", speedup=" << std::setprecision(1) << first_trial_result.speedup_vs_fdm() << "x";
+        }
+        if (!first_trial_result.all_modes_results.empty()) {
+            std::cout << ", modes=" << first_trial_result.all_modes_results.size();
         }
         std::cout << "\n";
     }
@@ -587,19 +636,61 @@ SweepResults run_rank_sweep(
             L_init = create_zero_state(opts.num_qubits);
         }
         
-        auto point = run_single_benchmark(
-            L_init, sequence, opts.num_qubits, config,
-            opts.track_rank_evolution, opts.enable_fdm
-        );
-        point.initial_rank = actual_rank;
+        // Cache FDM result for first trial
+        SweepPointResult first_trial_result;
+        MatrixXcd fdm_rho_storage;
+        bool have_fdm = false;
         
-        results.add_point(point);
+        // Run each trial and output individually
+        for (size_t trial = 0; trial < opts.sweep_trials; ++trial) {
+            auto point = run_single_benchmark(
+                L_init, sequence, opts.num_qubits, config,
+                opts.track_rank_evolution && trial == 0,
+                opts.enable_fdm && trial == 0
+            );
+            
+            point.trial_id = trial;
+            point.total_trials = opts.sweep_trials;
+            point.initial_rank = actual_rank;
+            
+            if (trial == 0) {
+                first_trial_result = point;
+                if (point.fdm_run) {
+                    have_fdm = true;
+                    MatrixXcd rho_init = L_init * L_init.adjoint();
+                    auto fdm_result = run_fdm_simulation(sequence, opts.num_qubits, rho_init, false);
+                    if (fdm_result.was_run) {
+                        fdm_rho_storage = fdm_result.rho_final;
+                    }
+                }
+            } else if (have_fdm) {
+                point.fdm_run = true;
+                point.fdm_time_seconds = first_trial_result.fdm_time_seconds;
+                point.fdm_memory_bytes = first_trial_result.fdm_memory_bytes;
+                point.fidelity_vs_fdm = first_trial_result.fidelity_vs_fdm;
+                point.trace_distance_vs_fdm = first_trial_result.trace_distance_vs_fdm;
+            }
+            
+            if (trial == 0 && opts.sweep_config.run_all_modes) {
+                size_t batch = opts.batch_size ? opts.batch_size : auto_select_batch_size(opts.num_qubits);
+                const MatrixXcd* fdm_rho = have_fdm ? &fdm_rho_storage : nullptr;
+                point.all_modes_results = run_all_modes_benchmark(
+                    L_init, sequence, opts.num_qubits, config, batch, opts.enable_fdm, fdm_rho
+                );
+            }
+            
+            results.add_point(point);
+        }
         
-        std::cout << std::fixed << std::setprecision(4) << point.lret_time_seconds << "s, "
-                  << "final_rank=" << point.lret_final_rank;
-        if (point.fdm_run) {
-            std::cout << ", FDM=" << point.fdm_time_seconds << "s"
-                      << ", speedup=" << std::setprecision(1) << point.speedup_vs_fdm() << "x";
+        std::cout << std::fixed << std::setprecision(4) << first_trial_result.lret_time_seconds << "s";
+        if (opts.sweep_trials > 1) std::cout << " (" << opts.sweep_trials << " trials)";
+        std::cout << ", final_rank=" << first_trial_result.lret_final_rank;
+        if (first_trial_result.fdm_run) {
+            std::cout << ", FDM=" << first_trial_result.fdm_time_seconds << "s"
+                      << ", speedup=" << std::setprecision(1) << first_trial_result.speedup_vs_fdm() << "x";
+        }
+        if (!first_trial_result.all_modes_results.empty()) {
+            std::cout << ", modes=" << first_trial_result.all_modes_results.size();
         }
         std::cout << "\n";
     }
@@ -649,18 +740,60 @@ SweepResults run_qubit_sweep(
         config.do_truncation = true;
         config.batch_size = opts.batch_size ? opts.batch_size : auto_select_batch_size(n);
         
-        auto point = run_single_benchmark(
-            L_init, sequence, n, config,
-            opts.track_rank_evolution, opts.enable_fdm
-        );
+        // Cache FDM result for first trial
+        SweepPointResult first_trial_result;
+        MatrixXcd fdm_rho_storage;
+        bool have_fdm = false;
         
-        results.add_point(point);
+        // Run each trial and output individually
+        for (size_t trial = 0; trial < opts.sweep_trials; ++trial) {
+            auto point = run_single_benchmark(
+                L_init, sequence, n, config,
+                opts.track_rank_evolution && trial == 0,
+                opts.enable_fdm && trial == 0
+            );
+            
+            point.trial_id = trial;
+            point.total_trials = opts.sweep_trials;
+            
+            if (trial == 0) {
+                first_trial_result = point;
+                if (point.fdm_run) {
+                    have_fdm = true;
+                    MatrixXcd rho_init = L_init * L_init.adjoint();
+                    auto fdm_result = run_fdm_simulation(sequence, n, rho_init, false);
+                    if (fdm_result.was_run) {
+                        fdm_rho_storage = fdm_result.rho_final;
+                    }
+                }
+            } else if (have_fdm) {
+                point.fdm_run = true;
+                point.fdm_time_seconds = first_trial_result.fdm_time_seconds;
+                point.fdm_memory_bytes = first_trial_result.fdm_memory_bytes;
+                point.fidelity_vs_fdm = first_trial_result.fidelity_vs_fdm;
+                point.trace_distance_vs_fdm = first_trial_result.trace_distance_vs_fdm;
+            }
+            
+            if (trial == 0 && opts.sweep_config.run_all_modes) {
+                size_t batch = opts.batch_size ? opts.batch_size : auto_select_batch_size(n);
+                const MatrixXcd* fdm_rho = have_fdm ? &fdm_rho_storage : nullptr;
+                point.all_modes_results = run_all_modes_benchmark(
+                    L_init, sequence, n, config, batch, opts.enable_fdm, fdm_rho
+                );
+            }
+            
+            results.add_point(point);
+        }
         
-        std::cout << std::fixed << std::setprecision(4) << point.lret_time_seconds << "s, "
-                  << "rank=" << point.lret_final_rank;
-        if (point.fdm_run) {
-            std::cout << ", FDM=" << point.fdm_time_seconds << "s"
-                      << ", speedup=" << std::setprecision(1) << point.speedup_vs_fdm() << "x";
+        std::cout << std::fixed << std::setprecision(4) << first_trial_result.lret_time_seconds << "s";
+        if (opts.sweep_trials > 1) std::cout << " (" << opts.sweep_trials << " trials)";
+        std::cout << ", rank=" << first_trial_result.lret_final_rank;
+        if (first_trial_result.fdm_run) {
+            std::cout << ", FDM=" << first_trial_result.fdm_time_seconds << "s"
+                      << ", speedup=" << std::setprecision(1) << first_trial_result.speedup_vs_fdm() << "x";
+        }
+        if (!first_trial_result.all_modes_results.empty()) {
+            std::cout << ", modes=" << first_trial_result.all_modes_results.size();
         }
         std::cout << "\n";
     }
@@ -710,19 +843,61 @@ SweepResults run_depth_sweep(
         config.do_truncation = true;
         config.batch_size = opts.batch_size ? opts.batch_size : auto_select_batch_size(opts.num_qubits);
         
-        auto point = run_single_benchmark(
-            L_init, sequence, opts.num_qubits, config,
-            opts.track_rank_evolution, opts.enable_fdm
-        );
-        point.depth = d;
+        // Cache FDM result for first trial
+        SweepPointResult first_trial_result;
+        MatrixXcd fdm_rho_storage;
+        bool have_fdm = false;
         
-        results.add_point(point);
+        // Run each trial and output individually
+        for (size_t trial = 0; trial < opts.sweep_trials; ++trial) {
+            auto point = run_single_benchmark(
+                L_init, sequence, opts.num_qubits, config,
+                opts.track_rank_evolution && trial == 0,
+                opts.enable_fdm && trial == 0
+            );
+            
+            point.trial_id = trial;
+            point.total_trials = opts.sweep_trials;
+            point.depth = d;
+            
+            if (trial == 0) {
+                first_trial_result = point;
+                if (point.fdm_run) {
+                    have_fdm = true;
+                    MatrixXcd rho_init = L_init * L_init.adjoint();
+                    auto fdm_result = run_fdm_simulation(sequence, opts.num_qubits, rho_init, false);
+                    if (fdm_result.was_run) {
+                        fdm_rho_storage = fdm_result.rho_final;
+                    }
+                }
+            } else if (have_fdm) {
+                point.fdm_run = true;
+                point.fdm_time_seconds = first_trial_result.fdm_time_seconds;
+                point.fdm_memory_bytes = first_trial_result.fdm_memory_bytes;
+                point.fidelity_vs_fdm = first_trial_result.fidelity_vs_fdm;
+                point.trace_distance_vs_fdm = first_trial_result.trace_distance_vs_fdm;
+            }
+            
+            if (trial == 0 && opts.sweep_config.run_all_modes) {
+                size_t batch = opts.batch_size ? opts.batch_size : auto_select_batch_size(opts.num_qubits);
+                const MatrixXcd* fdm_rho = have_fdm ? &fdm_rho_storage : nullptr;
+                point.all_modes_results = run_all_modes_benchmark(
+                    L_init, sequence, opts.num_qubits, config, batch, opts.enable_fdm, fdm_rho
+                );
+            }
+            
+            results.add_point(point);
+        }
         
-        std::cout << std::fixed << std::setprecision(4) << point.lret_time_seconds << "s, "
-                  << "rank=" << point.lret_final_rank;
-        if (point.fdm_run) {
-            std::cout << ", FDM=" << point.fdm_time_seconds << "s"
-                      << ", speedup=" << std::setprecision(1) << point.speedup_vs_fdm() << "x";
+        std::cout << std::fixed << std::setprecision(4) << first_trial_result.lret_time_seconds << "s";
+        if (opts.sweep_trials > 1) std::cout << " (" << opts.sweep_trials << " trials)";
+        std::cout << ", rank=" << first_trial_result.lret_final_rank;
+        if (first_trial_result.fdm_run) {
+            std::cout << ", FDM=" << first_trial_result.fdm_time_seconds << "s"
+                      << ", speedup=" << std::setprecision(1) << first_trial_result.speedup_vs_fdm() << "x";
+        }
+        if (!first_trial_result.all_modes_results.empty()) {
+            std::cout << ", modes=" << first_trial_result.all_modes_results.size();
         }
         std::cout << "\n";
     }

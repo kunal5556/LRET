@@ -283,6 +283,101 @@ MatrixXcd run_simulation_optimized(
     return L;
 }
 
+MatrixXcd run_simulation_with_timing(
+    const MatrixXcd& L_init,
+    const QuantumSequence& sequence,
+    size_t num_qubits,
+    const SimConfig& config,
+    double& gate_time_out,
+    double& noise_time_out,
+    double& truncation_time_out,
+    size_t& truncation_count_out
+) {
+    MatrixXcd L = L_init;
+    size_t step = 0;
+    
+    // Initialize timing accumulators
+    gate_time_out = 0.0;
+    noise_time_out = 0.0;
+    truncation_time_out = 0.0;
+    truncation_count_out = 0;
+    
+    size_t batch_size = config.batch_size;
+    bool do_truncation = config.do_truncation;
+    double truncation_threshold = config.truncation_threshold;
+    
+    // Collect gates for batched application
+    std::vector<GateOp> gate_batch;
+    
+    for (const auto& op : sequence.operations) {
+        step++;
+        
+        // Check for abort
+        if (should_abort()) break;
+        
+        if (std::holds_alternative<GateOp>(op)) {
+            const auto& gate = std::get<GateOp>(op);
+            gate_batch.push_back(gate);
+            
+            // Apply batch when full
+            if (gate_batch.size() >= batch_size) {
+                auto gate_start = std::chrono::steady_clock::now();
+                L = apply_gates_batched(L, gate_batch, num_qubits, batch_size);
+                gate_time_out += std::chrono::duration<double>(
+                    std::chrono::steady_clock::now() - gate_start).count();
+                gate_batch.clear();
+            }
+        } else {
+            // Apply any remaining gates before noise
+            if (!gate_batch.empty()) {
+                auto gate_start = std::chrono::steady_clock::now();
+                L = apply_gates_batched(L, gate_batch, num_qubits, batch_size);
+                gate_time_out += std::chrono::duration<double>(
+                    std::chrono::steady_clock::now() - gate_start).count();
+                gate_batch.clear();
+            }
+            
+            const auto& noise = std::get<NoiseOp>(op);
+            
+            auto kraus_start = std::chrono::steady_clock::now();
+            L = apply_noise_to_L(L, noise, num_qubits);
+            noise_time_out += std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - kraus_start).count();
+            
+            // Truncate after noise
+            if (do_truncation && L.cols() > 1) {
+                size_t old_rank = L.cols();
+                auto trunc_start = std::chrono::steady_clock::now();
+                L = truncate_L(L, truncation_threshold);
+                truncation_time_out += std::chrono::duration<double>(
+                    std::chrono::steady_clock::now() - trunc_start).count();
+                    
+                if (L.cols() < old_rank) {
+                    truncation_count_out++;
+                }
+            }
+        }
+    }
+    
+    // Apply remaining gates
+    if (!gate_batch.empty()) {
+        auto gate_start = std::chrono::steady_clock::now();
+        L = apply_gates_batched(L, gate_batch, num_qubits, batch_size);
+        gate_time_out += std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - gate_start).count();
+    }
+    
+    // Final truncation
+    if (do_truncation && L.cols() > 1) {
+        auto trunc_start = std::chrono::steady_clock::now();
+        L = truncate_L(L, truncation_threshold);
+        truncation_time_out += std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - trunc_start).count();
+    }
+    
+    return L;
+}
+
 SimResult run_simulation(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,

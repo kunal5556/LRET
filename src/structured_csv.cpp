@@ -770,7 +770,9 @@ void StructuredCSVWriter::write_sweep_results(const std::string& sweep_type,
 
 void StructuredCSVWriter::write_sweep_results_full(const std::string& sweep_type,
                                                     const std::vector<SweepPointResult>& points) {
-    begin_section("SWEEP_RESULTS");
+    // Use unique section name for each sweep type to avoid duplicate column names
+    std::string section_name = "SWEEP_RESULTS_" + sweep_type;
+    begin_section(section_name);
     
     // Determine column name based on sweep type
     std::string param_name;
@@ -782,16 +784,19 @@ void StructuredCSVWriter::write_sweep_results_full(const std::string& sweep_type
     else if (sweep_type == "CROSSOVER" || sweep_type == "crossover") param_name = "num_qubits";
     else param_name = "parameter";
     
-    // Comprehensive header row
+    // Comprehensive header row with trial identification
+    // Individual trials are output - Excel script computes averages
     write_csv_row({
-        param_name, "n", "d", "epsilon", "noise_prob",
-        "lret_time_s", "final_rank", "purity", "entropy", "linear_entropy", "negativity",
-        "lret_memory_bytes", "gate_time_s", "noise_time_s", "truncation_time_s", "truncation_count",
+        param_name, "trial_id", "total_trials",
+        "n", "d", "epsilon", "noise_prob",
+        "lret_time_s", "final_rank", "purity", "entropy", 
+        "linear_entropy", "negativity", "lret_memory_bytes", 
+        "gate_time_s", "noise_time_s", "truncation_time_s", "truncation_count",
         "fdm_run", "fdm_time_s", "fdm_memory_bytes", 
         "fidelity_vs_fdm", "trace_distance_vs_fdm", "speedup"
     });
     
-    // Data rows with all metrics
+    // Data rows with all metrics (one row per trial)
     for (const auto& p : points) {
         // Determine the sweep parameter value
         std::string param_val;
@@ -804,6 +809,8 @@ void StructuredCSVWriter::write_sweep_results_full(const std::string& sweep_type
         
         write_csv_row({
             param_val,
+            std::to_string(p.trial_id),
+            std::to_string(p.total_trials),
             std::to_string(p.num_qubits),
             std::to_string(p.depth),
             format_double(p.epsilon, 8),
@@ -952,6 +959,58 @@ void StructuredCSVWriter::write_crossover_summary(size_t crossover_qubit, bool f
         write_csv_row({"interpretation", "No crossover found in tested range"});
     }
     
+    end_section();
+}
+
+//==============================================================================
+// PROGRESS_LOGS Section - General Progress Messages
+//==============================================================================
+
+void StructuredCSVWriter::begin_progress_logs() {
+    begin_section("PROGRESS_LOGS");
+    write_csv_row({"timestamp", "elapsed_s", "type", "message"});
+}
+
+void StructuredCSVWriter::log_progress(const std::string& type, const std::string& message) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!file_.is_open()) return;
+    
+    // Write directly without locking again (already locked)
+    file_ << get_timestamp() << "," 
+          << format_double(elapsed_seconds(), 3) << ","
+          << escape_csv(type) << ","
+          << escape_csv(message) << "\n";
+    file_.flush();
+}
+
+void StructuredCSVWriter::log_sweep_start(const std::string& sweep_type, size_t num_points) {
+    log_progress("SWEEP_START", sweep_type + " sweep with " + std::to_string(num_points) + " points");
+}
+
+void StructuredCSVWriter::log_sweep_point(size_t point_idx, size_t total_points, 
+                                           const std::string& params, double time_seconds) {
+    std::string msg = "Point " + std::to_string(point_idx + 1) + "/" + std::to_string(total_points) 
+                    + " (" + params + ") completed in " + format_double(time_seconds, 4) + "s";
+    log_progress("SWEEP_POINT", msg);
+}
+
+void StructuredCSVWriter::log_sweep_complete(const std::string& sweep_type, double total_time_seconds) {
+    log_progress("SWEEP_COMPLETE", sweep_type + " sweep completed in " + 
+                 format_double(total_time_seconds, 2) + "s");
+}
+
+void StructuredCSVWriter::log_benchmark_start(const std::string& benchmark_name) {
+    log_progress("BENCHMARK_START", benchmark_name);
+}
+
+void StructuredCSVWriter::log_benchmark_complete(const std::string& benchmark_name, bool success, 
+                                                  double time_seconds) {
+    std::string status = success ? "SUCCESS" : "FAILED";
+    log_progress("BENCHMARK_COMPLETE", benchmark_name + " [" + status + "] in " + 
+                 format_double(time_seconds, 4) + "s");
+}
+
+void StructuredCSVWriter::end_progress_logs() {
     end_section();
 }
 

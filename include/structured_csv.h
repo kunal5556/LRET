@@ -199,6 +199,27 @@ public:
     void write_crossover_summary(size_t crossover_qubit, bool found);
     
     //==========================================================================
+    // PROGRESS_LOGS Section - General Progress Messages
+    //==========================================================================
+    // Begin progress logs section (call once at start of run)
+    void begin_progress_logs();
+    
+    // Log a general progress message (timestamp, type, message)
+    void log_progress(const std::string& type, const std::string& message);
+    
+    // Convenience methods for common progress types
+    void log_sweep_start(const std::string& sweep_type, size_t num_points);
+    void log_sweep_point(size_t point_idx, size_t total_points, const std::string& params, 
+                         double time_seconds);
+    void log_sweep_complete(const std::string& sweep_type, double total_time_seconds);
+    void log_benchmark_start(const std::string& benchmark_name);
+    void log_benchmark_complete(const std::string& benchmark_name, bool success, 
+                                 double time_seconds);
+    
+    // End progress logs section
+    void end_progress_logs();
+
+    //==========================================================================
     // Error/Warning/Interrupt Logging
     //==========================================================================
     void log_error(const std::string& context, const std::string& message);

@@ -57,6 +57,32 @@ MatrixXcd run_simulation_optimized(
 );
 
 /**
+ * @brief Run LRET simulation with timing instrumentation
+ * 
+ * Same as run_simulation_optimized but also returns timing breakdown.
+ * 
+ * @param L_init Initial low-rank factor
+ * @param sequence Quantum sequence
+ * @param num_qubits Number of qubits
+ * @param config Simulation configuration
+ * @param[out] gate_time Total time spent on gate application
+ * @param[out] noise_time Total time spent on noise/Kraus operations
+ * @param[out] truncation_time Total time spent on SVD truncation
+ * @param[out] truncation_count Number of truncation operations performed
+ * @return Final low-rank factor L
+ */
+MatrixXcd run_simulation_with_timing(
+    const MatrixXcd& L_init,
+    const QuantumSequence& sequence,
+    size_t num_qubits,
+    const SimConfig& config,
+    double& gate_time,
+    double& noise_time,
+    double& truncation_time,
+    size_t& truncation_count
+);
+
+/**
  * @brief Run LRET simulation with full configuration
  * @param L_init Initial low-rank factor
  * @param sequence Quantum sequence

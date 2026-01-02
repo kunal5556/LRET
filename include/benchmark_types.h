@@ -200,6 +200,10 @@ struct ModePointResult {
  * @brief Result from a single point in a parameter sweep
  */
 struct SweepPointResult {
+    // Trial identification (for multi-trial runs)
+    size_t trial_id = 0;       // 0-indexed trial number
+    size_t total_trials = 1;   // Total trials for this parameter point
+    
     // Parameter values at this point
     double epsilon = 1e-4;
     double noise_prob = 0.01;
@@ -234,10 +238,6 @@ struct SweepPointResult {
     // Comparison metrics (LRET vs FDM)
     double fidelity_vs_fdm = 0.0;
     double trace_distance_vs_fdm = 0.0;
-    
-    // Trial statistics (if num_trials > 1)
-    double lret_time_stddev = 0.0;
-    double fdm_time_stddev = 0.0;
     
     // Rank evolution (if tracking enabled)
     RankEvolution rank_evolution;
