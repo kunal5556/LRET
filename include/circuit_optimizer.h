@@ -49,6 +49,7 @@ namespace qlret {
 struct StratificationConfig {
     bool enable_stratification = true;   ///< Master switch
     bool combine_with_fusion = true;     ///< Apply fusion before stratification
+    bool use_greedy_assignment = true;   ///< Use greedy (true) or ASAP (false) scheduling
     size_t min_layer_size = 2;           ///< Minimum gates per layer to parallelize
     bool verbose = false;                 ///< Print stratification statistics
     
@@ -56,6 +57,7 @@ struct StratificationConfig {
     
     StratificationConfig& set_enabled(bool e) { enable_stratification = e; return *this; }
     StratificationConfig& set_combine_fusion(bool c) { combine_with_fusion = c; return *this; }
+    StratificationConfig& set_greedy(bool g) { use_greedy_assignment = g; return *this; }
     StratificationConfig& set_min_layer(size_t m) { min_layer_size = m; return *this; }
     StratificationConfig& set_verbose(bool v) { verbose = v; return *this; }
 };

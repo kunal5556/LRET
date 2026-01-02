@@ -729,10 +729,10 @@ ModeResult run_optimized(
         StratifiedCircuit stratified = stratifier.stratify(sequence);
         
         if (opt_config.stratification.verbose) {
-            stratified.stats.print();
+            stratified.print_stats();
         }
         
-        L_final = execute_stratified_circuit(L_init, stratified, num_qubits, config);
+        L_final = execute_stratified_circuit(L_init, stratified, config);
         
     } else if (use_fusion) {
         // Fusion only (no stratification)
