@@ -30,6 +30,7 @@
 #include "utils.h"
 #include "structured_csv.h"
 #include "resource_monitor.h"
+#include "mpi_parallel.h"
 #include <iostream>
 #include <thread>
 #include <unordered_map>
@@ -647,6 +648,25 @@ ModeResult run_with_mode(
             case ParallelMode::HYBRID:
                 L_final = modes::run_hybrid(L_init, sequence, num_qubits, batch_size, config);
                 break;
+            case ParallelMode::MPI_ROW: {
+                MPIConfig mpi_cfg;
+                mpi_cfg.distribution = MPIDistribution::ROW_WISE;
+                L_final = simulate_mpi(L_init, sequence, num_qubits, config, mpi_cfg);
+                break;
+            }
+            case ParallelMode::MPI_COLUMN: {
+                MPIConfig mpi_cfg;
+                mpi_cfg.distribution = MPIDistribution::COLUMN_WISE;
+                L_final = simulate_mpi(L_init, sequence, num_qubits, config, mpi_cfg);
+                break;
+            }
+            case ParallelMode::MPI_HYBRID: {
+                MPIConfig mpi_cfg;
+                mpi_cfg.distribution = MPIDistribution::ROW_WISE;
+                mpi_cfg.comm_strategy = MPICommStrategy::PAIRWISE;
+                L_final = simulate_mpi(L_init, sequence, num_qubits, config, mpi_cfg);
+                break;
+            }
             case ParallelMode::AUTO:
             default:
                 mode = auto_select_mode(num_qubits, sequence.depth, L_init.cols());

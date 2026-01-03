@@ -13,6 +13,7 @@
 #include "resource_monitor.h"
 #include "structured_csv.h"
 #include "benchmark_runner.h"
+#include "mpi_parallel.h"
 #include <iostream>
 #include <iomanip>
 #include <memory>
@@ -34,6 +35,10 @@ int run_all_benchmarks(const CLIOptions& opts, StructuredCSVWriter* csv_writer);
 int run_compound_benchmarks(const CLIOptions& opts, StructuredCSVWriter* csv_writer);
 
 int main(int argc, char* argv[]) {
+    // Initialize MPI early (before any output or CLI parsing)
+    // This is safe even when USE_MPI is not defined (stubs do nothing)
+    mpi_init(&argc, &argv);
+    
     auto program_start_time = std::chrono::steady_clock::now();
     
     try {
@@ -43,20 +48,33 @@ int main(int argc, char* argv[]) {
         // Parse command line
         CLIOptions opts = parse_arguments(argc, argv);
         
+        // Handle --mpi-info early (print MPI topology and exit)
+        if (opts.enable_mpi && is_mpi_root()) {
+            print_mpi_info();
+            if (get_mpi_size() > 1) {
+                std::cout << "[MPI] Running with " << get_mpi_size() << " processes\n";
+            }
+        }
+        
         if (opts.show_help) {
-            print_help();
+            if (is_mpi_root()) print_help();
+            mpi_finalize();
             return 0;
         }
         
         if (opts.show_version) {
-            print_version();
+            if (is_mpi_root()) print_version();
+            mpi_finalize();
             return 0;
         }
         
         // Validate options
         std::string error;
         if (!validate_options(opts, error)) {
-            std::cerr << "Error: " << error << std::endl;
+            if (is_mpi_root()) {
+                std::cerr << "Error: " << error << std::endl;
+            }
+            mpi_finalize();
             return 1;
         }
         
@@ -67,16 +85,22 @@ int main(int argc, char* argv[]) {
                 g_timeout.enabled = true;
                 g_timeout.duration = timeout_duration;
                 g_timeout.start();
-                std::cout << "Timeout set: " << timeout_duration.count() << " seconds\n";
+                if (is_mpi_root()) {
+                    std::cout << "Timeout set: " << timeout_duration.count() << " seconds\n";
+                }
             } else {
-                std::cerr << "Warning: Could not parse timeout '" << opts.timeout_str << "'\n";
+                if (is_mpi_root()) {
+                    std::cerr << "Warning: Could not parse timeout '" << opts.timeout_str << "'\n";
+                }
             }
         }
         
         // Check for swap usage (unless --allow-swap or --non-interactive)
-        if (!opts.allow_swap && !opts.non_interactive) {
+        // Only check on root process
+        if (!opts.allow_swap && !opts.non_interactive && is_mpi_root()) {
             if (!check_swap_and_prompt(opts.allow_swap, !opts.non_interactive)) {
                 std::cout << "Exiting due to swap memory concerns.\n";
+                mpi_finalize();
                 return 2;
             }
         }
@@ -455,18 +479,25 @@ int main(int argc, char* argv[]) {
         
         // Check if we were interrupted during computation
         if (is_interrupted()) {
-            std::cout << "\nSimulation was interrupted by user.\n";
+            if (is_mpi_root()) {
+                std::cout << "\nSimulation was interrupted by user.\n";
+            }
+            mpi_finalize();
             return 130;
         }
         
     } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        if (is_mpi_root()) {
+            std::cerr << "Error: " << e.what() << std::endl;
+        }
         if (g_structured_csv) {
             g_structured_csv->log_error(e.what());
         }
+        mpi_finalize();
         return 1;
     }
     
+    mpi_finalize();
     return 0;
 }
 
