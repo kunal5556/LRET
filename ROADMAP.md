@@ -1081,14 +1081,1243 @@ std::vector<MatrixXcd> run_batch(
 
 ---
 
+### 6.4 Quantum Error Correction (QEC) Codes (7 days)
+
+**Inspiration:** Qiskit Ignis, Stim (fast stabilizer simulator)
+
+**Concept:**
+- Simulate stabilizer codes (Surface Code, Steane Code, Shor Code)
+- Syndrome extraction and measurement
+- Decoder integration (minimum-weight perfect matching)
+- Logical qubit operations
+- Track logical error rates vs physical error rates
+
+**Theory Background:**
+```
+Surface Code (d×d lattice):
+- Physical qubits: 2d² - 1
+- Logical qubits: 1
+- Distance: d
+- Threshold: ~1% physical error rate
+
+Example d=3 surface code: 17 physical qubits → 1 logical qubit
+```
+
+**Implementation:**
+```cpp
+// include/qec_codes.h
+class SurfaceCode {
+public:
+    SurfaceCode(size_t distance);
+    
+    // Encode logical |0⟩ or |1⟩
+    QuantumSequence encode_logical_zero();
+    QuantumSequence encode_logical_one();
+    
+    // Syndrome extraction circuit
+    QuantumSequence syndrome_extraction_round();
+    
+    // Decode syndrome → error locations
+    std::vector<size_t> decode_syndrome(
+        const std::vector<int>& syndrome_history
+    );
+    
+    // Apply logical operations
+    QuantumSequence logical_X();
+    QuantumSequence logical_Z();
+    
+private:
+    size_t d;  // Code distance
+    std::vector<Stabilizer> x_stabilizers;
+    std::vector<Stabilizer> z_stabilizers;
+    std::unique_ptr<Decoder> decoder;  // PyMatching or MWPM
+};
+
+// Stabilizer representation
+struct Stabilizer {
+    std::vector<size_t> qubits;
+    PauliType type;  // X or Z
+    
+    // Measure stabilizer (returns ±1 eigenvalue)
+    int measure(const MatrixXcd& state, size_t n_qubits);
+};
+```
+
+**Decoder Integration:**
+```cpp
+// Use PyMatching (Python) or Union-Find (C++)
+class MinimumWeightDecoder {
+public:
+    // Build matching graph from syndrome
+    Graph build_matching_graph(const std::vector<int>& syndrome);
+    
+    // Find minimum-weight perfect matching
+    std::vector<Edge> decode(const Graph& graph);
+    
+    // Convert matching → Pauli correction
+    PauliString get_correction(const std::vector<Edge>& matching);
+};
+```
+
+**QEC Simulation Pipeline:**
+```cpp
+// 1. Encode logical state
+auto encode_circuit = surface_code.encode_logical_zero();
+MatrixXcd L = run_lret(encode_circuit, n_physical_qubits, config);
+
+// 2. Apply logical operations
+auto logical_op = surface_code.logical_X();
+L = run_lret(logical_op, n_physical_qubits, config);
+
+// 3. Syndrome extraction rounds
+for (size_t round = 0; round < num_rounds; ++round) {
+    auto syndrome_circuit = surface_code.syndrome_extraction_round();
+    L = run_lret(syndrome_circuit, n_physical_qubits, config);
+    
+    // Measure ancilla qubits
+    std::vector<int> syndrome = measure_ancillas(L);
+    syndrome_history.push_back(syndrome);
+}
+
+// 4. Decode and correct
+auto correction = decoder.decode_syndrome(syndrome_history);
+L = apply_correction(L, correction);
+
+// 5. Measure logical qubit
+int logical_result = measure_logical(L, surface_code);
+```
+
+**Python Interface:**
+```python
+from lret import SurfaceCode, LRETSimulator
+
+# Create distance-3 surface code
+code = SurfaceCode(distance=3)  # 17 physical qubits
+
+# Simulate with noise
+sim = LRETSimulator(
+    n_qubits=17,
+    noise_model="depolarizing",
+    p_error=0.001  # Physical error rate
+)
+
+# Run QEC protocol
+result = sim.run_qec_protocol(
+    code=code,
+    num_syndrome_rounds=10,
+    decoder="pymatching"
+)
+
+print(f"Logical error rate: {result.logical_error_rate}")
+print(f"Threshold: {result.is_below_threshold()}")
+```
+
+**Benchmark: Logical Error Rate vs Physical Error Rate**
+```
+Distance | Physical p | Logical p | Suppression Factor
+---------|------------|-----------|-------------------
+3        | 0.001      | 0.00015   | 6.7x
+5        | 0.001      | 0.000012  | 83x
+7        | 0.001      | 5e-7      | 2000x
+```
+
+**Deliverables:**
+- [ ] `SurfaceCode` class with syndrome extraction
+- [ ] Minimum-weight decoder integration (PyMatching or C++ MWPM)
+- [ ] Logical error rate benchmarking tool
+- [ ] Example: threshold simulation (logical error vs physical error)
+- [ ] Documentation: "Simulating Quantum Error Correction with LRET"
+- [ ] Python binding for QEC protocols
+
+**Use Cases:**
+- Fault-tolerant algorithm simulation
+- Threshold estimation for hardware designs
+- QEC protocol development
+- Logical qubit resource estimation
+
+**Model Recommendation:** **Claude Opus** (complex graph-based decoding, stabilizer logic)
+
+---
+
 ### Phase 6 Summary
 
-**Total Time:** 12 days (~2.5 weeks)
+**Total Time:** 19 days (~4 weeks)
 
 **Research Impact:**
-- **Tensor networks:** 100+ qubit simulations
-- **Open systems:** Non-unitary dynamics
+- **Tensor networks:** 100+ qubit simulations for shallow circuits
+- **Open systems:** Non-unitary Lindblad dynamics
 - **Batch execution:** 1000x parameter sweep speedup
+- **QEC codes:** Fault-tolerant simulation, threshold studies
+
+---
+
+## Phase 7: Ecosystem Integration (Weeks 13-15)
+
+**Goal:** Seamless interoperability with all major quantum frameworks
+**Inspiration:** AWS Braket (multi-backend support), Qiskit ecosystem
+**Priority:** HIGH (community adoption, citations)
+
+---
+
+### 7.1 Cirq Integration (4 days)
+
+**Inspiration:** Cirq's modular simulator interface
+
+**Concept:**
+- LRET as a Cirq `Simulator` backend
+- Native `cirq.Circuit` support
+- Gate translation: Cirq gates → LRET operations
+- Result format compatibility
+
+**Implementation:**
+```python
+# python/lret_cirq.py
+import cirq
+from lret import LRETSimulator
+
+class LRETCirqSimulator(cirq.Simulator):
+    """Cirq simulator backed by LRET C++ engine."""
+    
+    def __init__(self, epsilon=1e-4, noise_model=None):
+        super().__init__()
+        self.lret_sim = LRETSimulator(epsilon=epsilon)
+        if noise_model:
+            self.lret_sim.set_noise_model(noise_model)
+    
+    def _run(self, circuit, param_resolver, repetitions):
+        # Translate Cirq circuit → LRET sequence
+        lret_circuit = self._translate_circuit(circuit)
+        
+        # Run simulation
+        result = self.lret_sim.run(lret_circuit, repetitions)
+        
+        # Convert to Cirq result format
+        return self._to_cirq_result(result, circuit)
+    
+    def _translate_circuit(self, circuit):
+        """Convert cirq.Circuit to LRET QuantumSequence."""
+        sequence = []
+        for moment in circuit:
+            for op in moment:
+                lret_gate = self._translate_gate(op)
+                sequence.append(lret_gate)
+        return sequence
+    
+    def _translate_gate(self, op):
+        """Map Cirq gate → LRET gate."""
+        if isinstance(op.gate, cirq.XPowGate):
+            return ("RX", op.qubits, [op.gate.exponent * np.pi])
+        elif isinstance(op.gate, cirq.YPowGate):
+            return ("RY", op.qubits, [op.gate.exponent * np.pi])
+        # ... handle all Cirq gate types
+```
+
+**Usage Example:**
+```python
+import cirq
+from lret_cirq import LRETCirqSimulator
+
+# Create Cirq circuit
+qubits = cirq.LineQubit.range(4)
+circuit = cirq.Circuit(
+    cirq.H(qubits[0]),
+    cirq.CNOT(qubits[0], qubits[1]),
+    cirq.X(qubits[2])**0.5,  # √X gate
+    cirq.measure(*qubits, key='result')
+)
+
+# Simulate with LRET backend
+sim = LRETCirqSimulator(epsilon=1e-4)
+result = sim.run(circuit, repetitions=1000)
+
+# Use Cirq's analysis tools
+print(result.histogram(key='result'))
+```
+
+**Gate Translation Table:**
+```python
+CIRQ_TO_LRET_GATES = {
+    cirq.XPowGate: lambda exp: ("RX", [exp * np.pi]),
+    cirq.YPowGate: lambda exp: ("RY", [exp * np.pi]),
+    cirq.ZPowGate: lambda exp: ("RZ", [exp * np.pi]),
+    cirq.HPowGate: lambda exp: ("H", []) if exp == 1 else ("RY", [exp * np.pi/2]),
+    cirq.CNotPowGate: lambda exp: ("CNOT", []),
+    cirq.CZPowGate: lambda exp: ("CZ", []),
+    cirq.SwapPowGate: lambda exp: ("SWAP", []),
+    # ... 30+ gate types
+}
+```
+
+**Deliverables:**
+- [ ] `LRETCirqSimulator` class inheriting `cirq.Simulator`
+- [ ] Full gate translation (30+ Cirq gate types)
+- [ ] Result format converter (Cirq `Result` ↔ LRET output)
+- [ ] Unit tests: all Cirq gate types
+- [ ] Example notebook: "Using LRET with Cirq"
+- [ ] Benchmarking: LRET vs `cirq.Simulator` speedup
+
+**Model Recommendation:** **Claude Haiku** (straightforward API mapping)
+
+---
+
+### 7.2 Qiskit Backend Integration (5 days)
+
+**Inspiration:** Qiskit Aer, IonQ/IBM backend interfaces
+
+**Concept:**
+- Register LRET as Qiskit `Backend`
+- Native `QuantumCircuit` execution
+- Qiskit Job/Result API compliance
+- Noise model import from Qiskit Aer
+
+**Implementation:**
+```python
+# python/lret_qiskit.py
+from qiskit.providers import BackendV2
+from qiskit.result import Result
+from lret import LRETSimulator
+
+class LRETBackend(BackendV2):
+    """Qiskit backend powered by LRET."""
+    
+    def __init__(self, epsilon=1e-4):
+        super().__init__(
+            name='lret_simulator',
+            description='LRET Low-Rank Quantum Simulator',
+            backend_version='1.0.0'
+        )
+        self._epsilon = epsilon
+    
+    @property
+    def target(self):
+        """Supported operations and connectivity."""
+        target = Target()
+        # Define supported gates
+        target.add_instruction(XGate(), {(0,): None})
+        target.add_instruction(CXGate(), {(0, 1): None})
+        # ... all LRET gates
+        return target
+    
+    @property
+    def max_circuits(self):
+        return 100  # Batch execution support
+    
+    def run(self, circuits, shots=1024, **kwargs):
+        """Execute circuits and return Qiskit Job."""
+        job = LRETJob(self, circuits, shots, **kwargs)
+        job.submit()
+        return job
+
+class LRETJob:
+    """Qiskit job wrapping LRET execution."""
+    
+    def __init__(self, backend, circuits, shots, **kwargs):
+        self.backend = backend
+        self.circuits = circuits
+        self.shots = shots
+        self._result = None
+    
+    def submit(self):
+        """Run simulation."""
+        lret_results = []
+        for circuit in self.circuits:
+            lret_circuit = translate_qiskit_to_lret(circuit)
+            result = self.backend._simulator.run(lret_circuit, self.shots)
+            lret_results.append(result)
+        
+        # Convert to Qiskit Result format
+        self._result = self._to_qiskit_result(lret_results)
+    
+    def result(self):
+        """Get Qiskit Result object."""
+        return self._result
+```
+
+**Usage Example:**
+```python
+from qiskit import QuantumCircuit
+from lret_qiskit import LRETBackend
+
+# Create circuit
+qc = QuantumCircuit(4, 4)
+qc.h(0)
+qc.cx(0, 1)
+qc.cx(1, 2)
+qc.measure(range(4), range(4))
+
+# Run on LRET backend
+backend = LRETBackend(epsilon=1e-4)
+job = backend.run(qc, shots=8192)
+result = job.result()
+
+# Use Qiskit's analysis
+counts = result.get_counts()
+print(counts)
+
+# Import noise model from real device
+from qiskit_aer.noise import NoiseModel
+from qiskit.providers.fake_provider import FakeVigo
+
+noise_model = NoiseModel.from_backend(FakeVigo())
+backend.set_options(noise_model=noise_model)
+```
+
+**Qiskit Provider Registration:**
+```python
+# Register LRET as official Qiskit provider
+from qiskit.providers import ProviderV1
+
+class LRETProvider(ProviderV1):
+    """Provider for LRET simulators."""
+    
+    def backends(self, name=None, **kwargs):
+        return [
+            LRETBackend(epsilon=1e-4, name='lret_fast'),
+            LRETBackend(epsilon=1e-6, name='lret_accurate'),
+            LRETGPUBackend(name='lret_gpu'),
+        ]
+
+# Usage
+from lret_qiskit import LRETProvider
+provider = LRETProvider()
+backend = provider.get_backend('lret_fast')
+```
+
+**Deliverables:**
+- [ ] `LRETBackend` class (Qiskit `BackendV2`)
+- [ ] `LRETProvider` for backend discovery
+- [ ] Full `QuantumCircuit` translation
+- [ ] Qiskit `Result` format compatibility
+- [ ] Noise model import from Qiskit Aer
+- [ ] Unit tests: Qiskit test suite compliance
+- [ ] Example: "Running Qiskit circuits on LRET"
+- [ ] Benchmark: LRET vs Qiskit Aer speedup
+
+**Model Recommendation:** **Claude Haiku** (standard backend interface)
+
+---
+
+### 7.3 QuTiP Compatibility (3 days)
+
+**Inspiration:** QuTiP's master equation solver
+
+**Concept:**
+- Convert QuTiP `Qobj` ↔ LRET matrices
+- Master equation solver using LRET backend
+- Observable expectation values
+- Time evolution interface
+
+**Implementation:**
+```python
+# python/lret_qutip.py
+import qutip as qt
+from lret import LRETSimulator
+import numpy as np
+
+def qobj_to_lret(qobj):
+    """Convert QuTiP Qobj → LRET matrix."""
+    return qobj.full()
+
+def lret_to_qobj(matrix, dims):
+    """Convert LRET matrix → QuTiP Qobj."""
+    return qt.Qobj(matrix, dims=dims)
+
+class LRETMESolver:
+    """Master equation solver using LRET backend."""
+    
+    def __init__(self, epsilon=1e-4):
+        self.lret_sim = LRETSimulator(epsilon=epsilon)
+    
+    def mesolve(self, H, rho0, tlist, c_ops, e_ops=None):
+        """
+        Solve master equation: dρ/dt = -i[H,ρ] + Σ L[c_i]ρ
+        
+        Args:
+            H: Hamiltonian (Qobj)
+            rho0: Initial state (Qobj)
+            tlist: Time points
+            c_ops: Collapse operators (list of Qobj)
+            e_ops: Expectation operators (list of Qobj)
+        
+        Returns:
+            QuTiP Result object
+        """
+        # Convert to LRET format
+        H_lret = qobj_to_lret(H)
+        rho_lret = qobj_to_lret(rho0)
+        c_ops_lret = [qobj_to_lret(c) for c in c_ops]
+        
+        # Time evolution using LRET
+        states = []
+        expect_vals = [[] for _ in e_ops] if e_ops else None
+        
+        for t in tlist:
+            # Apply unitary + Lindblad for timestep
+            dt = tlist[1] - tlist[0] if len(tlist) > 1 else 1.0
+            rho_lret = self._evolve_lindblad(
+                rho_lret, H_lret, c_ops_lret, dt
+            )
+            states.append(lret_to_qobj(rho_lret, rho0.dims))
+            
+            # Compute expectation values
+            if e_ops:
+                for i, e_op in enumerate(e_ops):
+                    val = np.trace(qobj_to_lret(e_op) @ rho_lret)
+                    expect_vals[i].append(val)
+        
+        # Return QuTiP Result
+        return qt.solver.Result({
+            'solver': 'lret_mesolve',
+            'times': tlist,
+            'states': states,
+            'expect': expect_vals if e_ops else None,
+        })
+    
+    def _evolve_lindblad(self, rho, H, c_ops, dt):
+        """Single timestep Lindblad evolution."""
+        # Unitary: U = exp(-iHt)
+        U = expm(-1j * H * dt)
+        rho = U @ rho @ U.conj().T
+        
+        # Dissipation: L[c]ρ = cρc† - 0.5{c†c, ρ}
+        for c in c_ops:
+            rho += dt * (
+                c @ rho @ c.conj().T 
+                - 0.5 * (c.conj().T @ c @ rho + rho @ c.conj().T @ c)
+            )
+        
+        return rho
+```
+
+**Usage Example:**
+```python
+import qutip as qt
+from lret_qutip import LRETMESolver
+
+# Define system (cavity + atom)
+N = 10  # Cavity Fock space dimension
+a = qt.destroy(N)  # Annihilation operator
+H = a.dag() * a  # Hamiltonian
+
+# Initial state: coherent state
+psi0 = qt.coherent(N, 2.0)
+rho0 = psi0 * psi0.dag()
+
+# Dissipation
+kappa = 0.1
+c_ops = [np.sqrt(kappa) * a]
+
+# Time evolution
+tlist = np.linspace(0, 10, 100)
+solver = LRETMESolver(epsilon=1e-4)
+result = solver.mesolve(H, rho0, tlist, c_ops, e_ops=[a.dag() * a])
+
+# Plot with QuTiP
+import matplotlib.pyplot as plt
+plt.plot(tlist, result.expect[0])
+plt.xlabel('Time')
+plt.ylabel('Photon number')
+plt.show()
+```
+
+**Deliverables:**
+- [ ] `LRETMESolver` class for master equations
+- [ ] `Qobj` ↔ LRET matrix conversion
+- [ ] Lindblad dynamics implementation
+- [ ] Observable measurement support
+- [ ] Example: cavity QED decay
+- [ ] Documentation: "QuTiP + LRET for Open Quantum Systems"
+
+**Model Recommendation:** **Claude Haiku** (straightforward data conversion)
+
+---
+
+### 7.4 AWS Braket Integration (3 days)
+
+**Inspiration:** AWS Braket's local simulator
+
+**Concept:**
+- LRET as Braket `LocalSimulator`
+- Compatible with Braket SDK
+- OpenQASM 3.0 circuit support
+- Seamless cloud/local switching
+
+**Implementation:**
+```python
+# python/lret_braket.py
+from braket.devices import LocalSimulator
+from lret import LRETSimulator
+
+class LRETBraketSimulator(LocalSimulator):
+    """AWS Braket simulator using LRET backend."""
+    
+    def __init__(self, epsilon=1e-4):
+        super().__init__()
+        self.lret_sim = LRETSimulator(epsilon=epsilon)
+    
+    def run(self, program, shots=1000, **kwargs):
+        """Run Braket program on LRET."""
+        # Parse OpenQASM
+        circuit = self._parse_openqasm(program)
+        
+        # Convert to LRET
+        lret_circuit = self._braket_to_lret(circuit)
+        
+        # Execute
+        result = self.lret_sim.run(lret_circuit, shots)
+        
+        # Return Braket result
+        return self._to_braket_result(result)
+```
+
+**Usage Example:**
+```python
+from braket.circuits import Circuit
+from lret_braket import LRETBraketSimulator
+
+# Create Braket circuit
+circuit = Circuit().h(0).cnot(0, 1).measure([0, 1])
+
+# Run locally with LRET
+device = LRETBraketSimulator(epsilon=1e-4)
+task = device.run(circuit, shots=1000)
+result = task.result()
+
+print(result.measurement_counts)
+```
+
+**Deliverables:**
+- [ ] `LRETBraketSimulator` class
+- [ ] OpenQASM 3.0 parser integration
+- [ ] Braket result format conversion
+- [ ] Example: hybrid Braket workflow
+- [ ] Documentation: "Using LRET with AWS Braket"
+
+**Model Recommendation:** **Claude Haiku** (API wrapper)
+
+---
+
+### Phase 7 Summary
+
+**Total Time:** 15 days (~3 weeks)
+
+**Ecosystem Coverage:**
+- **Cirq:** Google's framework
+- **Qiskit:** IBM's framework (most popular)
+- **QuTiP:** Academic standard for open systems
+- **AWS Braket:** Cloud deployment
+
+**Impact:**
+- Users can switch backends seamlessly
+- LRET becomes "drop-in replacement" for existing code
+- Citations from all framework communities
+
+---
+
+## Phase 8: Performance Optimization & Scaling (Weeks 16-18)
+
+**Goal:** Extreme performance and resource efficiency
+**Priority:** HIGH (competitive advantage)
+
+---
+
+### 8.1 Distributed Memory Optimization (5 days)
+
+**Inspiration:** Horovod (distributed deep learning), NCCL
+
+**Concept:**
+- Multi-GPU clusters with NCCL
+- Overlap communication and computation
+- Gradient accumulation for variational circuits
+- Pipeline parallelism
+
+**Implementation:**
+```cpp
+// include/distributed_gpu.h
+#ifdef USE_NCCL
+#include <nccl.h>
+
+class DistributedGPUSimulator {
+public:
+    DistributedGPUSimulator(int world_size, int rank);
+    
+    // Distribute state across GPUs
+    void distribute_state(const MatrixXcd& L_full);
+    
+    // All-reduce for expectation values
+    double all_reduce_expectation(double local_exp);
+    
+    // All-gather for final state
+    MatrixXcd all_gather_state();
+    
+    // Pipeline parallelism for deep circuits
+    void run_pipelined(const QuantumSequence& circuit);
+    
+private:
+    ncclComm_t nccl_comm;
+    cudaStream_t compute_stream;
+    cudaStream_t comm_stream;  // Overlap comm/compute
+};
+```
+
+**Communication Pattern:**
+```cpp
+// Overlap communication and computation
+void run_with_overlap(const QuantumSequence& circuit) {
+    for (size_t i = 0; i < circuit.size(); ++i) {
+        // Apply gate on current GPU slice
+        apply_gate_async(circuit[i], compute_stream);
+        
+        // If next gate needs remote data, prefetch
+        if (needs_remote_data(circuit[i+1])) {
+            ncclAllGather(..., comm_stream);
+        }
+        
+        // Synchronize streams before accessing data
+        cudaStreamSynchronize(compute_stream);
+    }
+}
+```
+
+**Gradient Accumulation for VQE:**
+```cpp
+// Accumulate gradients across GPUs
+std::vector<double> compute_distributed_gradient(
+    const ParameterizedCircuit& ansatz,
+    const Observable& hamiltonian
+) {
+    // Each GPU computes gradient for subset of parameters
+    auto local_grad = compute_local_gradient(ansatz, hamiltonian);
+    
+    // All-reduce to sum gradients
+    std::vector<double> global_grad(local_grad.size());
+    ncclAllReduce(
+        local_grad.data(),
+        global_grad.data(),
+        local_grad.size(),
+        ncclFloat64,
+        ncclSum,
+        nccl_comm,
+        0
+    );
+    
+    return global_grad;
+}
+```
+
+**Deliverables:**
+- [ ] NCCL integration for multi-GPU communication
+- [ ] Overlapped communication/computation
+- [ ] Pipeline parallelism for deep circuits
+- [ ] Gradient accumulation for distributed VQE
+- [ ] Benchmark: 4-16 GPU scaling efficiency
+- [ ] Documentation: "Distributed Multi-GPU Simulation"
+
+**Model Recommendation:** **Claude Opus** (complex distributed computing patterns)
+
+---
+
+### 8.2 Memory Hierarchy Optimization (4 days)
+
+**Inspiration:** CUDA memory optimization guides
+
+**Concept:**
+- Optimize GPU memory access patterns
+- Shared memory for frequently accessed data
+- Texture memory for read-only data
+- Unified memory for CPU-GPU transfers
+
+**Implementation:**
+```cpp
+// Kernel with shared memory optimization
+__global__ void apply_gate_optimized(
+    cuDoubleComplex* L,
+    const cuDoubleComplex* gate_matrix,
+    size_t qubit,
+    size_t dim,
+    size_t rank
+) {
+    // Use shared memory for gate matrix (4 complex values)
+    __shared__ cuDoubleComplex gate_shared[4];
+    
+    if (threadIdx.x < 4) {
+        gate_shared[threadIdx.x] = gate_matrix[threadIdx.x];
+    }
+    __syncthreads();
+    
+    // Each thread processes one row
+    size_t row = blockIdx.x * blockDim.x + threadIdx.x;
+    if (row >= dim) return;
+    
+    // Apply gate using shared memory (10x faster access)
+    // ... computation using gate_shared ...
+}
+```
+
+**Memory Access Patterns:**
+```cpp
+// Coalesced memory access (good)
+for (size_t col = 0; col < rank; ++col) {
+    size_t idx = col * dim + row;  // Column-major (Eigen default)
+    L_gpu[idx] = ...;
+}
+
+// Strided access (bad) - avoid this
+for (size_t row = 0; row < dim; ++row) {
+    size_t idx = row * rank + col;  // Row-major
+    L_gpu[idx] = ...;
+}
+```
+
+**Unified Memory for Large States:**
+```cpp
+// Automatic CPU-GPU migration
+cudaMallocManaged(&L_unified, size * sizeof(cuDoubleComplex));
+
+// Access from CPU
+for (size_t i = 0; i < size; ++i) {
+    L_unified[i] = initial_values[i];
+}
+
+// Use on GPU (automatic migration)
+apply_gate<<<...>>>(L_unified, ...);
+
+// Access result on CPU (automatic migration back)
+double result = compute_expectation(L_unified);
+```
+
+**Deliverables:**
+- [ ] Shared memory optimization for gate kernels
+- [ ] Coalesced memory access patterns
+- [ ] Unified memory for large states (> GPU memory)
+- [ ] Memory profiling tools
+- [ ] Benchmark: memory bandwidth utilization (> 80%)
+- [ ] Documentation: "CUDA Memory Optimization for LRET"
+
+**Model Recommendation:** **Claude Opus** (low-level CUDA optimization)
+
+---
+
+### 8.3 Automatic Differentiation (6 days)
+
+**Inspiration:** JAX, PyTorch autograd, TensorFlow
+
+**Concept:**
+- Reverse-mode autodiff for variational circuits
+- Custom backward passes for noisy channels
+- Gradient flow through measurements
+- Integration with ML frameworks (JAX, PyTorch)
+
+**Theory:**
+```
+Parameter shift rule for quantum gates:
+∂⟨ψ|U(θ)|ψ⟩/∂θ = [⟨ψ|U(θ+π/4)|ψ⟩ - ⟨ψ|U(θ-π/4)|ψ⟩] / 2
+
+Finite difference for noise:
+∂E/∂p ≈ [E(p+δ) - E(p-δ)] / (2δ)
+```
+
+**Implementation:**
+```cpp
+// include/autodiff.h
+class AutoDiffCircuit {
+public:
+    AutoDiffCircuit(const ParameterizedCircuit& circuit);
+    
+    // Forward pass: compute expectation
+    double forward(const std::vector<double>& params);
+    
+    // Backward pass: compute gradients
+    std::vector<double> backward();
+    
+    // Parameter shift rule for specific gate
+    double compute_gradient_shift_rule(
+        size_t param_idx,
+        const std::vector<double>& params
+    );
+    
+private:
+    ParameterizedCircuit circuit;
+    std::vector<Tape> forward_tape;  // Record operations
+};
+
+// Tape records operations for reverse pass
+struct Tape {
+    std::string op_type;
+    std::vector<size_t> qubits;
+    std::vector<double> params;
+    size_t param_idx;  // If parameterized
+};
+```
+
+**Parameter Shift Rule:**
+```cpp
+double compute_gradient_shift_rule(
+    size_t param_idx,
+    const std::vector<double>& params
+) {
+    // Shift parameter by +π/4
+    auto params_plus = params;
+    params_plus[param_idx] += M_PI / 4;
+    double exp_plus = forward(params_plus);
+    
+    // Shift parameter by -π/4
+    auto params_minus = params;
+    params_minus[param_idx] -= M_PI / 4;
+    double exp_minus = forward(params_minus);
+    
+    // Gradient via parameter shift
+    return (exp_plus - exp_minus) / 2.0;
+}
+```
+
+**JAX Integration:**
+```python
+import jax
+import jax.numpy as jnp
+from lret import LRETSimulator
+
+@jax.custom_vjp
+def lret_expectation(params, circuit):
+    """Compute expectation with custom gradient."""
+    return lret_sim.expectation(params, circuit)
+
+def lret_expectation_fwd(params, circuit):
+    """Forward pass."""
+    exp_val = lret_expectation(params, circuit)
+    return exp_val, (params, circuit)
+
+def lret_expectation_bwd(res, g):
+    """Backward pass using parameter shift."""
+    params, circuit = res
+    grad = lret_sim.compute_gradient(params, circuit)
+    return (g * jnp.array(grad), None)
+
+lret_expectation.defvjp(lret_expectation_fwd, lret_expectation_bwd)
+
+# Use with JAX optimizers
+params = jnp.array([0.1, 0.2, 0.3])
+grad_fn = jax.grad(lret_expectation)
+gradient = grad_fn(params, circuit)
+```
+
+**PyTorch Integration:**
+```python
+import torch
+from lret import LRETSimulator
+
+class LRETExpectation(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, params, circuit):
+        ctx.save_for_backward(params)
+        ctx.circuit = circuit
+        return torch.tensor(lret_sim.expectation(params.numpy(), circuit))
+    
+    @staticmethod
+    def backward(ctx, grad_output):
+        params, = ctx.saved_tensors
+        grad = lret_sim.compute_gradient(params.numpy(), ctx.circuit)
+        return grad_output * torch.tensor(grad), None
+
+# Use in PyTorch optimization
+params = torch.tensor([0.1, 0.2, 0.3], requires_grad=True)
+expectation = LRETExpectation.apply(params, circuit)
+expectation.backward()
+print(params.grad)
+```
+
+**Deliverables:**
+- [ ] `AutoDiffCircuit` class with tape-based backprop
+- [ ] Parameter shift rule implementation
+- [ ] Finite difference for noise gradients
+- [ ] JAX custom VJP integration
+- [ ] PyTorch custom autograd function
+- [ ] Example: VQE with gradient descent
+- [ ] Benchmark: gradient computation speedup vs finite diff
+- [ ] Documentation: "Automatic Differentiation in LRET"
+
+**Model Recommendation:** **Claude Opus** (subtle gradient flow, ML framework integration)
+
+---
+
+### 8.4 Circuit Compilation & Optimization (4 days)
+
+**Inspiration:** Qiskit Transpiler, Cirq Optimizers
+
+**Concept:**
+- Multi-pass optimization pipeline
+- Commutation analysis for parallelization
+- Gate synthesis (Solovay-Kitaev)
+- Hardware-aware compilation
+
+**Implementation:**
+```cpp
+// include/circuit_compiler.h
+class CircuitCompiler {
+public:
+    // Multi-pass optimization
+    QuantumSequence compile(
+        const QuantumSequence& circuit,
+        const CompilerOptions& options
+    );
+    
+    // Individual optimization passes
+    QuantumSequence eliminate_identity_gates(const QuantumSequence& circuit);
+    QuantumSequence merge_adjacent_rotations(const QuantumSequence& circuit);
+    QuantumSequence commute_through_cnots(const QuantumSequence& circuit);
+    QuantumSequence synthesize_single_qubit(const MatrixXcd& unitary);
+    
+    // Hardware-aware compilation
+    QuantumSequence map_to_hardware(
+        const QuantumSequence& circuit,
+        const HardwareTopology& topology
+    );
+    
+private:
+    std::vector<OptimizationPass> passes;
+};
+
+// Hardware topology (e.g., IBM heavy-hex)
+struct HardwareTopology {
+    std::vector<std::pair<size_t, size_t>> connectivity;
+    std::map<std::string, double> gate_errors;
+    std::map<std::pair<size_t, size_t>, double> two_qubit_errors;
+};
+```
+
+**Commutation Analysis:**
+```cpp
+// Identify commuting gates for parallel execution
+std::vector<GateLayer> analyze_commutation(const QuantumSequence& circuit) {
+    std::vector<GateLayer> layers;
+    GateLayer current_layer;
+    std::set<size_t> occupied_qubits;
+    
+    for (const auto& gate : circuit) {
+        // Check if gate commutes with current layer
+        bool conflicts = false;
+        for (size_t q : gate.qubits) {
+            if (occupied_qubits.count(q)) {
+                conflicts = true;
+                break;
+            }
+        }
+        
+        if (conflicts) {
+            // Start new layer
+            layers.push_back(current_layer);
+            current_layer.clear();
+            occupied_qubits.clear();
+        }
+        
+        // Add gate to current layer
+        current_layer.push_back(gate);
+        occupied_qubits.insert(gate.qubits.begin(), gate.qubits.end());
+    }
+    
+    return layers;
+}
+```
+
+**Solovay-Kitaev Synthesis:**
+```cpp
+// Decompose arbitrary single-qubit unitary
+QuantumSequence synthesize_single_qubit(
+    const MatrixXcd& U,
+    double epsilon
+) {
+    // Find rotation angles (ZYZ decomposition)
+    auto [alpha, beta, gamma] = zyz_decomposition(U);
+    
+    // Construct gate sequence
+    QuantumSequence seq;
+    seq.push_back({"RZ", {0}, {alpha}});
+    seq.push_back({"RY", {0}, {beta}});
+    seq.push_back({"RZ", {0}, {gamma}});
+    
+    return seq;
+}
+```
+
+**Hardware Mapping:**
+```cpp
+// Map logical qubits to physical qubits
+QuantumSequence map_to_hardware(
+    const QuantumSequence& circuit,
+    const HardwareTopology& topology
+) {
+    // Initial placement (heuristic)
+    std::map<size_t, size_t> logical_to_physical = initial_placement(circuit, topology);
+    
+    QuantumSequence mapped_circuit;
+    for (const auto& gate : circuit) {
+        if (gate.qubits.size() == 2) {
+            auto q0 = logical_to_physical[gate.qubits[0]];
+            auto q1 = logical_to_physical[gate.qubits[1]];
+            
+            // Check if qubits are connected
+            if (!topology.are_connected(q0, q1)) {
+                // Insert SWAP chain
+                auto swap_path = find_swap_path(q0, q1, topology);
+                for (const auto& swap : swap_path) {
+                    mapped_circuit.push_back({"SWAP", {swap.first, swap.second}});
+                }
+            }
+        }
+        
+        // Add gate with mapped qubits
+        mapped_circuit.push_back(map_gate(gate, logical_to_physical));
+    }
+    
+    return mapped_circuit;
+}
+```
+
+**Deliverables:**
+- [ ] Multi-pass compiler pipeline
+- [ ] Gate identity elimination (X-X → I, H-H → I)
+- [ ] Adjacent rotation merging (RZ(a)-RZ(b) → RZ(a+b))
+- [ ] Commutation analysis for parallelization
+- [ ] Solovay-Kitaev single-qubit synthesis
+- [ ] Hardware-aware qubit mapping
+- [ ] Benchmark: compiled circuit depth reduction (30-50%)
+- [ ] Documentation: "Circuit Compilation in LRET"
+
+**Model Recommendation:** **Claude Opus** (complex graph algorithms, optimization heuristics)
+
+---
+
+### Phase 8 Summary
+
+**Total Time:** 19 days (~4 weeks)
+
+**Performance Gains:**
+- **Distributed GPU:** 10-16x scaling across GPUs
+- **Memory optimization:** 2-3x speedup via better memory patterns
+- **Autodiff:** 10x faster gradients vs finite difference
+- **Circuit compilation:** 30-50% depth reduction
+
+**Competitive Edge:**
+- Fastest multi-GPU quantum simulator
+- Native ML framework integration
+- Hardware-aware compilation
+
+---
+
+## Updated Timeline Summary
+
+```
+Week 1-2:    Phase 1 - CPU Optimization (5-10x gain)
+Week 3-4:    Phase 2 - GPU Integration (50-100x gain)
+Week 5-6:    Phase 3 - MPI Distribution (10-15x per node)
+Week 7:      Phase 4.1-4.2 - Noise Model Import & Advanced Noise
+Week 8:      Phase 4.3-4.5 - Thermal, Leakage, Measurement
+Week 9-10:   Phase 5 - PennyLane Device Plugin
+Week 11-12:  Phase 6.1-6.3 - Tensor Networks, Open Systems, Batch
+Week 13-14:  Phase 6.4 - Quantum Error Correction
+Week 15-17:  Phase 7 - Ecosystem Integration (Cirq, Qiskit, QuTiP, Braket)
+Week 18-21:  Phase 8 - Performance Optimization & Scaling
+
+Total: 21 weeks (~5 months)
+```
+
+**Milestones:**
+- [ ] **Week 4:** GPU speedup demonstrated (50-100x)
+- [ ] **Week 6:** MPI cluster scaling proven
+- [ ] **Week 10:** Public PyPI release with PennyLane support
+- [ ] **Week 14:** QEC simulation capabilities complete
+- [ ] **Week 17:** Full ecosystem compatibility (all 4 frameworks)
+- [ ] **Week 21:** Production-ready with extreme optimization
+
+---
+
+## Updated Expected Performance Gains
+
+### Cumulative Speedup (vs Phase 0 Baseline)
+
+| Configuration | Speedup | Use Case |
+|---------------|---------|----------|
+| **Phase 0 (Current)** | 1x | Baseline |
+| **Phase 1 (CPU optimized)** | 5-10x | Gate fusion + SIMD |
+| **Phase 2 (GPU single)** | 50-100x | Single GPU node |
+| **Phase 2 (GPU multi)** | 200-400x | 4 GPUs |
+| **Phase 3 (MPI 8 nodes)** | 70-100x | CPU cluster |
+| **Phase 8.1 (Distributed 16 GPUs)** | 800-1600x | Multi-GPU cluster with NCCL |
+| **Phase 8.2 (Memory optimized)** | 2400-4800x | 16 GPUs + memory optimization |
+
+### Problem Size Scaling (with all optimizations)
+
+| Qubits | Phase 0 | Phase 1 | Phase 2 | Phase 8 (16 GPUs) |
+|--------|---------|---------|---------|-------------------|
+| 10 | 0.8s | 0.15s | 0.01s | 0.002s |
+| 12 | 3.2s | 0.5s | 0.04s | 0.008s |
+| 14 | 12s | 1.8s | 0.15s | 0.03s |
+| 16 | 48s | 7s | 0.5s | 0.1s |
+| 18 | 192s | 28s | 2s | 0.4s |
+| 20 | OOM | 110s | 8s | 1.5s |
+| 22 | OOM | OOM | 30s | 6s |
+
+---
+
+## Updated Risk Assessment
+
+### Additional Technical Risks (Phases 7-8)
+
+| Risk | Probability | Impact | Mitigation |
+|------|-------------|--------|------------|
+| **NCCL communication overhead** | Medium | Medium | Overlap comm/compute, pipeline parallelism |
+| **Framework API instability** | Low | Medium | Pin versions, maintain compatibility layer |
+| **Autodiff gradient errors** | Medium | High | Extensive testing vs analytical gradients |
+| **Hardware mapping suboptimal** | Medium | Low | Multiple placement heuristics |
+| **Memory optimization edge cases** | Low | Medium | Fallback to standard patterns |
+
+---
+
+## Updated Success Metrics
+
+### Phase-Specific Goals (Phases 6-8)
+
+**Phase 6.4 (QEC):**
+- ✅ Simulate d=5 surface code (49 qubits)
+- ✅ Measure logical error rate < physical rate
+- ✅ Threshold estimation within 0.1% of literature values
+
+**Phase 7 (Ecosystem):**
+- ✅ Pass all Qiskit backend test suite
+- ✅ Compatible with 95%+ of Cirq circuits
+- ✅ QuTiP master equation results match < 1% error
+- ✅ AWS Braket local simulator parity
+
+**Phase 8 (Optimization):**
+- ✅ 16-GPU scaling efficiency > 85%
+- ✅ Memory bandwidth utilization > 80%
+- ✅ Autodiff gradients match analytical < 1e-6
+- ✅ Circuit compilation reduces depth by 30-50%
+
+### Project-Level Metrics (Updated)
+
+**Performance:**
+- [ ] 1000x+ speedup vs initial version (16 GPUs)
+- [ ] Simulates n=20 in < 2 seconds (16 GPUs)
+- [ ] Scales to 100+ GPU nodes
+
+**Adoption:**
+- [ ] 5000+ PyPI downloads in first 6 months
+- [ ] 10+ citations in research papers
+- [ ] 50+ GitHub stars
+- [ ] Listed on PennyLane official plugins page
+
+**Quality:**
+- [ ] 95%+ test coverage
+- [ ] Compatible with 4 major frameworks
+- [ ] < 1% fidelity error vs ground truth
+- [ ] Zero critical bugs in production
+
+**Documentation:**
+- [ ] Complete API documentation (1000+ pages)
+- [ ] 20+ example notebooks
+- [ ] Video tutorial series (10+ videos)
+- [ ] Published research paper
 
 ---
 
@@ -1337,29 +2566,39 @@ Total: 12 weeks (3 months)
 
 ## Conclusion
 
-This roadmap transforms LRET from a **research prototype** to a **production-grade platform**:
+This roadmap transforms LRET from a **research prototype** to a **world-class production platform**:
 
 - **Phases 1-2 (Weeks 1-4):** 100x speedup, immediate impact
-- **Phases 3-5 (Weeks 5-9):** Ecosystem integration, adoption
-- **Phase 6 (Weeks 10-12):** Advanced research capabilities
+- **Phases 3-5 (Weeks 5-10):** Ecosystem integration, adoption
+- **Phase 6 (Weeks 11-14):** Advanced research capabilities (Tensor Networks, QEC)
+- **Phase 7 (Weeks 15-17):** Universal framework compatibility
+- **Phase 8 (Weeks 18-21):** Extreme performance optimization
 
-By leveraging existing libraries (cuQuantum, PennyLane, QuTiP) and proven patterns (qsim, QuEST, Qiskit Aer), we achieve world-class performance **without reinventing the wheel**.
+By leveraging existing libraries (cuQuantum, PennyLane, QuTiP, NCCL) and proven patterns (qsim, QuEST, Qiskit Aer, Horovod), we achieve world-class performance **without reinventing the wheel**.
 
 **Key Success Factors:**
 1. Focus on **performance first** (Phases 1-2 are critical)
 2. Validate **everything** against FDM and other simulators
-3. Integrate with **community tools** (PennyLane, Qiskit)
-4. Publish **openly** for maximum impact
+3. Integrate with **community tools** (PennyLane, Qiskit, Cirq, QuTiP, Braket)
+4. Optimize **aggressively** (Phase 8 for extreme scaling)
+5. Publish **openly** for maximum impact
 
 **Expected Outcome:**
-A high-performance, well-integrated quantum simulation platform used by researchers worldwide, cited in papers, and competitive with commercial offerings.
+A high-performance, universally-compatible, extremely-optimized quantum simulation platform used by researchers and industry worldwide, cited in papers, and competitive with—or superior to—commercial offerings.
+
+**Strategic Vision:**
+- **Technical Leadership:** Fastest multi-GPU quantum simulator in academia/industry
+- **Ecosystem Integration:** Native support for all major quantum frameworks
+- **Research Impact:** Enable simulations previously impossible (QEC, large-scale VQE)
+- **Commercial Viability:** Production-ready for enterprise deployment
+- **Community Adoption:** 10,000+ users, 100+ citations, industry partnerships
 
 ---
 
-**Next Steps:** Begin Phase 1 implementation (Week 1)!
+**Next Steps:** Begin Phase 5 implementation (PennyLane Device Plugin)!
 
 ---
 
 **Last Updated:** January 3, 2026  
-**Version:** 1.0  
-**Status:** Ready for Implementation
+**Version:** 2.0  
+**Status:** Phase 1-4 Complete, Phase 5+ Ready for Implementation

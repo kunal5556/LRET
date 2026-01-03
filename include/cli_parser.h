@@ -105,6 +105,11 @@ struct CLIOptions {
     bool enable_time_dependent_noise = false; // --enable-time-dependent
     bool enable_memory_effects = false;      // --enable-memory-effects
     size_t max_memory_depth = 2;             // --max-memory-depth
+
+    // Leakage and measurement (Phase 4.4/4.5)
+    bool enable_leakage = false;             // --enable-leakage
+    bool enable_measurement_errors = false;  // --enable-measurement-errors
+    bool enable_conditional_measurement = false; // --enable-conditional-measurement
     
     // FDM options
     bool enable_fdm = false;
@@ -120,6 +125,11 @@ struct CLIOptions {
     bool show_timing = false;      // --show-timing (display timing breakdown)
     std::optional<std::string> output_file;
     bool generate_output = false;  // True if -o flag was given (with or without filename)
+
+    // JSON/PennyLane bridge (Phase 5)
+    std::string input_json_path;            // --input-json path/to/circuit.json
+    std::optional<std::string> output_json_path; // --output-json path/to/result.json (optional)
+    bool json_export_state = false;         // --export-json-state
     
     //==========================================================================
     // Parameter Sweep Options (LRET Paper Benchmarking)

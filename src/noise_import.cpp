@@ -212,6 +212,12 @@ NoiseModel NoiseModelImporter::load_from_json_string(const std::string& json_str
     if (j.contains("memory_effects")) {
         parse_memory_effects(j, model);
     }
+    if (j.contains("leakage")) {
+        parse_leakage(j, model);
+    }
+    if (j.contains("measurement_confusion")) {
+        parse_measurement_confusion(j, model);
+    }
     
     // Build lookup tables for fast access
     build_lookup_tables(model);
@@ -409,6 +415,88 @@ void NoiseModelImporter::parse_memory_effects(const json& root, NoiseModel& mode
         }
 
         model.memory_effects.push_back(effect);
+    }
+}
+
+void NoiseModelImporter::parse_leakage(const json& root, NoiseModel& model) {
+    if (!root.contains("leakage")) {
+        return;
+    }
+
+    const auto& section = root.at("leakage");
+    model.use_leakage = section.value("enabled", true);
+    if (!model.use_leakage) {
+        return;
+    }
+
+    // Default parameters
+    if (section.contains("default")) {
+        const auto& d = section["default"];
+        model.default_leakage.p_leak = d.value("p_leak", model.default_leakage.p_leak);
+        model.default_leakage.p_relax = d.value("p_relax", model.default_leakage.p_relax);
+        model.default_leakage.p_phase = d.value("p_phase", model.default_leakage.p_phase);
+        model.default_leakage.use_qutrit = d.value("use_qutrit", model.default_leakage.use_qutrit);
+    }
+
+    // Per-qubit overrides
+    if (section.contains("qubits") && section["qubits"].is_array()) {
+        for (const auto& entry : section["qubits"]) {
+            if (!entry.contains("id")) continue;
+            size_t q = entry["id"].get<size_t>();
+            LeakageChannel ch = model.default_leakage;
+            ch.p_leak = entry.value("p_leak", ch.p_leak);
+            ch.p_relax = entry.value("p_relax", ch.p_relax);
+            ch.p_phase = entry.value("p_phase", ch.p_phase);
+            ch.use_qutrit = entry.value("use_qutrit", ch.use_qutrit);
+            model.leakage_channels[q] = ch;
+        }
+    } else {
+        // If no qubit array, allow top-level params as defaults
+        model.default_leakage.p_leak = section.value("p_leak", model.default_leakage.p_leak);
+        model.default_leakage.p_relax = section.value("p_relax", model.default_leakage.p_relax);
+        model.default_leakage.p_phase = section.value("p_phase", model.default_leakage.p_phase);
+        model.default_leakage.use_qutrit = section.value("use_qutrit", model.default_leakage.use_qutrit);
+    }
+}
+
+void NoiseModelImporter::parse_measurement_confusion(const json& root, NoiseModel& model) {
+    if (!root.contains("measurement_confusion")) {
+        return;
+    }
+
+    const auto& section = root.at("measurement_confusion");
+    model.use_measurement_confusion = section.value("enabled", true);
+    if (!model.use_measurement_confusion) {
+        return;
+    }
+
+    if (!section.contains("entries")) {
+        return;  // nothing to do
+    }
+
+    for (const auto& entry : section["entries"]) {
+        if (!entry.contains("qubit")) continue;
+        size_t q = entry["qubit"].get<size_t>();
+        bool conditional = entry.value("conditional", false);
+
+        if (!entry.contains("matrix") || !entry["matrix"].is_array()) continue;
+        const auto& mat_json = entry["matrix"];
+        size_t rows = mat_json.size();
+        if (rows == 0) continue;
+        size_t cols = mat_json[0].size();
+        MatrixXd confusion = MatrixXd::Zero(rows, cols);
+        for (size_t r = 0; r < rows; ++r) {
+            const auto& row = mat_json[r];
+            for (size_t c = 0; c < row.size(); ++c) {
+                confusion(static_cast<int>(r), static_cast<int>(c)) = row[c].get<double>();
+            }
+        }
+
+        MeasurementSpec spec;
+        spec.qubit = q;
+        spec.confusion = confusion;
+        spec.conditional = conditional;
+        model.measurement_specs[q] = spec;
     }
 }
 
@@ -776,6 +864,38 @@ void NoiseModelImporter::apply_noise_to_gate(
         }
     }
 
+    // Leakage channels (Phase 4.4) - inject after each gate on involved qubits
+    if (noise_model.use_leakage) {
+        for (size_t qubit : gate.qubits) {
+            LeakageChannel ch = noise_model.default_leakage;
+            auto lk_it = noise_model.leakage_channels.find(qubit);
+            if (lk_it != noise_model.leakage_channels.end()) {
+                ch = lk_it->second;
+            }
+            
+            // Apply leakage noise if p_leak > 0
+            if (ch.p_leak > 1e-12) {
+                double scaled_leak = std::clamp(ch.p_leak * total_scale, 0.0, 1.0);
+                NoiseOp leak_noise(NoiseType::LEAKAGE, qubit, scaled_leak);
+                noisy_sequence.operations.push_back(leak_noise);
+            }
+            
+            // Apply relaxation noise if p_relax > 0
+            if (ch.p_relax > 1e-12) {
+                double scaled_relax = std::clamp(ch.p_relax * total_scale, 0.0, 1.0);
+                NoiseOp relax_noise(NoiseType::LEAKAGE_RELAXATION, qubit, scaled_relax);
+                noisy_sequence.operations.push_back(relax_noise);
+            }
+            
+            // Apply phase noise on leaked population
+            if (ch.p_phase > 1e-12) {
+                double scaled_phase = std::clamp(ch.p_phase * total_scale, 0.0, 1.0);
+                NoiseOp phase_noise(NoiseType::PHASE_DAMPING, qubit, scaled_phase);
+                noisy_sequence.operations.push_back(phase_noise);
+            }
+        }
+    }
+
     // Update memory history after processing this gate
     append_memory_history(memory_state, gate_name, gate.qubits);
 }
@@ -860,6 +980,17 @@ void NoiseModelImporter::print_noise_model_summary(const NoiseModel& model) cons
     if (model.use_memory_effects) {
         std::cout << "Memory Effects: enabled (" << model.memory_effects.size() << " rules, depth="
                   << model.max_memory_depth << ")" << std::endl;
+    }
+    if (model.use_leakage) {
+        std::cout << "Leakage Channels: enabled (default p_leak=" << model.default_leakage.p_leak
+                  << ", p_relax=" << model.default_leakage.p_relax << ")" << std::endl;
+        if (!model.leakage_channels.empty()) {
+            std::cout << "  Per-qubit overrides: " << model.leakage_channels.size() << " qubits" << std::endl;
+        }
+    }
+    if (model.use_measurement_confusion) {
+        std::cout << "Measurement Confusion: enabled (" << model.measurement_specs.size() 
+                  << " qubit specs)" << std::endl;
     }
 }
 

@@ -206,7 +206,7 @@ MatrixXcd run_simulation_optimized(
                     std::cout << "Step " << step << ": Applied gate batch, rank = " << L.cols() << std::endl;
                 }
             }
-        } else {
+        } else if (std::holds_alternative<NoiseOp>(op)) {
             // Apply any remaining gates before noise
             if (!gate_batch.empty()) {
                 size_t gate_rank_before = L.cols();
@@ -258,6 +258,52 @@ MatrixXcd run_simulation_optimized(
                         std::cout << "  Truncated: " << old_rank << " -> " << L.cols() << std::endl;
                     }
                 }
+            }
+        } else if (std::holds_alternative<MeasurementOp>(op)) {
+            // Measurement operation (Phase 4.5)
+            // Flush gate batch first
+            if (!gate_batch.empty()) {
+                L = apply_gates_batched(L, gate_batch, num_qubits, batch_size);
+                gate_batch.clear();
+            }
+            
+            const auto& meas = std::get<MeasurementOp>(op);
+            if (meas.collapse_state) {
+                std::array<double, 2> probs;
+                auto [L0, L1] = apply_measurement_projectors(L, meas.qubit, num_qubits, probs);
+                
+                // For LRET: combine branches as weighted sum of L factors
+                // This is the ensemble average approach
+                size_t rank0 = L0.cols();
+                size_t rank1 = L1.cols();
+                MatrixXcd L_combined(L0.rows(), rank0 + rank1);
+                L_combined.leftCols(rank0) = std::sqrt(probs[0]) * L0;
+                L_combined.rightCols(rank1) = std::sqrt(probs[1]) * L1;
+                L = L_combined;
+                
+                // Truncate after measurement (rank doubles)
+                if (do_truncation && L.cols() > 1) {
+                    L = truncate_L(L, truncation_threshold);
+                }
+            }
+            
+            if (verbose) {
+                std::cout << "Step " << step << ": Measurement on qubit " << meas.qubit 
+                          << ", rank = " << L.cols() << std::endl;
+            }
+        } else if (std::holds_alternative<ConditionalOp>(op)) {
+            // Conditional operation (Phase 4.5)
+            // In LRET ensemble mode: apply gate unconditionally (conservative)
+            if (!gate_batch.empty()) {
+                L = apply_gates_batched(L, gate_batch, num_qubits, batch_size);
+                gate_batch.clear();
+            }
+            
+            const auto& cond = std::get<ConditionalOp>(op);
+            L = apply_gate_to_L(L, cond.gate, num_qubits);
+            
+            if (verbose) {
+                std::cout << "Step " << step << ": Conditional gate (applied unconditionally)" << std::endl;
             }
         }
         

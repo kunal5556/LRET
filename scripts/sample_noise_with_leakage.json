@@ -1,0 +1,113 @@
+{
+  "name": "Sample Noise Model with Leakage and Measurement Errors",
+  "version": "2.0",
+  "description": "Demonstrates Phase 4.4 leakage channels and Phase 4.5 measurement confusion matrices",
+  "errors": [
+    {
+      "type": "qerror",
+      "operations": ["x", "sx"],
+      "gate_qubits": [[0], [1]],
+      "noise_ops": [
+        [[0.99, {"name": "I"}], [0.01, {"name": "depolarizing", "p": 0.001}]]
+      ]
+    },
+    {
+      "type": "qerror",
+      "operations": ["cx"],
+      "gate_qubits": [[0, 1]],
+      "noise_ops": [
+        [[0.98, {"name": "I"}], [0.02, {"name": "depolarizing", "p": 0.005}]]
+      ]
+    }
+  ],
+  "leakage": {
+    "enabled": true,
+    "description": "Leakage to |2> state modeling for transmon qubits",
+    "default": {
+      "p_leak": 0.0005,
+      "p_relax": 0.0002,
+      "p_phase": 0.0001,
+      "use_qutrit": false
+    },
+    "qubits": [
+      {
+        "id": 0,
+        "p_leak": 0.001,
+        "p_relax": 0.0003,
+        "p_phase": 0.0001,
+        "use_qutrit": false,
+        "comment": "Higher leakage on qubit 0 due to weaker anharmonicity"
+      },
+      {
+        "id": 1,
+        "p_leak": 0.0008,
+        "p_relax": 0.0002,
+        "p_phase": 0.0001,
+        "use_qutrit": false
+      },
+      {
+        "id": 2,
+        "p_leak": 0.0006
+      },
+      {
+        "id": 3,
+        "p_leak": 0.0007,
+        "p_relax": 0.0004
+      }
+    ]
+  },
+  "measurement_confusion": {
+    "enabled": true,
+    "description": "Readout error modeling with confusion matrices",
+    "entries": [
+      {
+        "qubit": 0,
+        "conditional": false,
+        "matrix": [
+          [0.98, 0.03],
+          [0.02, 0.97]
+        ],
+        "comment": "P(measured | actual): rows=measured, cols=actual"
+      },
+      {
+        "qubit": 1,
+        "conditional": false,
+        "matrix": [
+          [0.97, 0.04],
+          [0.03, 0.96]
+        ]
+      },
+      {
+        "qubit": 2,
+        "conditional": false,
+        "matrix": [
+          [0.99, 0.02],
+          [0.01, 0.98]
+        ]
+      },
+      {
+        "qubit": 3,
+        "conditional": true,
+        "matrix": [
+          [0.95, 0.06],
+          [0.05, 0.94]
+        ],
+        "comment": "Qubit 3 is used for conditional operations"
+      }
+    ]
+  },
+  "t1_t2_times": {
+    "comment": "Relaxation and dephasing times in microseconds",
+    "0": {"T1": 80, "T2": 60},
+    "1": {"T1": 90, "T2": 70},
+    "2": {"T1": 100, "T2": 80},
+    "3": {"T1": 85, "T2": 65}
+  },
+  "gate_times": {
+    "comment": "Gate durations in nanoseconds",
+    "x": 40,
+    "sx": 20,
+    "rz": 0,
+    "cx": 300
+  }
+}

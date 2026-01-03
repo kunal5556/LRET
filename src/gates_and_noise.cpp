@@ -46,6 +46,8 @@ const std::map<std::string, NoiseType> noise_name_to_type = {
     {"phase_flip", NoiseType::PHASE_FLIP},
     {"bit_phase_flip", NoiseType::BIT_PHASE_FLIP},
     {"thermal", NoiseType::THERMAL},
+    {"leakage", NoiseType::LEAKAGE},
+    {"leakage_relaxation", NoiseType::LEAKAGE_RELAXATION},
     {"correlated_pauli", NoiseType::CORRELATED_PAULI}
 };
 
@@ -669,6 +671,38 @@ std::vector<MatrixXcd> get_noise_kraus_operators(NoiseType type, double p,
             break;
         }
         
+        case NoiseType::LEAKAGE: {
+            // Effective 2-level leakage model (Phase 4.4)
+            // Models leakage as reset-to-|0> with probability p_leak
+            // This is the effective approximation when use_qutrit=false
+            // K0 = sqrt(1-p)|0><0| + sqrt(1-p)|1><1| (no leak)
+            // K1 = sqrt(p)|0><0| + sqrt(p)|0><1|     (leak -> reset to |0>)
+            double p_leak = p;
+            double c0 = std::sqrt(1.0 - p_leak);
+            double c1 = std::sqrt(p_leak);
+            
+            MatrixXcd K0(2, 2), K1(2, 2);
+            K0 << c0, 0, 0, c0;          // Identity scaled by sqrt(1-p)
+            K1 << c1, c1, 0, 0;          // Project to |0> with sqrt(p)
+            
+            kraus = {K0, K1};
+            break;
+        }
+        
+        case NoiseType::LEAKAGE_RELAXATION: {
+            // Return-from-leakage channel (Phase 4.4)
+            // In effective 2-level mode, this is identity (already in computational space)
+            // In qutrit mode, this is handled separately
+            // Here we model it as slight amplitude damping toward |0>
+            double p_relax = p;
+            MatrixXcd K0(2, 2), K1(2, 2);
+            K0 << 1, 0, 0, std::sqrt(1.0 - p_relax);
+            K1 << 0, std::sqrt(p_relax), 0, 0;
+            
+            kraus = {K0, K1};
+            break;
+        }
+        
         default:
             throw std::invalid_argument("Unknown noise type");
     }
@@ -718,6 +752,131 @@ MatrixXcd apply_amplitude_damping(const MatrixXcd& L, size_t qubit, double gamma
 MatrixXcd apply_phase_damping(const MatrixXcd& L, size_t qubit, double lambda, size_t num_qubits) {
     NoiseOp noise(NoiseType::PHASE_DAMPING, qubit, lambda);
     return apply_noise_to_L(L, noise, num_qubits);
+}
+
+//==============================================================================
+// Leakage Channel Application (Phase 4.4)
+//==============================================================================
+
+MatrixXcd apply_leakage_channel(const MatrixXcd& L, size_t qubit, double p_leak, size_t num_qubits) {
+    if (p_leak <= 1e-12) return L;
+    NoiseOp noise(NoiseType::LEAKAGE, qubit, p_leak);
+    return apply_noise_to_L(L, noise, num_qubits);
+}
+
+MatrixXcd apply_leakage_relaxation(const MatrixXcd& L, size_t qubit, double p_relax, size_t num_qubits) {
+    if (p_relax <= 1e-12) return L;
+    NoiseOp noise(NoiseType::LEAKAGE_RELAXATION, qubit, p_relax);
+    return apply_noise_to_L(L, noise, num_qubits);
+}
+
+MatrixXcd apply_leakage_full(const MatrixXcd& L, size_t qubit, const LeakageChannel& channel, size_t num_qubits) {
+    MatrixXcd result = L;
+    
+    // Apply leakage (population leaving computational subspace)
+    if (channel.p_leak > 1e-12) {
+        result = apply_leakage_channel(result, qubit, channel.p_leak, num_qubits);
+    }
+    
+    // Apply relaxation (population returning to computational subspace)
+    if (channel.p_relax > 1e-12) {
+        result = apply_leakage_relaxation(result, qubit, channel.p_relax, num_qubits);
+    }
+    
+    // Apply dephasing on leaked population (modeled as extra phase damping)
+    if (channel.p_phase > 1e-12) {
+        result = apply_phase_damping(result, qubit, channel.p_phase, num_qubits);
+    }
+    
+    return result;
+}
+
+//==============================================================================
+// Measurement Operations (Phase 4.5)
+//==============================================================================
+
+std::pair<MatrixXcd, MatrixXcd> apply_measurement_projectors(
+    const MatrixXcd& L, 
+    size_t qubit, 
+    size_t num_qubits,
+    std::array<double, 2>& outcome_probs
+) {
+    size_t dim = L.rows();
+    size_t rank = L.cols();
+    size_t step = 1ULL << qubit;
+    
+    // Create projectors P0 = |0><0| and P1 = |1><1| on target qubit
+    // P0 * L: zero out rows where qubit is |1⟩
+    // P1 * L: zero out rows where qubit is |0⟩
+    
+    MatrixXcd L0 = MatrixXcd::Zero(dim, rank);
+    MatrixXcd L1 = MatrixXcd::Zero(dim, rank);
+    
+    for (size_t i = 0; i < dim; ++i) {
+        size_t qubit_val = (i >> qubit) & 1;
+        if (qubit_val == 0) {
+            L0.row(i) = L.row(i);
+        } else {
+            L1.row(i) = L.row(i);
+        }
+    }
+    
+    // Compute probabilities: p_m = Tr[P_m ρ] = ||L_m||_F^2
+    double p0 = L0.squaredNorm();
+    double p1 = L1.squaredNorm();
+    double total = p0 + p1;
+    
+    // Normalize probabilities
+    if (total > 1e-15) {
+        outcome_probs[0] = p0 / total;
+        outcome_probs[1] = p1 / total;
+    } else {
+        outcome_probs[0] = 0.5;
+        outcome_probs[1] = 0.5;
+    }
+    
+    // Normalize projected states: L' = L_m / sqrt(p_m)
+    if (p0 > 1e-15) {
+        L0 /= std::sqrt(p0);
+    }
+    if (p1 > 1e-15) {
+        L1 /= std::sqrt(p1);
+    }
+    
+    return {L0, L1};
+}
+
+std::array<double, 2> apply_confusion_matrix(
+    const std::array<double, 2>& ideal_probs,
+    const MatrixXd& confusion
+) {
+    std::array<double, 2> observed_probs = {0.0, 0.0};
+    
+    // Check confusion matrix dimensions (2x2 for standard, 3x3 for leakage-aware)
+    if (confusion.rows() < 2 || confusion.cols() < 2) {
+        // Identity if invalid
+        return ideal_probs;
+    }
+    
+    // p_observed[i] = sum_j confusion[i][j] * p_ideal[j]
+    for (int i = 0; i < 2; ++i) {
+        for (int j = 0; j < 2; ++j) {
+            observed_probs[i] += confusion(i, j) * ideal_probs[j];
+        }
+    }
+    
+    // Ensure normalization
+    double total = observed_probs[0] + observed_probs[1];
+    if (total > 1e-15) {
+        observed_probs[0] /= total;
+        observed_probs[1] /= total;
+    }
+    
+    return observed_probs;
+}
+
+int sample_measurement_outcome(const std::array<double, 2>& probs, double random_val) {
+    return (random_val < probs[0]) ? 0 : 1;
 }
 
 //==============================================================================

@@ -9,6 +9,7 @@
 #include "output_formatter.h"
 #include "gates_and_noise.h"
 #include "noise_import.h"
+#include "json_interface.h"
 #include "simulator.h"
 #include "utils.h"
 #include "resource_monitor.h"
@@ -17,6 +18,7 @@
 #include "mpi_parallel.h"
 #include <iostream>
 #include <iomanip>
+#include <fstream>
 #include <memory>
 #include <sys/stat.h>
 
@@ -77,6 +79,44 @@ int main(int argc, char* argv[]) {
             }
             mpi_finalize();
             return 1;
+        }
+
+        // JSON / PennyLane entry point (bypasses standard CLI flow)
+        if (!opts.input_json_path.empty()) {
+            try {
+                JsonCircuitSpec spec = parse_circuit_json_file(opts.input_json_path);
+                JsonRunResult res = run_json_circuit(spec);
+                bool include_state = opts.json_export_state || spec.export_state;
+                std::string json_out = export_result_json(res, include_state, 2);
+
+                if (opts.output_json_path && !opts.output_json_path->empty()) {
+                    std::ofstream out(*opts.output_json_path);
+                    if (!out) {
+                        if (is_mpi_root()) {
+                            std::cerr << "Failed to open output JSON file: " << *opts.output_json_path << "\n";
+                        }
+                        mpi_finalize();
+                        return 1;
+                    }
+                    out << json_out << std::endl;
+                    if (is_mpi_root()) {
+                        std::cout << "Wrote JSON results to " << *opts.output_json_path << "\n";
+                    }
+                } else {
+                    if (is_mpi_root()) {
+                        std::cout << json_out << std::endl;
+                    }
+                }
+            } catch (const std::exception& e) {
+                if (is_mpi_root()) {
+                    std::cerr << "JSON mode failed: " << e.what() << std::endl;
+                }
+                mpi_finalize();
+                return 1;
+            }
+
+            mpi_finalize();
+            return 0;
         }
         
         // Initialize timeout if specified
@@ -243,6 +283,19 @@ int main(int argc, char* argv[]) {
                 noise_model.use_time_dependent_noise = opts.enable_time_dependent_noise;
                 noise_model.use_memory_effects = opts.enable_memory_effects;
                 noise_model.max_memory_depth = opts.max_memory_depth;
+
+                if (!opts.enable_leakage) {
+                    noise_model.leakage_channels.clear();
+                    noise_model.use_leakage = false;
+                } else {
+                    noise_model.use_leakage = true;
+                }
+                if (!opts.enable_measurement_errors) {
+                    noise_model.measurement_specs.clear();
+                    noise_model.use_measurement_confusion = false;
+                } else {
+                    noise_model.use_measurement_confusion = true;
+                }
 
                 if (opts.validate_noise_model) {
                     importer.validate_noise_model(noise_model, true);

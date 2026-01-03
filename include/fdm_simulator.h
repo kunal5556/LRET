@@ -55,6 +55,15 @@ MatrixXcd apply_noise_to_rho(
     size_t num_qubits
 );
 
+// Apply projective measurement to density matrix (Phase 4.5)
+// Returns post-measurement state and outcome probabilities
+std::pair<MatrixXcd, MatrixXcd> apply_measurement_to_rho(
+    const MatrixXcd& rho,
+    size_t qubit,
+    size_t num_qubits,
+    std::array<double, 2>& outcome_probs
+);
+
 // Memory estimate in bytes
 size_t estimate_fdm_memory(size_t num_qubits);
 

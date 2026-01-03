@@ -438,7 +438,7 @@ MatrixXcd run_sequential(
         if (std::holds_alternative<GateOp>(op)) {
             const auto& gate = std::get<GateOp>(op);
             L = parallel_ops::apply_gate_sequential(L, gate, num_qubits);
-        } else {
+        } else if (std::holds_alternative<NoiseOp>(op)) {
             const auto& noise = std::get<NoiseOp>(op);
             L = apply_noise_to_L(L, noise, num_qubits);
             
@@ -446,6 +446,7 @@ MatrixXcd run_sequential(
                 L = truncate_L(L, config.truncation_threshold);
             }
         }
+        // MeasurementOp and ConditionalOp handled in main simulation path
     }
     
     return L;
@@ -469,7 +470,7 @@ MatrixXcd run_row_parallel(
             const auto& gate = std::get<GateOp>(op);
             // Use apply_gate_to_L which is already optimized
             L = apply_gate_to_L(L, gate, num_qubits);
-        } else {
+        } else if (std::holds_alternative<NoiseOp>(op)) {
             const auto& noise = std::get<NoiseOp>(op);
             L = apply_noise_to_L(L, noise, num_qubits);
             
@@ -477,6 +478,7 @@ MatrixXcd run_row_parallel(
                 L = truncate_L(L, config.truncation_threshold);
             }
         }
+        // MeasurementOp and ConditionalOp handled in main simulation path
     }
     
     return L;
@@ -494,7 +496,7 @@ MatrixXcd run_column_parallel(
         if (std::holds_alternative<GateOp>(op)) {
             const auto& gate = std::get<GateOp>(op);
             L = parallel_ops::apply_gate_column_parallel(L, gate, num_qubits);
-        } else {
+        } else if (std::holds_alternative<NoiseOp>(op)) {
             const auto& noise = std::get<NoiseOp>(op);
             L = apply_noise_to_L(L, noise, num_qubits);
             
@@ -502,6 +504,7 @@ MatrixXcd run_column_parallel(
                 L = truncate_L(L, config.truncation_threshold);
             }
         }
+        // MeasurementOp and ConditionalOp handled in main simulation path
     }
     
     return L;
@@ -601,7 +604,7 @@ MatrixXcd run_hybrid(
                     L = parallel_ops::apply_two_qubit_gate_parallel(L, U, gate.qubits[0], gate.qubits[1], num_qubits);
                 }
             }
-        } else {
+        } else if (std::holds_alternative<NoiseOp>(op)) {
             // Noise operation - increases rank
             const auto& noise = std::get<NoiseOp>(op);
             L = apply_noise_to_L(L, noise, num_qubits);
@@ -617,6 +620,7 @@ MatrixXcd run_hybrid(
                 }
             }
         }
+        // MeasurementOp and ConditionalOp handled in main simulation path
         
         // Progress reporting (avoid flooding output)
         if (config.verbose && (step - last_reported_step >= report_interval)) {

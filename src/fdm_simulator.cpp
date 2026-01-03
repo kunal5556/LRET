@@ -208,6 +208,17 @@ MatrixXcd apply_noise_to_rho(const MatrixXcd& rho, const NoiseOp& noise, size_t 
         return rho_new;
     }
 
+    // Leakage channels (Phase 4.4) - effective 2-level handling
+    if (noise.type == NoiseType::LEAKAGE || noise.type == NoiseType::LEAKAGE_RELAXATION) {
+        // Use standard Kraus operators from get_noise_kraus_operators
+        auto kraus_ops = get_noise_kraus_operators(noise.type, noise.probability, noise.params);
+        for (const auto& K_small : kraus_ops) {
+            MatrixXcd K = expand_single_gate(K_small, noise.qubits[0], num_qubits);
+            rho_new += K * rho * K.adjoint();
+        }
+        return rho_new;
+    }
+
     // Standard single-qubit channels
     auto kraus_ops = get_noise_kraus_operators(noise.type, noise.probability, noise.params);
     for (const auto& K_small : kraus_ops) {
@@ -263,7 +274,7 @@ FDMResult run_fdm_simulation(
             if (verbose && step % 50 == 0) {
                 std::cout << "FDM step " << step << std::endl;
             }
-        } else {
+        } else if (std::holds_alternative<NoiseOp>(op)) {
             const auto& noise = std::get<NoiseOp>(op);
             auto noise_start = std::chrono::steady_clock::now();
             rho = apply_noise_to_rho(rho, noise, num_qubits);
@@ -275,6 +286,28 @@ FDMResult run_fdm_simulation(
             if (g_structured_csv) {
                 g_structured_csv->log_fdm_noise(step, noise_time);
             }
+        } else if (std::holds_alternative<MeasurementOp>(op)) {
+            // Measurement operation (Phase 4.5) - for FDM we trace out or store
+            // For now, we do projective measurement sampling (non-deterministic)
+            const auto& meas = std::get<MeasurementOp>(op);
+            if (meas.collapse_state) {
+                std::array<double, 2> probs;
+                auto [rho0, rho1] = apply_measurement_to_rho(rho, meas.qubit, num_qubits, probs);
+                // For simulation we average both branches (ensemble interpretation)
+                rho = probs[0] * rho0 + probs[1] * rho1;
+            }
+            if (verbose) {
+                std::cout << "FDM step " << step << ": Measurement on qubit " << meas.qubit << std::endl;
+            }
+        } else if (std::holds_alternative<ConditionalOp>(op)) {
+            // Conditional operation - in FDM we apply gate weighted by classical bit probability
+            // This is an approximation; exact handling requires tracking classical register
+            const auto& cond = std::get<ConditionalOp>(op);
+            // For now, apply gate unconditionally (conservative approximation)
+            rho = apply_gate_to_rho(rho, cond.gate, num_qubits);
+            if (verbose) {
+                std::cout << "FDM step " << step << ": Conditional gate (applied unconditionally)" << std::endl;
+            }
         }
     }
     
@@ -284,6 +317,60 @@ FDMResult run_fdm_simulation(
     result.trace_value = rho.trace().real();
     
     return result;
+}
+
+//==============================================================================
+// Measurement for FDM (Phase 4.5)
+//==============================================================================
+
+std::pair<MatrixXcd, MatrixXcd> apply_measurement_to_rho(
+    const MatrixXcd& rho,
+    size_t qubit,
+    size_t num_qubits,
+    std::array<double, 2>& outcome_probs
+) {
+    size_t dim = rho.rows();
+    size_t step = 1ULL << qubit;
+    
+    // Build projectors P0 and P1 for target qubit
+    MatrixXcd P0 = MatrixXcd::Zero(dim, dim);
+    MatrixXcd P1 = MatrixXcd::Zero(dim, dim);
+    
+    for (size_t i = 0; i < dim; ++i) {
+        size_t qubit_val = (i >> qubit) & 1;
+        if (qubit_val == 0) {
+            P0(i, i) = 1.0;
+        } else {
+            P1(i, i) = 1.0;
+        }
+    }
+    
+    // Compute post-measurement states
+    MatrixXcd rho0 = P0 * rho * P0;
+    MatrixXcd rho1 = P1 * rho * P1;
+    
+    // Probabilities
+    double p0 = rho0.trace().real();
+    double p1 = rho1.trace().real();
+    double total = p0 + p1;
+    
+    if (total > 1e-15) {
+        outcome_probs[0] = p0 / total;
+        outcome_probs[1] = p1 / total;
+    } else {
+        outcome_probs[0] = 0.5;
+        outcome_probs[1] = 0.5;
+    }
+    
+    // Normalize post-measurement states
+    if (p0 > 1e-15) {
+        rho0 /= p0;
+    }
+    if (p1 > 1e-15) {
+        rho1 /= p1;
+    }
+    
+    return {rho0, rho1};
 }
 
 }  // namespace qlret

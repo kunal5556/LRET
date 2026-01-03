@@ -45,6 +45,26 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(json)
 
 #==============================================================================
+# Python Bindings (Phase 5)
+#==============================================================================
+option(USE_PYTHON "Enable Python bindings via pybind11" OFF)
+
+if(USE_PYTHON)
+    find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+    
+    FetchContent_Declare(
+        pybind11
+        GIT_REPOSITORY https://github.com/pybind/pybind11.git
+        GIT_TAG v2.11.1
+    )
+    FetchContent_MakeAvailable(pybind11)
+    
+    message(STATUS "Python bindings enabled")
+    message(STATUS "  Python: ${Python3_EXECUTABLE}")
+    message(STATUS "  Python Include: ${Python3_INCLUDE_DIRS}")
+endif()
+
+#==============================================================================
 # MPI Configuration (Phase 3)
 #==============================================================================
 option(USE_MPI "Enable MPI distributed parallelization" OFF)
@@ -123,6 +143,7 @@ set(LIB_SOURCES
     src/benchmark_runner.cpp
     src/mpi_parallel.cpp
     src/noise_import.cpp
+    src/json_interface.cpp
 )
 
 # Create static library
@@ -199,6 +220,22 @@ endif()
 add_executable(quantum_sim main.cpp)
 target_link_libraries(quantum_sim PRIVATE qlret_lib)
 
+#==============================================================================
+# Python Module (Phase 5 - pybind11)
+#==============================================================================
+if(USE_PYTHON)
+    pybind11_add_module(_qlret_native src/python_bindings.cpp)
+    target_link_libraries(_qlret_native PRIVATE qlret_lib)
+    target_compile_definitions(_qlret_native PRIVATE USE_PYTHON)
+    
+    # Install to python/qlret directory for development
+    set_target_properties(_qlret_native PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/python/qlret"
+    )
+    
+    message(STATUS "Python module will be built: _qlret_native")
+endif()
+
 # Batch demo executable (only if tests directory exists)
 if(EXISTS "${CMAKE_SOURCE_DIR}/tests/demo_batch.cpp")
     add_executable(demo_batch tests/demo_batch.cpp)
@@ -224,6 +261,18 @@ endif()
 if(EXISTS "${CMAKE_SOURCE_DIR}/test_noise_import.cpp")
     add_executable(test_noise_import test_noise_import.cpp)
     target_link_libraries(test_noise_import PRIVATE qlret_lib)
+endif()
+
+# Advanced noise test (Phase 4.3)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_advanced_noise.cpp")
+    add_executable(test_advanced_noise tests/test_advanced_noise.cpp)
+    target_link_libraries(test_advanced_noise PRIVATE qlret_lib)
+endif()
+
+# Leakage and measurement test (Phase 4.4/4.5)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_leakage_measurement.cpp")
+    add_executable(test_leakage_measurement tests/test_leakage_measurement.cpp)
+    target_link_libraries(test_leakage_measurement PRIVATE qlret_lib)
 endif()
 
 # Compiler optimizations for Release builds

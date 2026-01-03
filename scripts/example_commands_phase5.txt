@@ -1,0 +1,7 @@
+# Phase 5 JSON/PennyLane bridge quick sanity commands
+
+# Run Bell pair JSON sample and write results
+auto ./quantum_sim --input-json samples/json/bell_pair.json --export-json-state --output-json bell_result.json
+
+# Print results to stdout
+auto ./quantum_sim --input-json samples/json/bell_pair.json

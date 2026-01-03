@@ -175,6 +175,14 @@ struct NoiseModel {
     std::vector<MemoryEffect> memory_effects;                                               // non-Markovian rules
     bool use_memory_effects = false;
     size_t max_memory_depth = 2;
+
+    // Leakage and measurement (Phase 4.4/4.5)
+    bool use_leakage = false;                                                               // leakage channels enabled
+    LeakageChannel default_leakage;                                                         // fallback params
+    std::map<size_t, LeakageChannel> leakage_channels;                                      // per-qubit leakage params
+
+    bool use_measurement_confusion = false;                                                 // measurement error enabled
+    std::map<size_t, MeasurementSpec> measurement_specs;                                    // per-qubit confusion matrices
     
     bool is_empty() const { return errors.empty(); }
     size_t num_errors() const { return errors.size(); }
@@ -339,6 +347,8 @@ private:
     void parse_correlated_error(const nlohmann::json& error_json, NoiseModel& model);
     void parse_time_dependent_noise(const nlohmann::json& root, NoiseModel& model);
     void parse_memory_effects(const nlohmann::json& root, NoiseModel& model);
+    void parse_leakage(const nlohmann::json& root, NoiseModel& model);
+    void parse_measurement_confusion(const nlohmann::json& root, NoiseModel& model);
 };
 
 //==============================================================================

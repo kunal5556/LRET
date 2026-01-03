@@ -219,6 +219,14 @@ NOISE MODEL OPTIONS (Phase 4.1 - Real Device Simulation):
     --enable-time-dependent    Enable time-varying noise rates (Phase 4.3)
     --enable-memory-effects    Enable non-Markovian memory rules (Phase 4.3)
     --max-memory-depth N       History length for memory rules (default: 2)
+    --enable-leakage           Enable leakage channels (Phase 4.4)
+    --enable-measurement-errors Enable measurement confusion matrices (Phase 4.5)
+    --enable-conditional-measurement Allow conditional execution on measured outcomes (Phase 4.5)
+
+JSON / PENNYLANE OPTIONS (Phase 5):
+    --input-json PATH      Run circuit specified in JSON (bypasses most CLI options)
+    --output-json PATH     Write JSON results to PATH (default: stdout)
+    --export-json-state    Include low-rank state (L matrix) in JSON output
 
 MPI OPTIONS (Phase 3 - Distributed Computing):
     NOTE: MPI modes require a special MPI-enabled build (USE_MPI=ON).
@@ -440,6 +448,20 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
             opts.show_version = true;
             return opts;
         }
+
+        // JSON / PennyLane bridge
+        if ((arg == "--input-json") && i + 1 < argc) {
+            opts.input_json_path = argv[++i];
+            continue;
+        }
+        if (arg == "--output-json" && i + 1 < argc) {
+            opts.output_json_path = argv[++i];
+            continue;
+        }
+        if (arg == "--export-json-state") {
+            opts.json_export_state = true;
+            continue;
+        }
         
         // Qubits
         if ((arg == "-n" || arg == "--qubits") && i + 1 < argc) {
@@ -607,6 +629,18 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
         }
         if (arg == "--max-memory-depth" && i + 1 < argc) {
             opts.max_memory_depth = std::stoul(argv[++i]);
+            continue;
+        }
+        if (arg == "--enable-leakage") {
+            opts.enable_leakage = true;
+            continue;
+        }
+        if (arg == "--enable-measurement-errors") {
+            opts.enable_measurement_errors = true;
+            continue;
+        }
+        if (arg == "--enable-conditional-measurement") {
+            opts.enable_conditional_measurement = true;
             continue;
         }
         
@@ -851,6 +885,11 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
 }
 
 bool validate_options(const CLIOptions& opts, std::string& error_msg) {
+    // In JSON mode we defer validation to the JSON parser
+    if (!opts.input_json_path.empty()) {
+        return true;
+    }
+
     if (opts.num_qubits < 1) {
         error_msg = "Qubits must be at least 1";
         return false;

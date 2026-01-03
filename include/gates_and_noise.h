@@ -110,6 +110,87 @@ MatrixXcd apply_amplitude_damping(const MatrixXcd& L, size_t qubit, double gamma
 MatrixXcd apply_phase_damping(const MatrixXcd& L, size_t qubit, double lambda, size_t num_qubits);
 
 //==============================================================================
+// Leakage Channels (Phase 4.4)
+//==============================================================================
+
+/**
+ * @brief Apply leakage channel to low-rank factor (effective 2-level model)
+ * @param L Low-rank factor
+ * @param qubit Target qubit
+ * @param p_leak Probability of leaking out of computational subspace
+ * @param num_qubits Total number of qubits
+ * @return Updated L
+ */
+MatrixXcd apply_leakage_channel(const MatrixXcd& L, size_t qubit, double p_leak, size_t num_qubits);
+
+/**
+ * @brief Apply leakage relaxation (return-from-leakage) channel
+ * @param L Low-rank factor
+ * @param qubit Target qubit
+ * @param p_relax Probability of relaxing back to computational subspace
+ * @param num_qubits Total number of qubits
+ * @return Updated L
+ */
+MatrixXcd apply_leakage_relaxation(const MatrixXcd& L, size_t qubit, double p_relax, size_t num_qubits);
+
+/**
+ * @brief Apply full leakage model with both leak and relax in one step
+ * @param L Low-rank factor
+ * @param qubit Target qubit
+ * @param channel LeakageChannel parameters
+ * @param num_qubits Total number of qubits
+ * @return Updated L
+ */
+MatrixXcd apply_leakage_full(const MatrixXcd& L, size_t qubit, const LeakageChannel& channel, size_t num_qubits);
+
+//==============================================================================
+// Measurement Operations (Phase 4.5)
+//==============================================================================
+
+/**
+ * @brief Apply projective measurement to density matrix (via L factor)
+ * 
+ * Collapses state to computational basis outcome. Returns updated L and outcome.
+ * For LRET: ρ' = P_m ρ P_m / Tr[P_m ρ] where P_m is projector onto |m⟩
+ * 
+ * @param L Low-rank factor
+ * @param qubit Target qubit to measure
+ * @param num_qubits Total number of qubits
+ * @param outcome_probs Output: probabilities [p0, p1] for measurement outcomes
+ * @return Pair of (updated L for outcome 0, updated L for outcome 1)
+ */
+std::pair<MatrixXcd, MatrixXcd> apply_measurement_projectors(
+    const MatrixXcd& L, 
+    size_t qubit, 
+    size_t num_qubits,
+    std::array<double, 2>& outcome_probs
+);
+
+/**
+ * @brief Apply measurement confusion matrix to outcome probabilities
+ * 
+ * Transforms ideal outcome probabilities using confusion matrix:
+ * p_observed = confusion * p_ideal
+ * 
+ * @param ideal_probs Ideal measurement probabilities [p0, p1]
+ * @param confusion 2x2 confusion matrix (rows = observed, cols = ideal)
+ * @return Observed probabilities after applying confusion
+ */
+std::array<double, 2> apply_confusion_matrix(
+    const std::array<double, 2>& ideal_probs,
+    const MatrixXd& confusion
+);
+
+/**
+ * @brief Sample measurement outcome given probabilities
+ * 
+ * @param probs Outcome probabilities [p0, p1]
+ * @param random_val Random value in [0, 1) for sampling
+ * @return 0 or 1 based on probabilities
+ */
+int sample_measurement_outcome(const std::array<double, 2>& probs, double random_val);
+
+//==============================================================================
 // Batched Gate Application (for parallelism)
 //==============================================================================
 

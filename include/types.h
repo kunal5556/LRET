@@ -16,6 +16,7 @@ using MatrixXcd = Eigen::MatrixXcd;
 using VectorXcd = Eigen::VectorXcd;
 using MatrixXd = Eigen::MatrixXd;
 using VectorXd = Eigen::VectorXd;
+using Matrix3cd = Eigen::Matrix<Complex, 3, 3>;  // 3x3 complex (qutrit leakage support)
 
 // Fixed-size matrix types for gates
 using Matrix2cd = Eigen::Matrix2cd;  // 2x2 complex (single-qubit gates)
@@ -65,8 +66,40 @@ enum class NoiseType {
     PHASE_FLIP,
     BIT_PHASE_FLIP,
     THERMAL,
+    LEAKAGE,              // Single-qubit leakage to |2> (Phase 4.4)
+    LEAKAGE_RELAXATION,   // Return-from-leakage / repump channel
     CORRELATED_PAULI,
     CUSTOM
+};
+
+// Leakage channel parameters (Phase 4.4)
+struct LeakageChannel {
+    double p_leak = 0.0;          // Probability of leaving computational subspace
+    double p_relax = 0.0;         // Probability of relaxing back per step
+    double p_phase = 0.0;         // Dephasing while leaked
+    bool use_qutrit = true;       // True: embed as 3-level; False: effective two-level reset
+};
+
+// Measurement confusion specification (Phase 4.5)
+struct MeasurementSpec {
+    size_t qubit = 0;
+    MatrixXd confusion;           // 2x2 confusion matrix; optional larger for leakage-aware (3x3)
+    bool conditional = false;     // Whether subsequent ops may depend on this outcome
+};
+
+// Measurement operation (Phase 4.5)
+struct MeasurementOp {
+    size_t qubit = 0;
+    size_t classical_bit = 0;     // Index of classical bit to store result
+    bool apply_confusion = true;  // Whether to apply confusion matrix
+    bool collapse_state = true;   // Whether to collapse state (projective)
+};
+
+// Conditional operation (Phase 4.5) - execute gate only if classical bit matches
+struct ConditionalOp {
+    size_t classical_bit = 0;     // Classical bit to check
+    int expected_value = 1;       // Expected value (0 or 1)
+    GateOp gate;                  // Gate to apply if condition met
 };
 
 // Structure representing a gate operation
@@ -100,8 +133,8 @@ struct NoiseOp {
         : type(t), qubits({q}), probability(prob), params(std::move(p)) {}
 };
 
-// Union type for sequence elements
-using SequenceElement = std::variant<GateOp, NoiseOp>;
+// Union type for sequence elements (extended for Phase 4.5)
+using SequenceElement = std::variant<GateOp, NoiseOp, MeasurementOp, ConditionalOp>;
 
 // Noise statistics for tracking
 struct NoiseStats {
@@ -110,6 +143,8 @@ struct NoiseStats {
     size_t phase_damping_count = 0;
     size_t bit_flip_count = 0;
     size_t phase_flip_count = 0;
+    size_t leakage_count = 0;
+    size_t measurement_count = 0;
     size_t other_count = 0;
     
     double total_depolarizing_prob = 0.0;
@@ -117,16 +152,17 @@ struct NoiseStats {
     double total_phase_prob = 0.0;
     double total_bit_flip_prob = 0.0;
     double total_phase_flip_prob = 0.0;
+    double total_leakage_prob = 0.0;
     double total_other_prob = 0.0;
     
     size_t total_count() const {
         return depolarizing_count + amplitude_damping_count + phase_damping_count +
-               bit_flip_count + phase_flip_count + other_count;
+               bit_flip_count + phase_flip_count + leakage_count + measurement_count + other_count;
     }
     
     double total_probability() const {
         return total_depolarizing_prob + total_amplitude_prob + total_phase_prob +
-               total_bit_flip_prob + total_phase_flip_prob + total_other_prob;
+               total_bit_flip_prob + total_phase_flip_prob + total_leakage_prob + total_other_prob;
     }
     
     void add(NoiseType type, double prob) {
@@ -150,6 +186,11 @@ struct NoiseStats {
             case NoiseType::PHASE_FLIP:
                 phase_flip_count++;
                 total_phase_flip_prob += prob;
+                break;
+            case NoiseType::LEAKAGE:
+            case NoiseType::LEAKAGE_RELAXATION:
+                leakage_count++;
+                total_leakage_prob += prob;
                 break;
             default:
                 other_count++;
