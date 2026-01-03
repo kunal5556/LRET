@@ -14,10 +14,11 @@ FROM ubuntu:24.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install build dependencies
+# Install build dependencies (git required for nlohmann/json FetchContent)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
+    git \
     libeigen3-dev \
     libomp-dev \
     && rm -rf /var/lib/apt/lists/*
@@ -30,7 +31,9 @@ COPY CMakeLists.txt .
 # Copy headers and sources separately for caching
 COPY include/ include/
 COPY src/ src/
+COPY scripts/ scripts/
 COPY main.cpp .
+COPY test_noise_import.cpp .
 
 # Build the project with OpenMP support
 RUN mkdir -p build && cd build && \
@@ -42,16 +45,22 @@ FROM ubuntu:24.04 AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install only runtime dependencies
+# Install runtime dependencies (including Python for noise model download script)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libomp5 \
     libgomp1 \
+    python3 \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy only the built binary from builder stage
+# Copy binaries from builder stage
 COPY --from=builder /app/build/quantum_sim ./quantum_sim
+COPY --from=builder /app/build/test_noise_import ./test_noise_import
+
+# Copy Python scripts for noise model management
+COPY scripts/ scripts/
 
 # Create output directory for CSV files
 RUN mkdir -p /app/output
