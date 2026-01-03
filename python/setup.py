@@ -13,7 +13,11 @@ from setuptools import setup, find_packages
 from pathlib import Path
 
 here = Path(__file__).parent.resolve()
-long_description = (here.parent / "README.md").read_text(encoding="utf-8")
+readme_path = here.parent / "README.md"
+try:
+    long_description = readme_path.read_text(encoding="utf-8")
+except FileNotFoundError:
+    long_description = "QLRET - Low-Rank Exact Tensor Quantum Simulator"
 
 setup(
     name="qlret",
