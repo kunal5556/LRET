@@ -407,7 +407,7 @@ GateType NoiseModelImporter::qiskit_gate_name_to_lret(const std::string& qiskit_
     std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(), ::tolower);
     
     // Single-qubit gates
-    if (lower_name == "id" || lower_name == "i") return GateType::I;
+    if (lower_name == "id" || lower_name == "i") return GateType::CUSTOM; // Treat identity as no-op/custom
     if (lower_name == "x") return GateType::X;
     if (lower_name == "y") return GateType::Y;
     if (lower_name == "z") return GateType::Z;
@@ -423,8 +423,8 @@ GateType NoiseModelImporter::qiskit_gate_name_to_lret(const std::string& qiskit_
     if (lower_name == "cz") return GateType::CZ;
     if (lower_name == "swap") return GateType::SWAP;
     
-    // Default to identity for unknown gates
-    return GateType::I;
+    // Default to custom for unknown gates
+    return GateType::CUSTOM;
 }
 
 void NoiseModelImporter::apply_noise_to_gate(

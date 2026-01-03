@@ -102,15 +102,11 @@
 
 #include "types.h"
 #include "gates_and_noise.h"
+#include <nlohmann/json_fwd.hpp>
 #include <string>
 #include <vector>
 #include <map>
 #include <memory>
-
-// Forward declaration for JSON library (only include in .cpp to avoid header pollution)
-namespace nlohmann {
-    class json;
-}
 
 namespace qlret {
 
