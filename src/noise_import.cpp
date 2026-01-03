@@ -7,10 +7,25 @@
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
+#include <set>
 
 using json = nlohmann::json;
 
 namespace qlret {
+
+namespace {
+
+int pauli_index(char c) {
+    switch (std::toupper(static_cast<unsigned char>(c))) {
+        case 'I': return 0;
+        case 'X': return 1;
+        case 'Y': return 2;
+        case 'Z': return 3;
+        default: return -1;
+    }
+}
+
+} // namespace
 
 //==============================================================================
 // Error Type Determination
@@ -49,6 +64,9 @@ QiskitErrorType NoiseModelImporter::determine_error_type(const json& error_json)
     }
     if (type_str == "qerror") {
         return QiskitErrorType::QERROR;
+    }
+    if (type_str.find("correlated") != std::string::npos || type_str.find("zz") != std::string::npos) {
+        return QiskitErrorType::CORRELATED_PAULI;
     }
     
     return QiskitErrorType::UNKNOWN;
@@ -172,6 +190,12 @@ NoiseModel NoiseModelImporter::load_from_json_string(const std::string& json_str
     if (j.contains("errors")) {
         for (const auto& error_json : j["errors"]) {
             try {
+                QiskitErrorType type = determine_error_type(error_json);
+                if (type == QiskitErrorType::CORRELATED_PAULI) {
+                    parse_correlated_error(error_json, model);
+                    continue;
+                }
+
                 QiskitNoiseError error = parse_error_from_json(error_json);
                 model.errors.push_back(error);
             } catch (const std::exception& e) {
@@ -179,6 +203,14 @@ NoiseModel NoiseModelImporter::load_from_json_string(const std::string& json_str
                 // Continue parsing other errors
             }
         }
+    }
+
+    // Parse advanced noise sections (Phase 4.3)
+    if (j.contains("time_dependent_noise")) {
+        parse_time_dependent_noise(j, model);
+    }
+    if (j.contains("memory_effects")) {
+        parse_memory_effects(j, model);
     }
     
     // Build lookup tables for fast access
@@ -198,6 +230,186 @@ NoiseModel NoiseModelImporter::load_from_json(const std::string& filepath) {
     file.close();
     
     return load_from_json_string(buffer.str());
+}
+
+//==============================================================================
+// Advanced Noise Parsing (Phase 4.3)
+//==============================================================================
+
+void NoiseModelImporter::parse_correlated_error(const json& error_json, NoiseModel& model) {
+    // Gather qubit pairs
+    std::vector<std::pair<size_t, size_t>> pairs;
+    auto parse_pair_list = [&](const json& arr) {
+        for (const auto& entry : arr) {
+            if (!entry.is_array() || entry.size() != 2) continue;
+            size_t q0 = entry[0].get<size_t>();
+            size_t q1 = entry[1].get<size_t>();
+            size_t qmin = std::min(q0, q1);
+            size_t qmax = std::max(q0, q1);
+            pairs.emplace_back(qmin, qmax);
+        }
+    };
+
+    if (error_json.contains("qubit_pairs")) {
+        parse_pair_list(error_json["qubit_pairs"]);
+    } else if (error_json.contains("gate_qubits")) {
+        parse_pair_list(error_json["gate_qubits"]);
+    }
+    if (pairs.empty()) {
+        std::cerr << "Warning: correlated_pauli error missing qubit_pairs" << std::endl;
+        return;
+    }
+
+    CorrelatedError corr;
+    if (error_json.contains("operations")) {
+        corr.applicable_gates = error_json["operations"].get<std::vector<std::string>>();
+    }
+
+    if (error_json.contains("parameters") && error_json["parameters"].is_object()) {
+        const auto& params = error_json["parameters"];
+        if (params.contains("zz_rate_hz")) {
+            corr.coupling_strength_hz = params["zz_rate_hz"].get<double>();
+        }
+    }
+
+    // Default joint probabilities: identity channel
+    for (auto& row : corr.joint_probs) {
+        row.fill(0.0);
+    }
+    corr.joint_probs[0][0] = 1.0;
+
+    if (error_json.contains("joint_probabilities")) {
+        const auto& probs_obj = error_json["joint_probabilities"];
+        if (probs_obj.is_object()) {
+            corr.joint_probs[0][0] = 0.0; // reset to parse actual values
+            for (auto it = probs_obj.begin(); it != probs_obj.end(); ++it) {
+                const std::string key = it.key();
+                if (key.size() != 2) continue;
+                int p0 = pauli_index(key[0]);
+                int p1 = pauli_index(key[1]);
+                if (p0 < 0 || p1 < 0) continue;
+                double val = it.value().get<double>();
+                corr.joint_probs[static_cast<size_t>(p0)][static_cast<size_t>(p1)] = val;
+                if (val > 0.0) {
+                    corr.sparse_probs.emplace_back(p0, p1, val);
+                }
+            }
+        }
+    }
+
+    // If sparse_probs empty, populate from dense table for convenience
+    if (corr.sparse_probs.empty()) {
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                double val = corr.joint_probs[static_cast<size_t>(i)][static_cast<size_t>(j)];
+                if (val > 0.0) {
+                    corr.sparse_probs.emplace_back(i, j, val);
+                }
+            }
+        }
+    }
+
+    // Register into model
+    for (const auto& [qmin, qmax] : pairs) {
+        model.correlated_errors[{qmin, qmax}].push_back(corr);
+        // Neighbor adjacency (deduplicated)
+        auto& neigh_i = model.qubit_neighbors[qmin];
+        auto& neigh_j = model.qubit_neighbors[qmax];
+        if (std::find(neigh_i.begin(), neigh_i.end(), qmax) == neigh_i.end()) {
+            neigh_i.push_back(qmax);
+        }
+        if (std::find(neigh_j.begin(), neigh_j.end(), qmin) == neigh_j.end()) {
+            neigh_j.push_back(qmin);
+        }
+    }
+}
+
+void NoiseModelImporter::parse_time_dependent_noise(const json& root, NoiseModel& model) {
+    const auto& section = root.at("time_dependent_noise");
+    bool enabled = section.value("enabled", false);
+    model.use_time_dependent_noise = enabled;
+    if (!enabled) return;
+
+    if (!section.contains("gate_parameters")) {
+        return;
+    }
+
+    for (const auto& item : section["gate_parameters"].items()) {
+        const std::string gate_name = item.key();
+        const auto& params_json = item.value();
+
+        TimeVaryingNoiseParams params;
+        params.base_t1_ns = params_json.value("base_t1_ns", 0.0);
+        params.base_t2_ns = params_json.value("base_t2_ns", 0.0);
+        params.base_depol_prob = params_json.value("base_depol_prob", 0.0);
+        params.alpha = params_json.value("alpha", 0.0);
+        params.beta = params_json.value("beta", 0.0);
+        params.max_depth = std::max<size_t>(1, params_json.value("max_depth", 1));
+
+        std::string model_str = params_json.value("scaling_model", std::string("linear"));
+        std::transform(model_str.begin(), model_str.end(), model_str.begin(), ::tolower);
+        if (model_str == "linear") {
+            params.model = TimeScalingModel::LINEAR;
+        } else if (model_str == "exponential") {
+            params.model = TimeScalingModel::EXPONENTIAL;
+        } else if (model_str == "polynomial") {
+            params.model = TimeScalingModel::POLYNOMIAL;
+        }
+
+        model.time_varying_params[gate_name] = params;
+    }
+}
+
+void NoiseModelImporter::parse_memory_effects(const json& root, NoiseModel& model) {
+    const auto& section = root.at("memory_effects");
+    bool enabled = section.value("enabled", false);
+    model.use_memory_effects = enabled;
+    if (!enabled) return;
+
+    model.max_memory_depth = section.value("max_memory_depth", static_cast<size_t>(model.max_memory_depth));
+
+    if (!section.contains("rules")) {
+        return;
+    }
+
+    for (const auto& rule : section["rules"]) {
+        if (!rule.contains("trigger") || !rule.contains("effect")) {
+            continue;
+        }
+
+        MemoryEffect effect;
+        const auto& trigger = rule["trigger"];
+        const auto& eff = rule["effect"];
+
+        if (trigger.contains("gate_type")) {
+            effect.prev_gate_type = trigger["gate_type"].get<std::string>();
+        }
+        if (trigger.contains("qubits") && trigger["qubits"].is_array()) {
+            for (const auto& q : trigger["qubits"]) {
+                effect.prev_qubits.push_back(q.get<size_t>());
+            }
+        }
+
+        if (eff.contains("affected_gate")) {
+            effect.affected_gate_type = eff["affected_gate"].get<std::string>();
+        } else {
+            effect.affected_gate_type = "any";
+        }
+        if (eff.contains("affected_qubits") && eff["affected_qubits"].is_array()) {
+            for (const auto& q : eff["affected_qubits"]) {
+                effect.affected_qubits.push_back(q.get<size_t>());
+            }
+        }
+        effect.error_scale_factor = eff.value("error_scale", 1.0);
+
+        if (rule.contains("memory_depth")) {
+            effect.memory_depth = rule["memory_depth"].get<size_t>();
+        } else {
+            effect.memory_depth = 1;
+        }
+
+        model.memory_effects.push_back(effect);
+    }
 }
 
 //==============================================================================
@@ -430,7 +642,8 @@ GateType NoiseModelImporter::qiskit_gate_name_to_lret(const std::string& qiskit_
 void NoiseModelImporter::apply_noise_to_gate(
     const GateOp& gate,
     const NoiseModel& noise_model,
-    QuantumSequence& noisy_sequence
+    QuantumSequence& noisy_sequence,
+    CircuitMemoryState& memory_state
 ) {
     // Add the gate itself
     noisy_sequence.operations.push_back(gate);
@@ -438,12 +651,71 @@ void NoiseModelImporter::apply_noise_to_gate(
     // Find applicable errors for this gate
     std::string gate_name = gate_type_to_string(gate.type);
     auto applicable_errors = noise_model.find_applicable_errors(gate_name, gate.qubits);
+
+    // Time-dependent scaling for this gate (if configured)
+    double time_scale = 1.0;
+    auto tv_it = noise_model.time_varying_params.find(gate_name);
+    if (noise_model.use_time_dependent_noise && tv_it != noise_model.time_varying_params.end()) {
+        time_scale = compute_time_scaled_rate(1.0, memory_state.current_depth, tv_it->second);
+    }
+
+    // Memory-dependent scaling (non-Markovian)
+    double memory_scale = 1.0;
+    if (noise_model.use_memory_effects) {
+        memory_scale = evaluate_memory_scale(memory_state, gate_name, gate.qubits, noise_model.memory_effects);
+    }
+    double total_scale = time_scale * memory_scale;
     
     // Apply noise to each qubit involved in the gate
     for (size_t qubit : gate.qubits) {
         for (const auto* error : applicable_errors) {
+            QiskitNoiseError error_scaled = *error;
+
+            // Apply time scaling overrides for base parameters when available
+            if (noise_model.use_time_dependent_noise && tv_it != noise_model.time_varying_params.end()) {
+                const auto& params = tv_it->second;
+                switch (error_scaled.type) {
+                    case QiskitErrorType::THERMAL_RELAXATION: {
+                        if (params.base_t1_ns > 0.0) {
+                            error_scaled.T1 = params.base_t1_ns * 1e-9; // ns -> s
+                        }
+                        if (params.base_t2_ns > 0.0) {
+                            error_scaled.T2 = params.base_t2_ns * 1e-9;
+                        }
+                        error_scaled.gate_time = error_scaled.gate_time * time_scale;
+                        break;
+                    }
+                    case QiskitErrorType::DEPOLARIZING:
+                    case QiskitErrorType::AMPLITUDE_DAMPING:
+                    case QiskitErrorType::PHASE_DAMPING:
+                        if (params.base_depol_prob > 0.0) {
+                            error_scaled.probability = compute_time_scaled_rate(params.base_depol_prob, memory_state.current_depth, params);
+                        } else {
+                            error_scaled.probability = std::clamp(error_scaled.probability * total_scale, 0.0, 1.0);
+                        }
+                        break;
+                    case QiskitErrorType::PAULI:
+                        if (!error_scaled.probabilities.empty() && error_scaled.probabilities.size() == 4) {
+                            double non_id_sum = 0.0;
+                            for (size_t idx = 1; idx < 4; ++idx) {
+                                error_scaled.probabilities[idx] = std::clamp(error_scaled.probabilities[idx] * total_scale, 0.0, 1.0);
+                                non_id_sum += error_scaled.probabilities[idx];
+                            }
+                            error_scaled.probabilities[0] = std::max(0.0, 1.0 - non_id_sum);
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+            
             // Convert Qiskit error to LRET noise operations
-            std::vector<NoiseOp> noise_ops = convert_qiskit_error_to_lret(*error, qubit);
+            std::vector<NoiseOp> noise_ops = convert_qiskit_error_to_lret(error_scaled, qubit);
+            if (total_scale != 1.0) {
+                for (auto& op_variant : noise_ops) {
+                    op_variant.probability = std::clamp(op_variant.probability * total_scale, 0.0, 1.0);
+                }
+            }
             
             // Add noise operations to sequence
             for (const auto& noise_op : noise_ops) {
@@ -451,6 +723,61 @@ void NoiseModelImporter::apply_noise_to_gate(
             }
         }
     }
+
+    // Correlated errors (two-qubit Pauli channels)
+    if (gate.qubits.size() == 2 && !noise_model.correlated_errors.empty()) {
+        size_t q0 = gate.qubits[0];
+        size_t q1 = gate.qubits[1];
+        size_t qmin = std::min(q0, q1);
+        size_t qmax = std::max(q0, q1);
+        auto corr_it = noise_model.correlated_errors.find({qmin, qmax});
+        if (corr_it != noise_model.correlated_errors.end()) {
+            std::string gate_name_lower = gate_name;
+            std::transform(gate_name_lower.begin(), gate_name_lower.end(), gate_name_lower.begin(), ::tolower);
+            for (const auto& corr : corr_it->second) {
+                bool gate_match = corr.applicable_gates.empty();
+                if (!gate_match) {
+                    for (const auto& op : corr.applicable_gates) {
+                        std::string op_lower = op;
+                        std::transform(op_lower.begin(), op_lower.end(), op_lower.begin(), ::tolower);
+                        if (op_lower == gate_name_lower) {
+                            gate_match = true;
+                            break;
+                        }
+                    }
+                }
+                if (!gate_match) continue;
+
+                std::vector<double> flattened(16, 0.0);
+                double p_error_total = 0.0;
+                for (int i = 0; i < 4; ++i) {
+                    for (int j = 0; j < 4; ++j) {
+                        double p = corr.joint_probs[static_cast<size_t>(i)][static_cast<size_t>(j)];
+                        flattened[static_cast<size_t>(i * 4 + j)] = p;
+                        if (!(i == 0 && j == 0)) {
+                            p_error_total += p;
+                        }
+                    }
+                }
+
+                if (total_scale != 1.0) {
+                    double non_id_sum = 0.0;
+                    for (size_t idx = 1; idx < flattened.size(); ++idx) {
+                        flattened[idx] = std::clamp(flattened[idx] * total_scale, 0.0, 1.0);
+                        non_id_sum += flattened[idx];
+                    }
+                    flattened[0] = std::max(0.0, 1.0 - non_id_sum);
+                    p_error_total = non_id_sum;
+                }
+
+                NoiseOp corr_noise(NoiseType::CORRELATED_PAULI, std::vector<size_t>{qmin, qmax}, p_error_total, flattened);
+                noisy_sequence.operations.push_back(corr_noise);
+            }
+        }
+    }
+
+    // Update memory history after processing this gate
+    append_memory_history(memory_state, gate_name, gate.qubits);
 }
 
 QuantumSequence NoiseModelImporter::apply_noise_model(
@@ -459,12 +786,17 @@ QuantumSequence NoiseModelImporter::apply_noise_model(
 ) {
     QuantumSequence noisy_circuit;
     noisy_circuit.depth = clean_circuit.depth;
+    noisy_circuit.num_qubits = clean_circuit.num_qubits;
+    CircuitMemoryState memory_state;
+    memory_state.max_memory_depth = noise_model.max_memory_depth;
+    memory_state.current_depth = 0;
     
     // Process each operation in the clean circuit
     for (const auto& op : clean_circuit.operations) {
         if (std::holds_alternative<GateOp>(op)) {
             const auto& gate = std::get<GateOp>(op);
-            apply_noise_to_gate(gate, noise_model, noisy_circuit);
+            memory_state.current_depth++;
+            apply_noise_to_gate(gate, noise_model, noisy_circuit, memory_state);
         } else {
             // Noise operation - pass through unchanged
             noisy_circuit.operations.push_back(op);
@@ -513,6 +845,22 @@ void NoiseModelImporter::print_noise_model_summary(const NoiseModel& model) cons
     for (const auto& [gate_name, errors] : model.gate_errors) {
         std::cout << "  " << gate_name << ": " << errors.size() << " error(s)" << std::endl;
     }
+
+    if (!model.correlated_errors.empty()) {
+        size_t corr_count = 0;
+        for (const auto& entry : model.correlated_errors) {
+            corr_count += entry.second.size();
+        }
+        std::cout << "\nCorrelated Errors: " << corr_count << " pair entries" << std::endl;
+    }
+    if (model.use_time_dependent_noise) {
+        std::cout << "Time-Dependent Noise: enabled (" << model.time_varying_params.size()
+                  << " gate parameter sets)" << std::endl;
+    }
+    if (model.use_memory_effects) {
+        std::cout << "Memory Effects: enabled (" << model.memory_effects.size() << " rules, depth="
+                  << model.max_memory_depth << ")" << std::endl;
+    }
 }
 
 bool NoiseModelImporter::validate_noise_model(const NoiseModel& model, bool verbose) const {
@@ -554,6 +902,25 @@ bool NoiseModelImporter::validate_noise_model(const NoiseModel& model, bool verb
                     std::cerr << "Error " << i << ": Invalid T1/T2 values" << std::endl;
                 }
                 valid = false;
+            }
+        }
+    }
+
+    // Correlated probabilities sanity check
+    for (const auto& [pair_key, entries] : model.correlated_errors) {
+        for (const auto& corr : entries) {
+            double sum = 0.0;
+            for (int i = 0; i < 4; ++i) {
+                for (int j = 0; j < 4; ++j) {
+                    sum += corr.joint_probs[static_cast<size_t>(i)][static_cast<size_t>(j)];
+                }
+            }
+            if (std::abs(sum - 1.0) > 1e-3) {
+                valid = false;
+                if (verbose) {
+                    std::cerr << "Correlated error (" << pair_key.first << "," << pair_key.second
+                              << "): joint probabilities sum to " << sum << std::endl;
+                }
             }
         }
     }

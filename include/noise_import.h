@@ -102,6 +102,7 @@
 
 #include "types.h"
 #include "gates_and_noise.h"
+#include "advanced_noise.h"
 #include <nlohmann/json_fwd.hpp>
 #include <string>
 #include <vector>
@@ -126,6 +127,7 @@ enum class QiskitErrorType {
     PAULI,                       ///< Pauli channel (X, Y, Z with probabilities)
     READOUT,                     ///< Measurement error (not applicable to LRET)
     RESET,                       ///< Reset error
+    CORRELATED_PAULI,            ///< Two-qubit correlated Pauli channel
     UNKNOWN                      ///< Unrecognized error type
 };
 
@@ -164,6 +166,15 @@ struct NoiseModel {
     // Qubit-specific error lookup (for fast access)
     std::map<std::string, std::vector<QiskitNoiseError*>> gate_errors;  // gate_name -> errors
     std::map<size_t, std::vector<QiskitNoiseError*>> qubit_errors;      // qubit_id -> errors
+
+    // Advanced noise (Phase 4.3)
+    std::map<std::pair<size_t, size_t>, std::vector<CorrelatedError>> correlated_errors; // (qmin,qmax) -> correlated entries
+    std::map<size_t, std::vector<size_t>> qubit_neighbors;                                 // adjacency for fast lookup
+    std::map<std::string, TimeVaryingNoiseParams> time_varying_params;                      // gate name -> depth scaling
+    bool use_time_dependent_noise = false;
+    std::vector<MemoryEffect> memory_effects;                                               // non-Markovian rules
+    bool use_memory_effects = false;
+    size_t max_memory_depth = 2;
     
     bool is_empty() const { return errors.empty(); }
     size_t num_errors() const { return errors.size(); }
@@ -283,7 +294,8 @@ public:
     void apply_noise_to_gate(
         const GateOp& gate,
         const NoiseModel& noise_model,
-        QuantumSequence& noisy_sequence
+        QuantumSequence& noisy_sequence,
+        CircuitMemoryState& memory_state
     );
     
     //==========================================================================
@@ -322,6 +334,11 @@ private:
      * @brief Build lookup tables after parsing
      */
     void build_lookup_tables(NoiseModel& model);
+
+    // Advanced noise parsing (Phase 4.3)
+    void parse_correlated_error(const nlohmann::json& error_json, NoiseModel& model);
+    void parse_time_dependent_noise(const nlohmann::json& root, NoiseModel& model);
+    void parse_memory_effects(const nlohmann::json& root, NoiseModel& model);
 };
 
 //==============================================================================

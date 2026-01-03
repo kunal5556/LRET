@@ -101,6 +101,10 @@ struct CLIOptions {
     std::string noise_model_path;      // --noise-model path/to/noise.json
     bool validate_noise_model = true;  // --validate-noise / --no-validate-noise
     bool print_noise_summary = false;  // --print-noise-summary
+    bool enable_correlated_errors = false;   // --enable-correlated-errors
+    bool enable_time_dependent_noise = false; // --enable-time-dependent
+    bool enable_memory_effects = false;      // --enable-memory-effects
+    size_t max_memory_depth = 2;             // --max-memory-depth
     
     // FDM options
     bool enable_fdm = false;

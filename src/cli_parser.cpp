@@ -215,6 +215,10 @@ NOISE MODEL OPTIONS (Phase 4.1 - Real Device Simulation):
     --validate-noise      Validate noise model on load (default)
     --no-validate-noise   Skip noise model validation
     --print-noise-summary Print detailed noise model summary before simulation
+    --enable-correlated-errors Enable correlated Pauli noise (Phase 4.3)
+    --enable-time-dependent    Enable time-varying noise rates (Phase 4.3)
+    --enable-memory-effects    Enable non-Markovian memory rules (Phase 4.3)
+    --max-memory-depth N       History length for memory rules (default: 2)
 
 MPI OPTIONS (Phase 3 - Distributed Computing):
     NOTE: MPI modes require a special MPI-enabled build (USE_MPI=ON).
@@ -587,6 +591,22 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
         }
         if (arg == "--print-noise-summary") {
             opts.print_noise_summary = true;
+            continue;
+        }
+        if (arg == "--enable-correlated-errors") {
+            opts.enable_correlated_errors = true;
+            continue;
+        }
+        if (arg == "--enable-time-dependent") {
+            opts.enable_time_dependent_noise = true;
+            continue;
+        }
+        if (arg == "--enable-memory-effects") {
+            opts.enable_memory_effects = true;
+            continue;
+        }
+        if (arg == "--max-memory-depth" && i + 1 < argc) {
+            opts.max_memory_depth = std::stoul(argv[++i]);
             continue;
         }
         

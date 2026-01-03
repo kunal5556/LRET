@@ -65,6 +65,7 @@ enum class NoiseType {
     PHASE_FLIP,
     BIT_PHASE_FLIP,
     THERMAL,
+    CORRELATED_PAULI,
     CUSTOM
 };
 

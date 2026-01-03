@@ -8,6 +8,7 @@
 #include "fdm_simulator.h"
 #include "output_formatter.h"
 #include "gates_and_noise.h"
+#include "noise_import.h"
 #include "simulator.h"
 #include "utils.h"
 #include "resource_monitor.h"
@@ -227,6 +228,47 @@ int main(int argc, char* argv[]) {
             opts.num_qubits, opts.depth, true, opts.noise_prob
         );
         double noise_in_circuit = sequence.total_noise_probability;
+
+        // Apply external noise model (Phase 4.1/4.3)
+        if (!opts.noise_model_path.empty()) {
+            try {
+                NoiseModelImporter importer;
+                NoiseModel noise_model = importer.load_from_json(opts.noise_model_path);
+
+                // Enable/disable advanced features per CLI flags
+                if (!opts.enable_correlated_errors) {
+                    noise_model.correlated_errors.clear();
+                    noise_model.qubit_neighbors.clear();
+                }
+                noise_model.use_time_dependent_noise = opts.enable_time_dependent_noise;
+                noise_model.use_memory_effects = opts.enable_memory_effects;
+                noise_model.max_memory_depth = opts.max_memory_depth;
+
+                if (opts.validate_noise_model) {
+                    importer.validate_noise_model(noise_model, true);
+                }
+                if (opts.print_noise_summary) {
+                    importer.print_noise_model_summary(noise_model);
+                }
+
+                sequence = importer.apply_noise_model(sequence, noise_model);
+
+                // Recompute noise statistics after injection
+                sequence.total_noise_probability = 0.0;
+                sequence.noise_stats = NoiseStats{};
+                for (const auto& op : sequence.operations) {
+                    if (std::holds_alternative<NoiseOp>(op)) {
+                        const auto& n = std::get<NoiseOp>(op);
+                        sequence.total_noise_probability += n.probability;
+                        sequence.noise_stats.add(n.type, n.probability);
+                    }
+                }
+                noise_in_circuit = sequence.total_noise_probability;
+            } catch (const std::exception& e) {
+                std::cerr << "Failed to load or apply noise model: " << e.what() << std::endl;
+                return 1;
+            }
+        }
         
         // Write CSV header section
         if (g_structured_csv) {

@@ -4,6 +4,7 @@
 #include "structured_csv.h"
 #include <iostream>
 #include <new>
+#include <stdexcept>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -13,6 +14,51 @@
 #endif
 
 namespace qlret {
+
+namespace {
+
+Matrix2cd fdm_pauli_from_index(int idx) {
+    Matrix2cd m;
+    switch (idx) {
+        case 1: // X
+            m << 0, 1,
+                 1, 0;
+            break;
+        case 2: { // Y
+            Complex i(0.0, 1.0);
+            m << 0, -i,
+                 i, 0;
+            break;
+        }
+        case 3: // Z
+            m << 1, 0,
+                 0, -1;
+            break;
+        default:
+            m.setIdentity();
+            break;
+    }
+    return m;
+}
+
+Matrix4cd fdm_kron_pauli(int idx0, int idx1) {
+    Matrix2cd p0 = fdm_pauli_from_index(idx0);
+    Matrix2cd p1 = fdm_pauli_from_index(idx1);
+    Matrix4cd result;
+    result.setZero();
+    for (int r0 = 0; r0 < 2; ++r0) {
+        for (int c0 = 0; c0 < 2; ++c0) {
+            for (int r1 = 0; r1 < 2; ++r1) {
+                for (int c1 = 0; c1 < 2; ++c1) {
+                    result(2 * r0 + r1, 2 * c0 + c1) = p0(r0, c0) * p1(r1, c1);
+                }
+            }
+        }
+    }
+    return result;
+}
+
+} // namespace
 
 size_t get_available_memory_mb() {
 #ifdef _WIN32
@@ -133,18 +179,41 @@ MatrixXcd apply_gate_to_rho(const MatrixXcd& rho, const GateOp& gate, size_t num
 }
 
 MatrixXcd apply_noise_to_rho(const MatrixXcd& rho, const NoiseOp& noise, size_t num_qubits) {
-    // Get Kraus operators
-    auto kraus_ops = get_noise_kraus_operators(noise.type, noise.probability, noise.params);
-    
     size_t dim = rho.rows();
     MatrixXcd rho_new = MatrixXcd::Zero(dim, dim);
-    
-    // rho' = sum_i K_i rho K_i†
+
+    // Correlated Pauli channel (two-qubit)
+    if (noise.type == NoiseType::CORRELATED_PAULI) {
+        if (noise.qubits.size() != 2) {
+            throw std::invalid_argument("Correlated Pauli noise requires two qubits");
+        }
+        if (noise.params.size() != 16) {
+            throw std::invalid_argument("Correlated Pauli noise expects 16 probability entries");
+        }
+
+        std::vector<Matrix4cd> kraus_ops;
+        kraus_ops.reserve(16);
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                double p = noise.params[static_cast<size_t>(i * 4 + j)];
+                if (p <= 1e-12) continue;
+                kraus_ops.push_back(fdm_kron_pauli(i, j) * std::sqrt(p));
+            }
+        }
+
+        for (const auto& K_small : kraus_ops) {
+            MatrixXcd K = expand_two_qubit_gate(K_small, noise.qubits[0], noise.qubits[1], num_qubits);
+            rho_new += K * rho * K.adjoint();
+        }
+        return rho_new;
+    }
+
+    // Standard single-qubit channels
+    auto kraus_ops = get_noise_kraus_operators(noise.type, noise.probability, noise.params);
     for (const auto& K_small : kraus_ops) {
         MatrixXcd K = expand_single_gate(K_small, noise.qubits[0], num_qubits);
         rho_new += K * rho * K.adjoint();
     }
-    
     return rho_new;
 }
 

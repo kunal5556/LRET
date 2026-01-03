@@ -1,4 +1,6 @@
 #include "gates_and_noise.h"
+#include "advanced_noise.h"
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
@@ -43,7 +45,8 @@ const std::map<std::string, NoiseType> noise_name_to_type = {
     {"bit_flip", NoiseType::BIT_FLIP},
     {"phase_flip", NoiseType::PHASE_FLIP},
     {"bit_phase_flip", NoiseType::BIT_PHASE_FLIP},
-    {"thermal", NoiseType::THERMAL}
+    {"thermal", NoiseType::THERMAL},
+    {"correlated_pauli", NoiseType::CORRELATED_PAULI}
 };
 
 //==============================================================================
@@ -377,6 +380,189 @@ MatrixXcd apply_gate_to_L(const MatrixXcd& L, const GateOp& gate_op, size_t num_
 }
 
 //==============================================================================
+// Advanced Noise Helpers (Phase 4.3)
+//==============================================================================
+
+double compute_time_scaled_rate(double base_rate, size_t depth, const TimeVaryingNoiseParams& params) {
+    if (base_rate <= 0.0) return 0.0;
+    double depth_norm = params.max_depth > 0 ? static_cast<double>(depth) / static_cast<double>(params.max_depth) : static_cast<double>(depth);
+    double scaled = base_rate;
+    switch (params.model) {
+        case TimeScalingModel::LINEAR:
+            scaled = base_rate * (1.0 + params.alpha * depth_norm);
+            break;
+        case TimeScalingModel::EXPONENTIAL:
+            scaled = base_rate * std::exp(params.alpha * depth_norm);
+            break;
+        case TimeScalingModel::POLYNOMIAL:
+            scaled = base_rate * (1.0 + params.alpha * depth_norm + params.beta * depth_norm * depth_norm);
+            break;
+    }
+    return std::clamp(scaled, 0.0, 1.0);
+}
+
+static bool qubit_sets_overlap(const std::vector<size_t>& a, const std::vector<size_t>& b) {
+    for (size_t qa : a) {
+        for (size_t qb : b) {
+            if (qa == qb) return true;
+        }
+    }
+    return false;
+}
+
+double evaluate_memory_scale(const CircuitMemoryState& memory_state,
+                             const std::string& gate_name,
+                             const std::vector<size_t>& qubits,
+                             const std::vector<MemoryEffect>& effects) {
+    if (effects.empty()) return 1.0;
+
+    double scale = 1.0;
+
+    for (const auto& effect : effects) {
+        if (!effect.affected_gate_type.empty() && effect.affected_gate_type != "any") {
+            if (effect.affected_gate_type != gate_name) continue;
+        }
+
+        bool triggered = false;
+        size_t inspected = 0;
+        for (auto it = memory_state.gate_history.rbegin(); it != memory_state.gate_history.rend(); ++it) {
+            if (inspected >= effect.memory_depth) break;
+            const auto& [prev_name, prev_qubits, prev_depth] = *it;
+            (void)prev_depth; // unused currently
+
+            if (!effect.prev_gate_type.empty() && effect.prev_gate_type != prev_name) {
+                inspected++;
+                continue;
+            }
+
+            if (!effect.prev_qubits.empty()) {
+                if (!qubit_sets_overlap(effect.prev_qubits, prev_qubits)) {
+                    inspected++;
+                    continue;
+                }
+            }
+
+            // Trigger satisfied
+            triggered = true;
+            break;
+        }
+
+        if (triggered) {
+            if (!effect.affected_qubits.empty() && !qubit_sets_overlap(effect.affected_qubits, qubits)) {
+                continue;
+            }
+            scale *= effect.error_scale_factor;
+        }
+    }
+
+    return scale;
+}
+
+void append_memory_history(CircuitMemoryState& memory_state,
+                           const std::string& gate_name,
+                           const std::vector<size_t>& qubits) {
+    memory_state.gate_history.emplace_back(gate_name, qubits, memory_state.current_depth);
+    if (memory_state.gate_history.size() > memory_state.max_memory_depth) {
+        memory_state.gate_history.pop_front();
+    }
+    for (size_t q : qubits) {
+        memory_state.last_gate_per_qubit[q] = gate_name;
+    }
+}
+
+std::pair<int, int> sample_correlated_pauli(const CorrelatedError& error, double random01) {
+    double cumulative = 0.0;
+    for (const auto& entry : error.sparse_probs) {
+        int p0, p1;
+        double prob;
+        std::tie(p0, p1, prob) = entry;
+        cumulative += prob;
+        if (random01 <= cumulative) {
+            return {p0, p1};
+        }
+    }
+    return {0, 0};
+}
+
+static Matrix2cd pauli_matrix_from_index(int idx) {
+    Matrix2cd m;
+    switch (idx) {
+        case 1: // X
+            m << 0, 1,
+                 1, 0;
+            break;
+        case 2: { // Y
+            Complex i(0.0, 1.0);
+            m << 0, -i,
+                 i, 0;
+            break;
+        }
+        case 3: // Z
+            m << 1, 0,
+                 0, -1;
+            break;
+        default: // I
+            m.setIdentity();
+            break;
+    }
+    return m;
+}
+
+static Matrix4cd kron_pauli(int idx0, int idx1) {
+    Matrix2cd p0 = pauli_matrix_from_index(idx0);
+    Matrix2cd p1 = pauli_matrix_from_index(idx1);
+    Matrix4cd result;
+    result.setZero();
+    for (int r0 = 0; r0 < 2; ++r0) {
+        for (int c0 = 0; c0 < 2; ++c0) {
+            for (int r1 = 0; r1 < 2; ++r1) {
+                for (int c1 = 0; c1 < 2; ++c1) {
+                    result(2 * r0 + r1, 2 * c0 + c1) = p0(r0, c0) * p1(r1, c1);
+                }
+            }
+        }
+    }
+    return result;
+}
+
+MatrixXcd apply_correlated_pauli_channel(const MatrixXcd& L,
+                                         size_t qubit_i,
+                                         size_t qubit_j,
+                                         const std::vector<double>& joint_probs,
+                                         size_t num_qubits) {
+    if (joint_probs.size() != 16) {
+        throw std::invalid_argument("Correlated Pauli channel expects 16 probabilities");
+    }
+
+    size_t dim = L.rows();
+    size_t rank = L.cols();
+
+    std::vector<Matrix4cd> kraus_mats;
+    kraus_mats.reserve(16);
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            double p = joint_probs[static_cast<size_t>(i * 4 + j)];
+            if (p <= 1e-12) continue;
+            Matrix4cd kj = kron_pauli(i, j) * std::sqrt(p);
+            kraus_mats.push_back(kj);
+        }
+    }
+
+    if (kraus_mats.empty()) {
+        return L;
+    }
+
+    MatrixXcd L_new(dim, rank * kraus_mats.size());
+    size_t idx = 0;
+    for (const auto& K : kraus_mats) {
+        MatrixXcd L_k = apply_two_qubit_gate_direct(L, K, qubit_i, qubit_j, num_qubits);
+        L_new.block(0, idx * rank, dim, rank) = L_k;
+        idx++;
+    }
+    return L_new;
+}
+
+//==============================================================================
 // Noise Kraus Operators
 //==============================================================================
 
@@ -495,6 +681,13 @@ std::vector<MatrixXcd> get_noise_kraus_operators(NoiseType type, double p,
 //==============================================================================
 
 MatrixXcd apply_noise_to_L(const MatrixXcd& L, const NoiseOp& noise_op, size_t num_qubits) {
+    if (noise_op.type == NoiseType::CORRELATED_PAULI) {
+        if (noise_op.qubits.size() != 2) {
+            throw std::invalid_argument("Correlated Pauli noise requires exactly 2 qubits");
+        }
+        return apply_correlated_pauli_channel(L, noise_op.qubits[0], noise_op.qubits[1], noise_op.params, num_qubits);
+    }
+
     auto kraus_ops = get_noise_kraus_operators(noise_op.type, noise_op.probability, noise_op.params);
     size_t dim = L.rows();
     size_t rank = L.cols();
