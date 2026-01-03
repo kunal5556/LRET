@@ -40,6 +40,19 @@ This document catalogs **all testing tasks** that were planned but not executed 
 
 ---
 
+## All Tests Checklist (Quick Reference)
+
+- ❌ `test_simple.cpp` — build: `cmake --build . --target test_simple`; run: `./test_simple`
+- ❌ `test_fidelity.cpp` — build: `cmake --build . --target test_fidelity`; run: `./test_fidelity`
+- ❌ `test_minimal.cpp` — build: `cmake --build . --target test_minimal`; run: `./test_minimal`
+- ❌ `test_noise_import.cpp` — build: `cmake --build . --target test_noise_import`; run: `./test_noise_import`
+- ❌ `tests/test_advanced_noise.cpp` — build: `cmake --build . --target test_advanced_noise`; run: `./test_advanced_noise`
+- ❌ `tests/test_leakage_measurement.cpp` — build: `cmake --build . --target test_leakage_measurement`; run: `./test_leakage_measurement`
+- ❌ `tests/test_distributed_gpu.cpp` — build: `cmake --build . --target test_distributed_gpu` with `-DUSE_GPU=ON`; run: `./test_distributed_gpu`
+- ❌ `tests/test_distributed_gpu_mpi.cpp` — build: `cmake --build . --target test_distributed_gpu_mpi` with `-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON`; run: `mpirun -np 2 ./test_distributed_gpu_mpi`
+
+---
+
 ## Phase 1: Core LRET Tests
 
 ### 1.1 Basic Simulation Tests
@@ -320,6 +333,67 @@ GPU Speedup: 28.7x
 - GPU properly detected
 - Simulation runs faster than CPU
 - Results match CPU within tolerance (fidelity > 0.99)
+
+---
+
+### 2.2 Distributed GPU Single-Node Smoke
+
+**Status:** ⚠️ OPTIONAL (requires NVIDIA GPU, CUDA toolkit)  
+**Purpose:** Validate distributed GPU scaffold on a single node; ensures NCCL collectives and CUDA streams are wired.
+
+**Test Commands:**
+```bash
+cd build
+cmake .. -DUSE_GPU=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build . --target test_distributed_gpu
+./test_distributed_gpu
+```
+
+**Expected Output (abridged):**
+```
+Initializing DistributedGPUSimulator (world_size=1, rank=0)
+Distribute: completed
+Allreduce: completed
+Gather: completed
+Test passed
+```
+
+**Success Criteria:**
+- Build succeeds with USE_GPU=ON
+- Simulator initializes without NCCL runtime errors
+- Distribute/allreduce/gather return success
+- Exit code: 0
+
+---
+
+### 2.3 Distributed GPU MPI+NCCL (2-GPU) Smoke
+
+**Status:** ⚠️ OPTIONAL (requires 2 NVIDIA GPUs, CUDA, MPI, NCCL)  
+**Purpose:** Verify multi-GPU collectives (distribute/allreduce/gather) via MPI+NCCL.
+
+**Test Commands:**
+```bash
+cd build
+cmake .. -DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build . --target test_distributed_gpu_mpi
+mpirun -np 2 ./test_distributed_gpu_mpi
+```
+
+**Expected Output (abridged):**
+```
+[rank 0] world_size=2 initialized (NCCL)
+[rank 1] world_size=2 initialized (NCCL)
+Distribute OK
+Allreduce OK
+Gather OK
+Test passed
+```
+
+**Success Criteria:**
+- Build succeeds with USE_GPU=ON, USE_MPI=ON, USE_NCCL=ON, BUILD_MULTI_GPU_TESTS=ON
+- Both ranks complete without MPI/NCCL errors
+- Collective operations return success
+- Exit code: 0
 
 ---
 

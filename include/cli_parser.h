@@ -39,7 +39,8 @@ enum class ParallelMode {
     COMPARE,    // Run all and compare
     MPI_ROW,    // MPI row-wise distribution (Phase 3)
     MPI_COLUMN, // MPI column-wise distribution (Phase 3)
-    MPI_HYBRID  // MPI + OpenMP hybrid (Phase 3)
+    MPI_HYBRID, // MPI + OpenMP hybrid (Phase 3)
+    GPU_DISTRIBUTED // Multi-GPU (Phase 8.1)
 };
 
 // Noise selection for CLI (which noise types to enable)
@@ -96,6 +97,10 @@ struct CLIOptions {
     int gpu_device_id = 0;             // --gpu-id N
     bool use_cuquantum = true;         // --cuquantum / --no-cuquantum
     size_t gpu_memory_limit = 0;       // --gpu-memory-limit N (in GB, 0=no limit)
+    size_t gpu_world_size = 1;         // --gpus / --world-size
+    bool enable_nccl = true;           // --nccl / --no-nccl
+    bool overlap_comm_compute = true;  // --overlap-comm / --no-overlap
+    bool enable_distributed_gpu = false; // derived: gpu_world_size > 1
     
     // Noise model import (Phase 4.1 of roadmap)
     std::string noise_model_path;      // --noise-model path/to/noise.json

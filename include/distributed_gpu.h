@@ -63,6 +63,24 @@ public:
      */
     double all_reduce_expectation(double local_exp) const;
 
+    /**
+     * @brief Hook to overlap communication for upcoming two-qubit gates.
+     * @param needs_remote Whether the next gate depends on remote data.
+     */
+    void overlap_for_two_qubit(bool needs_remote);
+
+    /**
+     * @brief Copy the local partition from device to host.
+     * @return Local block of L (row-contiguous segment) on host.
+     */
+    MatrixXcd copy_local_to_host() const;
+
+    /**
+     * @brief Upload a host-local partition back to device memory.
+     * @param local Updated local block (must match local_rows x columns).
+     */
+    void upload_local_from_host(const MatrixXcd& local);
+
     // Introspection helpers
     size_t local_rows() const;
     size_t global_rows() const;
@@ -91,6 +109,9 @@ inline void DistributedGPUSimulator::distribute_state(const MatrixXcd&) {
 }
 inline MatrixXcd DistributedGPUSimulator::gather_state() const { return MatrixXcd(); }
 inline double DistributedGPUSimulator::all_reduce_expectation(double local_exp) const { return local_exp; }
+inline void DistributedGPUSimulator::overlap_for_two_qubit(bool) {}
+inline MatrixXcd DistributedGPUSimulator::copy_local_to_host() const { return MatrixXcd(); }
+inline void DistributedGPUSimulator::upload_local_from_host(const MatrixXcd&) {}
 inline size_t DistributedGPUSimulator::local_rows() const { return 0; }
 inline size_t DistributedGPUSimulator::global_rows() const { return 0; }
 inline size_t DistributedGPUSimulator::columns() const { return 0; }

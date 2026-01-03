@@ -89,6 +89,7 @@ std::string parallel_mode_to_string(ParallelMode mode) {
         case ParallelMode::MPI_ROW:    return "mpi-row";
         case ParallelMode::MPI_COLUMN: return "mpi-column";
         case ParallelMode::MPI_HYBRID: return "mpi-hybrid";
+        case ParallelMode::GPU_DISTRIBUTED: return "distributed-gpu";
         default:                       return "unknown";
     }
 }
@@ -107,6 +108,7 @@ ParallelMode string_to_parallel_mode(const std::string& str) {
     if (lower == "mpi-row" || lower == "mpi_row")       return ParallelMode::MPI_ROW;
     if (lower == "mpi-column" || lower == "mpi_column") return ParallelMode::MPI_COLUMN;
     if (lower == "mpi-hybrid" || lower == "mpi_hybrid") return ParallelMode::MPI_HYBRID;
+    if (lower == "distributed-gpu" || lower == "gpu-distributed" || lower == "multi-gpu") return ParallelMode::GPU_DISTRIBUTED;
     
     return ParallelMode::AUTO;  // Default fallback
 }
@@ -195,9 +197,14 @@ GPU OPTIONS (Phase 2):
                           cpu        - Force CPU execution
     --gpu                 Shorthand for --device=gpu
     --gpu-id N            GPU device ID to use (default: 0)
+    --gpus N              World size for distributed GPUs (Phase 8.1)
+    --world-size N        Alias for --gpus
     --cuquantum           Use cuQuantum library if available (default)
     --no-cuquantum        Use custom CUDA kernels instead
     --gpu-memory-limit N  Maximum GPU memory in GB (0=no limit)
+    --nccl / --no-nccl    Enable/disable NCCL collectives (default: on)
+    --overlap-comm        Overlap communication with compute (default on)
+    --no-overlap          Disable overlap/prefetch
     --gpu-info            Print GPU information and exit
 
 NOISE MODEL OPTIONS (Phase 4.1 - Real Device Simulation):
@@ -592,6 +599,28 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
             opts.gpu_memory_limit = std::stoul(argv[++i]);
             continue;
         }
+        if ((arg == "--gpus" || arg == "--world-size") && i + 1 < argc) {
+            opts.gpu_world_size = std::stoul(argv[++i]);
+            opts.enable_gpu = true;
+            opts.enable_distributed_gpu = (opts.gpu_world_size > 1);
+            continue;
+        }
+        if (arg == "--nccl") {
+            opts.enable_nccl = true;
+            continue;
+        }
+        if (arg == "--no-nccl") {
+            opts.enable_nccl = false;
+            continue;
+        }
+        if (arg == "--overlap-comm") {
+            opts.overlap_comm_compute = true;
+            continue;
+        }
+        if (arg == "--no-overlap") {
+            opts.overlap_comm_compute = false;
+            continue;
+        }
         if (arg == "--gpu-info") {
             // This will be handled in main.cpp
             opts.show_version = true;  // Reuse version flag for now
@@ -880,6 +909,11 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
     if (opts.enable_fdm && opts.sweep_config.is_active()) {
         opts.sweep_config.include_fdm = true;
     }
+
+    // Distributed GPU derivation
+    if (opts.gpu_world_size > 1 && opts.enable_gpu) {
+        opts.enable_distributed_gpu = true;
+    }
     
     return opts;
 }
@@ -914,6 +948,16 @@ bool validate_options(const CLIOptions& opts, std::string& error_msg) {
     
     if (opts.truncation_threshold <= 0.0) {
         error_msg = "Truncation threshold must be positive";
+        return false;
+    }
+
+    if (opts.gpu_world_size == 0) {
+        error_msg = "GPU world size must be at least 1";
+        return false;
+    }
+
+    if (opts.enable_distributed_gpu && opts.gpu_world_size > 1 && !opts.enable_gpu) {
+        error_msg = "Distributed GPU requested but GPU is disabled";
         return false;
     }
     

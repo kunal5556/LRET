@@ -233,6 +233,12 @@ struct SimConfig {
     size_t batch_size = 64;
     bool use_parallel = true;
     
+    // Distributed GPU (Phase 8.1)
+    bool enable_distributed_gpu = false;
+    size_t gpu_world_size = 1;
+    bool enable_nccl = false;
+    bool overlap_comm_compute = true;
+    
     SimConfig() = default;
     
     SimConfig& set_verbose(bool v) { verbose = v; return *this; }

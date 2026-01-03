@@ -352,6 +352,10 @@ int main(int argc, char* argv[]) {
         config.truncation_threshold = opts.truncation_threshold;
         config.verbose = opts.verbose;
         config.do_truncation = true;
+        config.enable_distributed_gpu = opts.enable_distributed_gpu && opts.gpu_world_size > 1;
+        config.gpu_world_size = opts.gpu_world_size;
+        config.enable_nccl = opts.enable_nccl;
+        config.overlap_comm_compute = opts.overlap_comm_compute;
         
         // Check FDM feasibility (pass force flag to bypass memory check)
         auto fdm_check = check_fdm_feasibility(opts.num_qubits, opts.enable_fdm, opts.fdm_force);
@@ -483,7 +487,11 @@ int main(int argc, char* argv[]) {
             // Single mode run
             ParallelMode mode = opts.parallel_mode;
             if (mode == ParallelMode::AUTO) {
-                mode = auto_select_mode(opts.num_qubits, opts.depth, 10);
+                if (config.enable_distributed_gpu) {
+                    mode = ParallelMode::GPU_DISTRIBUTED;
+                } else {
+                    mode = auto_select_mode(opts.num_qubits, opts.depth, 10);
+                }
             }
             
             std::cout << "Running " << parallel_mode_to_string(mode) << " mode...\n";

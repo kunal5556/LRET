@@ -598,7 +598,8 @@ void GPUSimulator::apply_noise(const NoiseOp& noise) {
     if (!kraus.empty()) {
         // TODO: Implement full Kraus expansion on GPU
         // For now, use simplified noise application
-        apply_single_qubit_gate(noise.qubit, kraus[0]);
+        size_t target = noise.qubits.empty() ? 0 : noise.qubits[0];
+        apply_single_qubit_gate(target, kraus[0]);
     }
 }
 

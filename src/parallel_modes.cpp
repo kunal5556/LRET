@@ -31,11 +31,16 @@
 #include "structured_csv.h"
 #include "resource_monitor.h"
 #include "mpi_parallel.h"
+#ifdef USE_GPU
+#include "distributed_gpu.h"
+#include "gpu_simulator.h"
+#endif
 #include <iostream>
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>
+#include <cmath>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -644,6 +649,176 @@ MatrixXcd run_hybrid(
 
 }  // namespace modes
 
+//------------------------------------------------------------------------------
+// Distributed GPU minimal path (Phase 8.1 scaffold)
+//------------------------------------------------------------------------------
+
+static ModeResult run_distributed_gpu(
+    const MatrixXcd& L_init,
+    const QuantumSequence& sequence,
+    size_t num_qubits,
+    const SimConfig& config,
+    size_t batch_size
+) {
+    Timer timer;
+    MatrixXcd L_final;
+
+#if defined(USE_GPU)
+    size_t world_size = config.gpu_world_size > 0 ? config.gpu_world_size : 1;
+
+#ifdef USE_MPI
+    world_size = std::max(world_size, static_cast<size_t>(get_mpi_size()));
+    int rank = get_mpi_rank();
+#else
+    int rank = 0;
+#endif
+
+    if (world_size <= 1 || !config.enable_distributed_gpu) {
+        L_final = modes::run_row_parallel(L_init, sequence, num_qubits, config);
+    } else {
+#ifndef USE_MPI
+        throw std::runtime_error("Distributed GPU mode with multiple ranks requires MPI");
+#else
+        DistributedGPUConfig dg_cfg;
+        dg_cfg.world_size = static_cast<int>(world_size);
+        dg_cfg.rank = rank;
+        dg_cfg.device_id = -1;  // rank-based mapping
+        dg_cfg.enable_collectives = config.enable_nccl;
+        dg_cfg.overlap_comm_compute = config.overlap_comm_compute;
+
+        DistributedGPUSimulator dist(dg_cfg);
+        dist.distribute_state(L_init);
+        auto compute_local_bits = [](size_t rows) -> size_t {
+            if (rows == 0) {
+                throw std::invalid_argument("Local rows must be non-zero for distributed GPU");
+            }
+            double bits = std::log2(static_cast<double>(rows));
+            size_t rounded = static_cast<size_t>(std::llround(bits));
+            if (std::fabs(bits - static_cast<double>(rounded)) > 1e-9) {
+                throw std::invalid_argument("Local rows must be a power of two for distributed GPU");
+            }
+            return rounded;
+        };
+
+        MatrixXcd local_block = dist.copy_local_to_host();
+        size_t local_bits = compute_local_bits(local_block.rows());
+
+        GPUConfig gpu_cfg;
+        gpu_cfg.device_id = dist.device_id();
+        gpu_cfg.verbose = config.verbose;
+        GPUSimulator local_gpu(local_bits, gpu_cfg);
+        local_gpu.upload_state(local_block);
+
+        MatrixXcd full_state;
+
+        auto sync_to_dist = [&]() {
+            MatrixXcd host = local_gpu.download_state();
+            dist.upload_local_from_host(host);
+            return host;
+        };
+
+        auto refresh_from_dist = [&]() {
+            MatrixXcd host = dist.copy_local_to_host();
+            local_bits = compute_local_bits(host.rows());
+            local_gpu.upload_state(host);
+            return host;
+        };
+
+        auto broadcast_full = [&](MatrixXcd& full) {
+            if (world_size <= 1) return;
+            long long shape[2] = {0, 0};
+            if (rank == 0) {
+                shape[0] = static_cast<long long>(full.rows());
+                shape[1] = static_cast<long long>(full.cols());
+            }
+            MPI_Bcast(shape, 2, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
+            if (rank != 0) {
+                full.resize(static_cast<Eigen::Index>(shape[0]), static_cast<Eigen::Index>(shape[1]));
+            }
+            int count = static_cast<int>(full.size());
+            MPI_Bcast(full.data(), count, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+        };
+
+        auto redistribute_full = [&](const MatrixXcd& full) {
+            dist.distribute_state(full);
+            refresh_from_dist();
+        };
+
+        auto needs_global = [&](const std::vector<size_t>& qubits) {
+            if (qubits.empty()) return false;
+            size_t max_q = *std::max_element(qubits.begin(), qubits.end());
+            return max_q >= local_bits;
+        };
+
+        for (const auto& op : sequence.operations) {
+            if (std::holds_alternative<GateOp>(op)) {
+                const auto& gate = std::get<GateOp>(op);
+                bool remote = needs_global(gate.qubits);
+                if (!remote) {
+                    // Local gate fits within the local partition (GPU)
+                    local_gpu.apply_gate(gate);
+                    if (gate.qubits.size() == 2) {
+                        dist.overlap_for_two_qubit(false);
+                    }
+                } else {
+                    // Global gate: gather -> apply on root -> broadcast -> redistribute
+                    sync_to_dist();
+                    full_state = dist.gather_state();
+                    if (rank == 0 && full_state.size() > 0) {
+                        dist.overlap_for_two_qubit(true);
+                        full_state = apply_gate_to_L(full_state, gate, num_qubits);
+                    }
+                    broadcast_full(full_state);
+                    redistribute_full(full_state);
+                }
+            } else if (std::holds_alternative<NoiseOp>(op)) {
+                const auto& noise = std::get<NoiseOp>(op);
+                bool remote = needs_global(noise.qubits);
+                if (!remote) {
+                    local_gpu.apply_noise(noise);
+                    if (config.do_truncation && local_gpu.get_rank() > 1) {
+                        local_gpu.truncate(config.truncation_threshold);
+                    }
+                } else {
+                    sync_to_dist();
+                    full_state = dist.gather_state();
+                    if (rank == 0 && full_state.size() > 0) {
+                        full_state = apply_noise_to_L(full_state, noise, num_qubits);
+                        if (config.do_truncation && full_state.cols() > 1) {
+                            full_state = truncate_L(full_state, config.truncation_threshold);
+                        }
+                    }
+                    broadcast_full(full_state);
+                    redistribute_full(full_state);
+                }
+            }
+        }
+
+        // Final gather for output
+        sync_to_dist();
+        MatrixXcd gathered = dist.gather_state();
+        if (rank == 0 && gathered.size() > 0) {
+            L_final = gathered;
+        } else {
+            L_final = refresh_from_dist();
+        }
+#endif  // USE_MPI
+    }
+#else
+    (void)sequence; (void)batch_size; (void)num_qubits; (void)config; (void)L_init;
+    throw std::runtime_error("Distributed GPU mode requires USE_GPU=ON");
+#endif
+
+    double elapsed = timer.elapsed_seconds();
+    ModeResult result;
+    result.mode = ParallelMode::GPU_DISTRIBUTED;
+    result.time_seconds = elapsed;
+    result.L_final = L_final;
+    result.final_rank = L_final.cols();
+    result.trace_value = (L_final * L_final.adjoint()).trace().real();
+    return result;
+}
+
 //==============================================================================
 // Main Entry Points
 //==============================================================================
@@ -716,6 +891,9 @@ ModeResult run_with_mode(
                 mpi_cfg.comm_strategy = MPICommStrategy::PAIRWISE;
                 L_final = simulate_mpi(L_init, sequence, num_qubits, config, mpi_cfg);
                 break;
+            }
+            case ParallelMode::GPU_DISTRIBUTED: {
+                return run_distributed_gpu(L_init, sequence, num_qubits, config, batch_size);
             }
             case ParallelMode::AUTO:
             default:

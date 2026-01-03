@@ -103,6 +103,7 @@ public:
 
         CUDA_CHECK(cudaStreamCreate(&compute_stream_));
         CUDA_CHECK(cudaStreamCreate(&comm_stream_));
+        CUDA_CHECK(cudaEventCreateWithFlags(&prefetch_event_, cudaEventDisableTiming));
 
         if (config_.verbose) {
             std::cout << "[DistributedGPUSimulator] rank=" << config_.rank
@@ -119,6 +120,7 @@ public:
 #endif
         if (compute_stream_) cudaStreamDestroy(compute_stream_);
         if (comm_stream_) cudaStreamDestroy(comm_stream_);
+        if (prefetch_event_) cudaEventDestroy(prefetch_event_);
         if (d_L_) cudaFree(d_L_);
     }
 
@@ -132,6 +134,7 @@ public:
 #endif
             if (compute_stream_) cudaStreamDestroy(compute_stream_);
             if (comm_stream_) cudaStreamDestroy(comm_stream_);
+            if (prefetch_event_) cudaEventDestroy(prefetch_event_);
             if (d_L_) cudaFree(d_L_);
             move_from(std::move(other));
         }
@@ -265,6 +268,59 @@ public:
 #endif
     }
 
+    void overlap_for_two_qubit(bool needs_remote) {
+        if (!needs_remote || !config_.overlap_comm_compute) {
+            return;
+        }
+        // Record an event on the comm stream and make compute stream wait,
+        // establishing a hook for future async prefetch/comm work.
+        CUDA_CHECK(cudaEventRecord(prefetch_event_, comm_stream_));
+        CUDA_CHECK(cudaStreamWaitEvent(compute_stream_, prefetch_event_, 0));
+    }
+
+    MatrixXcd copy_local_to_host() const {
+        if (local_rows_ == 0 || columns_ == 0) {
+            return MatrixXcd();
+        }
+
+        size_t local_elems = local_rows_ * columns_;
+        std::vector<std::complex<double>> host_col_major(local_elems);
+        CUDA_CHECK(cudaMemcpyAsync(host_col_major.data(), d_L_, local_elems * sizeof(cuDoubleComplex), cudaMemcpyDeviceToHost, compute_stream_));
+        CUDA_CHECK(cudaStreamSynchronize(compute_stream_));
+
+        MatrixXcd out(local_rows_, columns_);
+        for (size_t c = 0; c < columns_; ++c) {
+            for (size_t r = 0; r < local_rows_; ++r) {
+                out(static_cast<Eigen::Index>(r), static_cast<Eigen::Index>(c)) = host_col_major[c * local_rows_ + r];
+            }
+        }
+        return out;
+    }
+
+    void upload_local_from_host(const MatrixXcd& local) {
+        if (local_rows_ == 0 || columns_ == 0) {
+            return;
+        }
+        if (local.rows() != static_cast<Eigen::Index>(local_rows_) || local.cols() != static_cast<Eigen::Index>(columns_)) {
+            throw std::invalid_argument("upload_local_from_host shape mismatch");
+        }
+
+        size_t local_elems = local_rows_ * columns_;
+        host_local_.assign(local_elems, std::complex<double>(0.0, 0.0));
+        for (size_t c = 0; c < columns_; ++c) {
+            for (size_t r = 0; r < local_rows_; ++r) {
+                host_local_[c * local_rows_ + r] = local(static_cast<Eigen::Index>(r), static_cast<Eigen::Index>(c));
+            }
+        }
+
+        if (!d_L_) {
+            CUDA_CHECK(cudaMalloc(&d_L_, local_elems * sizeof(cuDoubleComplex)));
+        }
+
+        CUDA_CHECK(cudaMemcpyAsync(d_L_, host_local_.data(), local_elems * sizeof(cuDoubleComplex), cudaMemcpyHostToDevice, compute_stream_));
+        CUDA_CHECK(cudaStreamSynchronize(compute_stream_));
+    }
+
     size_t local_rows() const { return local_rows_; }
     size_t global_rows() const { return global_rows_; }
     size_t columns() const { return columns_; }
@@ -309,6 +365,7 @@ private:
 
     cudaStream_t compute_stream_ = nullptr;
     cudaStream_t comm_stream_ = nullptr;
+    cudaEvent_t prefetch_event_ = nullptr;
     cuDoubleComplex* d_L_ = nullptr;
 
     size_t global_rows_ = 0;
@@ -341,6 +398,18 @@ MatrixXcd DistributedGPUSimulator::gather_state() const {
 
 double DistributedGPUSimulator::all_reduce_expectation(double local_exp) const {
     return impl_->all_reduce_expectation(local_exp);
+}
+
+void DistributedGPUSimulator::overlap_for_two_qubit(bool needs_remote) {
+    impl_->overlap_for_two_qubit(needs_remote);
+}
+
+MatrixXcd DistributedGPUSimulator::copy_local_to_host() const {
+    return impl_->copy_local_to_host();
+}
+
+void DistributedGPUSimulator::upload_local_from_host(const MatrixXcd& local) {
+    impl_->upload_local_from_host(local);
 }
 
 size_t DistributedGPUSimulator::local_rows() const { return impl_->local_rows(); }
