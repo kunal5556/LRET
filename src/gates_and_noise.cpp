@@ -230,7 +230,9 @@ MatrixXcd apply_single_gate_direct(const MatrixXcd& L, const MatrixXcd& gate, si
     size_t step = 1ULL << target;
     
     // Process pairs of rows that differ only in the target qubit
-    #pragma omp parallel for schedule(dynamic) if(dim > 256)
+    // Use static scheduling: gate application has uniform workload per iteration
+    // This avoids dynamic scheduling overhead which can cause apparent "hanging"
+    #pragma omp parallel for schedule(static) if(dim > 256 && rank > 2)
     for (size_t block = 0; block < dim; block += 2 * step) {
         for (size_t i = block; i < block + step && i < dim; ++i) {
             size_t i0 = i;           // target qubit = 0

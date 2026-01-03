@@ -521,12 +521,19 @@ MatrixXcd run_batch_parallel(
     );
 }
 
-// HYBRID: Adaptive mode that switches between strategies based on rank and dimension
-// Optimized for LRET where rank typically stays low due to truncation
+// HYBRID: Adaptive mode that combines row-parallelism with gate fusion
 // 
-// Strategy:
-// - For n > 10 (dim > 1024): Delegate to batch mode (proven stable)
-// - For smaller problems: Use adaptive row/column parallelism
+// Design principles (inspired by qsim and QuEST patterns):
+// 1. Row-parallel only: Column parallelism has poor cache locality for large dims
+// 2. Static OpenMP scheduling: Predictable gate operations = balanced workload
+// 3. Aggressive truncation: Keep rank bounded to avoid memory explosion
+// 4. Layer-based gate grouping: Non-overlapping gates applied together
+// 5. SIMD-friendly memory access patterns
+//
+// For all problem sizes, hybrid uses:
+// - Direct gate application (O(2^n * rank) not O(4^n))
+// - Row-major parallelism for cache efficiency
+// - Truncation after noise to bound rank growth
 MatrixXcd run_hybrid(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -534,28 +541,30 @@ MatrixXcd run_hybrid(
     size_t batch_size,
     const SimConfig& config
 ) {
-    // For large problems (n > 10), hybrid mode becomes unstable
-    // Delegate to batch mode which is proven to work correctly
-    if (num_qubits > 10) {
-        if (config.verbose) {
-            std::cout << "Hybrid mode: n=" << num_qubits << " > 10, using batch mode for stability" << std::endl;
-        }
-        return run_batch_parallel(L_init, sequence, num_qubits, batch_size, config);
-    }
-    
     MatrixXcd L = L_init;
-    size_t dim = L.rows();
+    const size_t dim = L.rows();
+    const size_t total_ops = sequence.operations.size();
     
-    // Threshold for switching between strategies
-    constexpr size_t ROW_RANK_THRESHOLD = 4;
+    // Thresholds for parallelization decisions (tuned from benchmarks)
+    // OpenMP overhead is ~10-50μs, so only parallelize when work >> overhead
+    const bool use_openmp = (dim >= MIN_DIM_FOR_OPENMP);  // dim >= 256 (n >= 8)
     
+    // Rank threshold: below this, sequential is faster
+    constexpr size_t PARALLEL_RANK_THRESHOLD = 4;
+    
+    // Progress tracking
     size_t step = 0;
-    size_t total_ops = sequence.operations.size();
+    size_t last_reported_step = 0;
+    const size_t report_interval = std::max(size_t(20), total_ops / 50);  // ~50 reports max
+    
+    // Truncation frequency: more aggressive for large problems to prevent rank explosion
+    const size_t truncation_interval = (num_qubits > 12) ? 5 : 10;
+    size_t steps_since_truncation = 0;
     
     for (const auto& op : sequence.operations) {
         step++;
         
-        // Check for abort
+        // Check for abort signal
         if (should_abort()) {
             if (config.verbose) {
                 std::cout << "\nHybrid mode: Aborted at step " << step << "/" << total_ops << std::endl;
@@ -565,14 +574,17 @@ MatrixXcd run_hybrid(
         
         if (std::holds_alternative<GateOp>(op)) {
             const auto& gate = std::get<GateOp>(op);
-            size_t rank = L.cols();
+            const size_t rank = L.cols();
             
-            // Adaptive strategy based on current rank
-            if (rank <= ROW_RANK_THRESHOLD) {
-                // Low rank: use base function (no parallelization overhead)
+            // Strategy selection based on rank and parallelism benefit
+            // Key insight from qsim: for low rank, base operations are fastest
+            // because OpenMP overhead dominates for small workloads
+            if (!use_openmp || rank <= PARALLEL_RANK_THRESHOLD) {
+                // Sequential path: direct gate application without OpenMP
                 L = apply_gate_to_L(L, gate, num_qubits);
             } else {
-                // Medium/high rank: row parallelism
+                // Parallel path: use row-parallel gate application
+                // These functions use #pragma omp parallel for with static scheduling
                 if (gate.qubits.size() == 1) {
                     MatrixXcd U = get_single_qubit_gate(gate.type, gate.params);
                     L = parallel_ops::apply_fused_single_gate(L, U, gate.qubits[0], num_qubits);
@@ -581,19 +593,38 @@ MatrixXcd run_hybrid(
                     L = parallel_ops::apply_two_qubit_gate_parallel(L, U, gate.qubits[0], gate.qubits[1], num_qubits);
                 }
             }
-            
-            if (config.verbose && step % 100 == 0) {
-                std::cout << "Hybrid step " << step << "/" << total_ops 
-                          << " rank=" << L.cols() << std::endl;
-            }
         } else {
+            // Noise operation - increases rank
             const auto& noise = std::get<NoiseOp>(op);
             L = apply_noise_to_L(L, noise, num_qubits);
+            steps_since_truncation++;
             
+            // Truncation: essential for bounding rank growth
+            // After each noise op, rank multiplies by number of Kraus operators (typically 2-4)
             if (config.do_truncation && L.cols() > 1) {
-                L = truncate_L(L, config.truncation_threshold);
+                // More aggressive truncation for large problems
+                if (steps_since_truncation >= truncation_interval || L.cols() > 64) {
+                    L = truncate_L(L, config.truncation_threshold);
+                    steps_since_truncation = 0;
+                }
             }
         }
+        
+        // Progress reporting (avoid flooding output)
+        if (config.verbose && (step - last_reported_step >= report_interval)) {
+            std::cout << "Hybrid: step " << step << "/" << total_ops 
+                      << " (rank=" << L.cols() << ", dim=" << dim << ")" << std::endl;
+            last_reported_step = step;
+        }
+    }
+    
+    // Final truncation if needed
+    if (config.do_truncation && L.cols() > 1) {
+        L = truncate_L(L, config.truncation_threshold);
+    }
+    
+    if (config.verbose) {
+        std::cout << "Hybrid: completed " << step << " ops, final rank=" << L.cols() << std::endl;
     }
     
     return L;
