@@ -521,19 +521,20 @@ MatrixXcd run_batch_parallel(
     );
 }
 
-// HYBRID: Adaptive mode that combines row-parallelism with gate fusion
+// HYBRID: Adaptive mode that combines row AND column parallelism
 // 
 // Design principles (inspired by qsim and QuEST patterns):
-// 1. Row-parallel only: Column parallelism has poor cache locality for large dims
-// 2. Static OpenMP scheduling: Predictable gate operations = balanced workload
-// 3. Aggressive truncation: Keep rank bounded to avoid memory explosion
-// 4. Layer-based gate grouping: Non-overlapping gates applied together
+// 1. Row-parallel for low-to-medium rank (cache-friendly, avoids false sharing)
+// 2. Column-parallel for high rank with large dims (independent columns, embarrassingly parallel)
+// 3. Static OpenMP scheduling: Predictable gate operations = balanced workload
+// 4. Aggressive truncation: Keep rank bounded to avoid memory explosion
 // 5. SIMD-friendly memory access patterns
 //
-// For all problem sizes, hybrid uses:
-// - Direct gate application (O(2^n * rank) not O(4^n))
-// - Row-major parallelism for cache efficiency
-// - Truncation after noise to bound rank growth
+// Strategy selection (from QuEST/qsim benchmarks):
+// - rank <= 4: Sequential (OpenMP overhead > benefit)
+// - rank <= 16 OR dim < 8192: Row-parallel (cache-efficient for L matrix)
+// - rank > 32 AND dim >= 8192: Column-parallel (each column independent, scales perfectly)
+// - Otherwise: Row-parallel (default safe choice)
 MatrixXcd run_hybrid(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -549,8 +550,10 @@ MatrixXcd run_hybrid(
     // OpenMP overhead is ~10-50μs, so only parallelize when work >> overhead
     const bool use_openmp = (dim >= MIN_DIM_FOR_OPENMP);  // dim >= 256 (n >= 8)
     
-    // Rank threshold: below this, sequential is faster
-    constexpr size_t PARALLEL_RANK_THRESHOLD = 4;
+    // Rank thresholds for strategy selection
+    constexpr size_t SEQUENTIAL_RANK_THRESHOLD = 4;      // Below this: sequential
+    constexpr size_t COL_PARALLEL_RANK_THRESHOLD = 32;   // Above this: consider column parallel
+    constexpr size_t COL_PARALLEL_DIM_THRESHOLD = 8192;  // dim >= 8192 (n >= 13) for column parallel
     
     // Progress tracking
     size_t step = 0;
@@ -576,15 +579,20 @@ MatrixXcd run_hybrid(
             const auto& gate = std::get<GateOp>(op);
             const size_t rank = L.cols();
             
-            // Strategy selection based on rank and parallelism benefit
-            // Key insight from qsim: for low rank, base operations are fastest
-            // because OpenMP overhead dominates for small workloads
-            if (!use_openmp || rank <= PARALLEL_RANK_THRESHOLD) {
+            // Strategy selection based on rank and dimension
+            // Key insight: Choose parallelism axis based on which dimension is larger
+            if (!use_openmp || rank <= SEQUENTIAL_RANK_THRESHOLD) {
                 // Sequential path: direct gate application without OpenMP
+                // Best for: small problems, very low rank
                 L = apply_gate_to_L(L, gate, num_qubits);
+            } else if (rank > COL_PARALLEL_RANK_THRESHOLD && dim >= COL_PARALLEL_DIM_THRESHOLD) {
+                // Column-parallel path: parallelize over columns (independent pure states)
+                // Best for: high rank AND large dim - each column is independent
+                // Cache note: Eigen uses column-major by default, so this is cache-friendly
+                L = parallel_ops::apply_gate_column_parallel(L, gate, num_qubits);
             } else {
-                // Parallel path: use row-parallel gate application
-                // These functions use #pragma omp parallel for with static scheduling
+                // Row-parallel path: parallelize over rows
+                // Best for: medium rank, any dim - good cache locality for row operations
                 if (gate.qubits.size() == 1) {
                     MatrixXcd U = get_single_qubit_gate(gate.type, gate.params);
                     L = parallel_ops::apply_fused_single_gate(L, U, gate.qubits[0], num_qubits);
