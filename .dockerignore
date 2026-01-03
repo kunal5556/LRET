@@ -1,0 +1,33 @@
+# Build artifacts
+build/
+CMakeFiles/
+CMakeCache.txt
+*.o
+*.obj
+*.exe
+*.dll
+*.pdb
+*.so
+*.dylib
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE / VCS / misc
+.vscode/
+.idea/
+.git/
+.gitmodules
+
+# Generated outputs
+output/
+*.csv
+*.json
+
+# Local notebooks and datasets
+*.ipynb
+*.h5
+*.npz

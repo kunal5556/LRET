@@ -34,6 +34,21 @@ This produces `./quantum_sim` (main benchmark) and `./demo_batch` (batch heurist
 ### Using Docker (Alternative)
 A pre-built Docker image is available on Docker Hub for easy setup without manual compilation.
 
+#### Phase 6 multi-stage build and tests
+```bash
+# Build and run pytest gate (fails image build on test failures)
+docker build --target tester -t qlret:test .
+
+# Build minimal runtime image (CLI + Python bindings)
+docker build -t qlret:latest .
+
+# Run CLI
+docker run --rm qlret:latest ./quantum_sim -n 10 -d 14 --mode sequential
+
+# Run Python API
+docker run --rm qlret:latest python -c "import qlret; from qlret import simulate_json; print('qlret OK')"
+```
+
 #### Pull and Run the Docker Image
 ```bash
 cd lret-

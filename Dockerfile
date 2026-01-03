@@ -1,20 +1,20 @@
-# QuantumLRET-Sim Dockerfile
-# Supports CLI arguments and structured CSV output
-#
-# Build:
-#   docker build -t quantum-lret .
-#
-# Run examples:
-#   docker run quantum-lret -n 10 -d 15 --mode compare --fdm
-#   docker run -v $(pwd)/output:/app/output quantum-lret -n 12 -d 20 -o /app/output/results.csv
-#
-# For CSV persistence, mount a volume to /app/output
+##########################################################
+# Multi-Stage Dockerfile for QLRET (Phase 6a)
+# Stages: cpp-builder -> python-builder -> tester -> runtime
+# Usage:
+#   docker build -t qlret:latest .
+#   docker run --rm qlret:latest ./quantum_sim -n 6 -d 8 --mode sequential
+#   docker run --rm qlret:latest python -c "from qlret import simulate_json; print('OK')"
+##########################################################
 
-FROM ubuntu:24.04 AS builder
+# --------------------------------------------------------
+# Stage 1: C++ builder (build quantum_sim + _qlret_native)
+# --------------------------------------------------------
+FROM python:3.11-slim AS cpp-builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install build dependencies (git + ca-certificates for nlohmann/json FetchContent)
+# Build dependencies (git/ca-certificates for FetchContent)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
@@ -22,63 +22,138 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libeigen3-dev \
     libomp-dev \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy CMakeLists first for better layer caching
+# Copy source with caching-friendly order
 COPY CMakeLists.txt .
-
-# Copy headers and sources separately for caching
 COPY include/ include/
 COPY src/ src/
-COPY scripts/ scripts/
-COPY scripts/example_commands_phase4.txt scripts/example_commands_phase4.txt
+COPY python/ python/
 COPY main.cpp .
+COPY tests/ tests/
 COPY test_noise_import.cpp .
+COPY test_fidelity.cpp .
+COPY test_minimal.cpp .
 
-# Build the project with OpenMP support
+# Configure and build (enable Python bindings)
 RUN mkdir -p build && cd build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release && \
-    make -j$(nproc)
+    cmake .. \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DUSE_PYTHON=ON && \
+    cmake --build . -- -j$(nproc)
 
-# ---- Runtime stage (smaller final image) ----
-FROM ubuntu:24.04 AS runtime
+# --------------------------------------------------------
+# Stage 2: Python builder (install qlret + deps)
+# --------------------------------------------------------
+FROM python:3.11-slim AS python-builder
 
 ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /app
 
-# Install runtime dependencies (Python stack for calibration tools)
+# Runtime deps needed by numpy/PennyLane wheels
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libomp5 \
     libgomp1 \
-    python3 \
-    python3-pip \
-    python3-numpy \
-    python3-scipy \
-    python3-pandas \
-    python3-matplotlib \
     && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip and install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools
+RUN pip install --no-cache-dir \
+    numpy>=1.20 \
+    scipy \
+    matplotlib \
+    pennylane>=0.30 \
+    pytest \
+    pytest-cov
+
+# Copy Python package sources
+COPY python/ python/
+
+# Bring in native module from cpp-builder
+COPY --from=cpp-builder /app/python/qlret/_qlret_native*.so python/qlret/
+
+# Install qlret (includes dev extras for tests)
+RUN pip install --no-cache-dir ./python[dev]
+
+# Ensure native module lives inside installed package
+RUN python - <<"PY"
+import shutil
+import pathlib
+import qlret
+
+dest = pathlib.Path(qlret.__file__).parent
+for so in pathlib.Path('/app/python/qlret').glob('_qlret_native*.so'):
+    shutil.copy2(so, dest / so.name)
+print(f"Native module installed to: {dest}")
+PY
+
+# Quick import check
+RUN python - <<"PY"
+import qlret
+from qlret import simulate_json
+print("qlret version", qlret.__version__)
+PY
+
+# --------------------------------------------------------
+# Stage 3: Tester (run pytest to gate the image)
+# --------------------------------------------------------
+FROM python-builder AS tester
 
 WORKDIR /app
 
-# Copy binaries from builder stage
-COPY --from=builder /app/build/quantum_sim ./quantum_sim
-COPY --from=builder /app/build/test_noise_import ./test_noise_import
+# Copy C++ executable from builder
+COPY --from=cpp-builder /app/build/quantum_sim /usr/local/bin/quantum_sim
+ENV PATH="/usr/local/bin:${PATH}"
 
-# Copy Python scripts for noise model management
+# Bring tests and samples
+COPY python/tests/ tests/
+COPY samples/ samples/
+
+# Run integration tests (fail build on errors)
+RUN pytest tests/ -v --tb=short
+
+# --------------------------------------------------------
+# Stage 4: Runtime (minimal, flexible entrypoint)
+# --------------------------------------------------------
+FROM python:3.11-slim AS runtime
+
+ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /app
+
+# Runtime libs only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libomp5 \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy executables and Python environment
+COPY --from=cpp-builder /app/build/quantum_sim /usr/local/bin/quantum_sim
+COPY --from=cpp-builder /app/python/qlret/_qlret_native*.so /tmp/
+COPY --from=python-builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=python-builder /usr/local/bin /usr/local/bin
+
+# Place native module with installed package
+RUN python - <<"PY"
+import pathlib, shutil
+import site
+
+site_packages = pathlib.Path(site.getsitepackages()[0])
+qlret_dir = site_packages / 'qlret'
+qlret_dir.mkdir(parents=True, exist_ok=True)
+for so in pathlib.Path('/tmp').glob('_qlret_native*.so'):
+    shutil.move(str(so), qlret_dir / so.name)
+print(f"Native module moved to {qlret_dir}")
+PY
+
+# Copy samples and scripts for convenience
+COPY samples/ samples/
 COPY scripts/ scripts/
 
-# Create output directory for CSV files
+# Workspace for outputs
 RUN mkdir -p /app/output
 
-# Use ENTRYPOINT so arguments can be passed via docker run
-ENTRYPOINT ["./quantum_sim"]
-
-# Default arguments (can be overridden)
-# Note: No -o flag by default. User must add -o to generate output file.
-# Examples:
-#   docker run quantum-lret                           # No output file
-#   docker run quantum-lret -o                        # Default filename in container
-#   docker run quantum-lret -o results.csv            # Custom filename in container
-#   docker run -v /host/path:/app/output quantum-lret -o /app/output/results.csv  # Save to host
-CMD ["-n", "8", "-d", "13", "--mode", "compare", "--fdm"]
+# Default to bash for flexible usage (override in docker run)
+CMD ["/bin/bash"]
