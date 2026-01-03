@@ -80,6 +80,23 @@ struct LeakageChannel {
     bool use_qutrit = true;       // True: embed as 3-level; False: effective two-level reset
 };
 
+// Structure representing a gate operation
+struct GateOp {
+    GateType type;
+    std::vector<size_t> qubits;  // Target qubits (1 for single, 2 for two-qubit)
+    std::vector<double> params;  // Optional parameters (e.g., rotation angles)
+    std::optional<MatrixXcd> custom_matrix;  // For custom gates
+    
+    GateOp(GateType t, std::vector<size_t> q, std::vector<double> p = {})
+        : type(t), qubits(std::move(q)), params(std::move(p)) {}
+    
+    GateOp(GateType t, size_t q, std::vector<double> p = {})
+        : type(t), qubits({q}), params(std::move(p)) {}
+    
+    GateOp(GateType t, size_t q1, size_t q2)
+        : type(t), qubits({q1, q2}) {}
+};
+
 // Measurement confusion specification (Phase 4.5)
 struct MeasurementSpec {
     size_t qubit = 0;
@@ -100,23 +117,6 @@ struct ConditionalOp {
     size_t classical_bit = 0;     // Classical bit to check
     int expected_value = 1;       // Expected value (0 or 1)
     GateOp gate;                  // Gate to apply if condition met
-};
-
-// Structure representing a gate operation
-struct GateOp {
-    GateType type;
-    std::vector<size_t> qubits;  // Target qubits (1 for single, 2 for two-qubit)
-    std::vector<double> params;  // Optional parameters (e.g., rotation angles)
-    std::optional<MatrixXcd> custom_matrix;  // For custom gates
-    
-    GateOp(GateType t, std::vector<size_t> q, std::vector<double> p = {})
-        : type(t), qubits(std::move(q)), params(std::move(p)) {}
-    
-    GateOp(GateType t, size_t q, std::vector<double> p = {})
-        : type(t), qubits({q}), params(std::move(p)) {}
-    
-    GateOp(GateType t, size_t q1, size_t q2)
-        : type(t), qubits({q1, q2}) {}
 };
 
 // Structure representing a noise operation
