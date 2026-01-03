@@ -14,11 +14,12 @@ FROM ubuntu:24.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install build dependencies (git required for nlohmann/json FetchContent)
+# Install build dependencies (git + ca-certificates for nlohmann/json FetchContent)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
     git \
+    ca-certificates \
     libeigen3-dev \
     libomp-dev \
     && rm -rf /var/lib/apt/lists/*
