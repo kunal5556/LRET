@@ -1,4 +1,8 @@
+# Minimum CMake version
 cmake_minimum_required(VERSION 3.16)
+
+# Enable position independent code so static libs can link into Python module (_qlret_native)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # GPU Support Option (must be set before project())
 option(USE_GPU "Enable NVIDIA GPU acceleration via cuQuantum" OFF)
