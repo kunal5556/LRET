@@ -80,9 +80,11 @@ if(USE_MPI)
 endif()
 
 #==============================================================================
-# GPU/CUDA Configuration (Phase 2)
+# GPU/CUDA Configuration (Phase 2) + NCCL (Phase 8.1)
 #==============================================================================
 if(USE_GPU)
+    option(USE_NCCL "Enable NCCL for multi-GPU collectives" OFF)
+
     # CUDA settings
     set(CMAKE_CUDA_STANDARD 17)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
@@ -118,6 +120,36 @@ if(USE_GPU)
     else()
         message(WARNING "cuQuantum not found. GPU simulation will use custom CUDA kernels.")
         set(CUQUANTUM_FOUND FALSE)
+    endif()
+
+    if(USE_NCCL)
+        find_path(NCCL_INCLUDE_DIR
+            NAMES nccl.h
+            HINTS
+                ${NCCL_ROOT}/include
+                $ENV{NCCL_ROOT}/include
+                /usr/local/cuda/include
+                /usr/include
+        )
+        
+        find_library(NCCL_LIBRARY
+            NAMES nccl
+            HINTS
+                ${NCCL_ROOT}/lib
+                ${NCCL_ROOT}/lib64
+                $ENV{NCCL_ROOT}/lib
+                $ENV{NCCL_ROOT}/lib64
+                /usr/local/cuda/lib64
+                /usr/lib/x86_64-linux-gnu
+        )
+
+        if(NCCL_INCLUDE_DIR AND NCCL_LIBRARY)
+            message(STATUS "Found NCCL: ${NCCL_LIBRARY}")
+            set(NCCL_FOUND TRUE)
+        else()
+            message(WARNING "NCCL requested but not found. Multi-GPU collectives will be disabled.")
+            set(NCCL_FOUND FALSE)
+        endif()
     endif()
 endif()
 
@@ -176,6 +208,7 @@ if(USE_GPU)
     # GPU simulator CUDA source
     set(GPU_SOURCES
         src/gpu_simulator.cu
+        src/distributed_gpu.cu
     )
     
     # Create GPU library
@@ -203,6 +236,12 @@ if(USE_GPU)
         target_include_directories(qlret_gpu PUBLIC ${CUQUANTUM_INCLUDE_DIR})
         target_link_libraries(qlret_gpu PUBLIC ${CUSTATEVEC_LIBRARY})
         target_compile_definitions(qlret_gpu PUBLIC USE_CUQUANTUM)
+    endif()
+
+    if(USE_NCCL AND NCCL_FOUND)
+        target_include_directories(qlret_gpu PUBLIC ${NCCL_INCLUDE_DIR})
+        target_link_libraries(qlret_gpu PUBLIC ${NCCL_LIBRARY})
+        target_compile_definitions(qlret_gpu PUBLIC USE_NCCL)
     endif()
     
     target_compile_definitions(qlret_gpu PUBLIC USE_GPU)
