@@ -525,10 +525,8 @@ MatrixXcd run_batch_parallel(
 // Optimized for LRET where rank typically stays low due to truncation
 // 
 // Strategy:
-// - For n > 10 (dim > 1024): Aggressive truncation to prevent rank explosion
-// - For low rank: Use fast base functions (minimal overhead)
-// - For medium rank: Use row parallelism
-// - Avoid column parallelism for large dim (too slow)
+// - For n > 10 (dim > 1024): Delegate to batch mode (proven stable)
+// - For smaller problems: Use adaptive row/column parallelism
 MatrixXcd run_hybrid(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -536,23 +534,23 @@ MatrixXcd run_hybrid(
     size_t batch_size,
     const SimConfig& config
 ) {
+    // For large problems (n > 10), hybrid mode becomes unstable
+    // Delegate to batch mode which is proven to work correctly
+    if (num_qubits > 10) {
+        if (config.verbose) {
+            std::cout << "Hybrid mode: n=" << num_qubits << " > 10, using batch mode for stability" << std::endl;
+        }
+        return run_batch_parallel(L_init, sequence, num_qubits, batch_size, config);
+    }
+    
     MatrixXcd L = L_init;
     size_t dim = L.rows();
     
     // Threshold for switching between strategies
     constexpr size_t ROW_RANK_THRESHOLD = 4;
     
-    // For large dimensions (n > 10), avoid expensive column operations
-    // and use more aggressive truncation
-    const bool large_problem = (num_qubits > 10);
-    const double adaptive_threshold = large_problem ? 
-        std::max(config.truncation_threshold, 1e-3) : config.truncation_threshold;
-    
     size_t step = 0;
     size_t total_ops = sequence.operations.size();
-    
-    // Progress reporting interval (more frequent for large problems)
-    const size_t report_interval = large_problem ? 20 : 100;
     
     for (const auto& op : sequence.operations) {
         step++;
@@ -569,13 +567,12 @@ MatrixXcd run_hybrid(
             const auto& gate = std::get<GateOp>(op);
             size_t rank = L.cols();
             
-            // For large problems, always use the fast row-parallel path
-            // Column parallelism is O(rank * 2^n) which explodes for n > 10
-            if (large_problem || rank <= ROW_RANK_THRESHOLD) {
-                // Use base function - already OpenMP optimized internally
+            // Adaptive strategy based on current rank
+            if (rank <= ROW_RANK_THRESHOLD) {
+                // Low rank: use base function (no parallelization overhead)
                 L = apply_gate_to_L(L, gate, num_qubits);
             } else {
-                // Medium rank: row parallelism
+                // Medium/high rank: row parallelism
                 if (gate.qubits.size() == 1) {
                     MatrixXcd U = get_single_qubit_gate(gate.type, gate.params);
                     L = parallel_ops::apply_fused_single_gate(L, U, gate.qubits[0], num_qubits);
@@ -585,7 +582,7 @@ MatrixXcd run_hybrid(
                 }
             }
             
-            if (config.verbose && step % report_interval == 0) {
+            if (config.verbose && step % 100 == 0) {
                 std::cout << "Hybrid step " << step << "/" << total_ops 
                           << " rank=" << L.cols() << std::endl;
             }
@@ -593,14 +590,8 @@ MatrixXcd run_hybrid(
             const auto& noise = std::get<NoiseOp>(op);
             L = apply_noise_to_L(L, noise, num_qubits);
             
-            // Truncate after noise - use adaptive threshold for large problems
             if (config.do_truncation && L.cols() > 1) {
-                L = truncate_L(L, adaptive_threshold);
-                
-                // For very large problems, also cap maximum rank to prevent slowdown
-                if (large_problem && L.cols() > 32) {
-                    L = truncate_L(L, adaptive_threshold * 10);
-                }
+                L = truncate_L(L, config.truncation_threshold);
             }
         }
     }
