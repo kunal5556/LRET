@@ -182,6 +182,11 @@ PARALLELIZATION OPTIONS:
                           batch      - Batch gate application
                           hybrid     - Combined row/column strategy
                           compare    - Run all modes and compare performance
+    --threads N           Set OpenMP thread count (0=all cores, default: 0)
+    --omp-threads N       Alias for --threads
+
+TIMING OPTIONS:
+    --show-timing         Display detailed timing breakdown after simulation
 
 GPU OPTIONS (Phase 2):
     --device DEVICE       Device selection:
@@ -196,16 +201,29 @@ GPU OPTIONS (Phase 2):
     --gpu-info            Print GPU information and exit
 
 MPI OPTIONS (Phase 3 - Distributed Computing):
+    NOTE: MPI modes require a special MPI-enabled build (USE_MPI=ON).
+    The standard Docker image does NOT include MPI support.
+    MPI is intended for multi-node HPC clusters, not single-machine Docker.
+
     --mpi                 Enable MPI distributed simulation
     --mode mpi-row        Use row-wise MPI distribution (default MPI mode)
     --mode mpi-column     Use column-wise MPI distribution
+    --mode mpi-hybrid     MPI + OpenMP hybrid (distributed + threaded)
     --mpi-verbose         Print MPI communication statistics
     --mpi-validate        Validate MPI results against local simulation
     --mpi-info            Print MPI topology information
 
-    Usage with mpirun:
-        mpirun -np 4 ./lret -n 14 -d 100 --mpi --mode mpi-row
-        mpirun -np 8 ./lret -n 16 -d 200 --mpi --mpi-verbose
+    Building with MPI:
+        cmake .. -DUSE_MPI=ON   # Requires MPI installation (OpenMPI, MPICH)
+        make -j$(nproc)
+
+    Running with MPI (requires MPI build):
+        mpirun -np 4 ./quantum_sim -n 14 -d 100 --mode mpi-row
+        mpirun -np 8 ./quantum_sim -n 16 -d 200 --mpi-verbose
+
+    On standard Docker image (no MPI):
+        MPI modes will throw an error. Use CPU modes instead:
+        --mode sequential, --mode row, --mode column, --mode batch, --mode hybrid
 
 INITIAL STATE OPTIONS:
     --initial-rank N      Start with random mixed state of rank N (default: 1)
@@ -591,8 +609,14 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
             continue;
         }
         
-        // Thread count
-        if (arg == "--threads" && i + 1 < argc) {
+        // Show timing breakdown
+        if (arg == "--show-timing") {
+            opts.show_timing = true;
+            continue;
+        }
+        
+        // Thread count (supports both --threads and --omp-threads)
+        if ((arg == "--threads" || arg == "--omp-threads") && i + 1 < argc) {
             opts.num_threads = std::stoul(argv[++i]);
             continue;
         }

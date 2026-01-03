@@ -108,6 +108,7 @@ struct CLIOptions {
     
     // Output options
     bool verbose = false;
+    bool show_timing = false;      // --show-timing (display timing breakdown)
     std::optional<std::string> output_file;
     bool generate_output = false;  // True if -o flag was given (with or without filename)
     

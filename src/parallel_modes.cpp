@@ -521,10 +521,14 @@ MatrixXcd run_batch_parallel(
     );
 }
 
-// HYBRID: Adaptive mode that switches between row and batch based on rank
-// - For low rank (1-4): Use batch (minimal overhead)
-// - For medium rank (4-16): Use row parallelism
-// - For high rank (16+): Use column parallelism
+// HYBRID: Adaptive mode that switches between strategies based on rank and dimension
+// Optimized for LRET where rank typically stays low due to truncation
+// 
+// Strategy:
+// - For n > 10 (dim > 1024): Aggressive truncation to prevent rank explosion
+// - For low rank: Use fast base functions (minimal overhead)
+// - For medium rank: Use row parallelism
+// - Avoid column parallelism for large dim (too slow)
 MatrixXcd run_hybrid(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -537,10 +541,18 @@ MatrixXcd run_hybrid(
     
     // Threshold for switching between strategies
     constexpr size_t ROW_RANK_THRESHOLD = 4;
-    constexpr size_t COL_RANK_THRESHOLD = 16;
+    
+    // For large dimensions (n > 10), avoid expensive column operations
+    // and use more aggressive truncation
+    const bool large_problem = (num_qubits > 10);
+    const double adaptive_threshold = large_problem ? 
+        std::max(config.truncation_threshold, 1e-3) : config.truncation_threshold;
     
     size_t step = 0;
     size_t total_ops = sequence.operations.size();
+    
+    // Progress reporting interval (more frequent for large problems)
+    const size_t report_interval = large_problem ? 20 : 100;
     
     for (const auto& op : sequence.operations) {
         step++;
@@ -557,12 +569,13 @@ MatrixXcd run_hybrid(
             const auto& gate = std::get<GateOp>(op);
             size_t rank = L.cols();
             
-            // Adaptive strategy based on current rank
-            if (rank <= ROW_RANK_THRESHOLD) {
-                // Low rank: use base function (no parallelization overhead)
+            // For large problems, always use the fast row-parallel path
+            // Column parallelism is O(rank * 2^n) which explodes for n > 10
+            if (large_problem || rank <= ROW_RANK_THRESHOLD) {
+                // Use base function - already OpenMP optimized internally
                 L = apply_gate_to_L(L, gate, num_qubits);
-            } else if (rank <= COL_RANK_THRESHOLD || dim < 4096) {
-                // Medium rank or small dim: row parallelism
+            } else {
+                // Medium rank: row parallelism
                 if (gate.qubits.size() == 1) {
                     MatrixXcd U = get_single_qubit_gate(gate.type, gate.params);
                     L = parallel_ops::apply_fused_single_gate(L, U, gate.qubits[0], num_qubits);
@@ -570,12 +583,9 @@ MatrixXcd run_hybrid(
                     MatrixXcd U = get_two_qubit_gate(gate.type, gate.params);
                     L = parallel_ops::apply_two_qubit_gate_parallel(L, U, gate.qubits[0], gate.qubits[1], num_qubits);
                 }
-            } else {
-                // High rank + large dim: column parallelism is better
-                L = parallel_ops::apply_gate_column_parallel(L, gate, num_qubits);
             }
             
-            if (config.verbose && step % 100 == 0) {
+            if (config.verbose && step % report_interval == 0) {
                 std::cout << "Hybrid step " << step << "/" << total_ops 
                           << " rank=" << L.cols() << std::endl;
             }
@@ -583,8 +593,14 @@ MatrixXcd run_hybrid(
             const auto& noise = std::get<NoiseOp>(op);
             L = apply_noise_to_L(L, noise, num_qubits);
             
+            // Truncate after noise - use adaptive threshold for large problems
             if (config.do_truncation && L.cols() > 1) {
-                L = truncate_L(L, config.truncation_threshold);
+                L = truncate_L(L, adaptive_threshold);
+                
+                // For very large problems, also cap maximum rank to prevent slowdown
+                if (large_problem && L.cols() > 32) {
+                    L = truncate_L(L, adaptive_threshold * 10);
+                }
             }
         }
     }
