@@ -108,12 +108,8 @@ set(LIB_SOURCES
     src/structured_csv.cpp
     src/benchmark_types.cpp
     src/benchmark_runner.cpp
+    src/mpi_parallel.cpp
 )
-
-# Add MPI source if enabled
-if(USE_MPI)
-    list(APPEND LIB_SOURCES src/mpi_parallel.cpp)
-endif()
 
 # Create static library
 add_library(qlret_lib STATIC ${LIB_SOURCES})
