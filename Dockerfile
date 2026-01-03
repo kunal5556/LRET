@@ -131,6 +131,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy executables and Python environment
 COPY --from=cpp-builder /app/build/quantum_sim /usr/local/bin/quantum_sim
+COPY --from=cpp-builder /app/build/test_* /usr/local/bin/
 COPY --from=cpp-builder /app/python/qlret/_qlret_native*.so /tmp/
 COPY --from=python-builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=python-builder /usr/local/bin /usr/local/bin
