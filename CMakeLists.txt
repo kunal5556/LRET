@@ -32,6 +32,19 @@ endif()
 find_package(OpenMP)
 
 #==============================================================================
+# nlohmann/json for Phase 4.1 (Noise Model Import)
+#==============================================================================
+include(FetchContent)
+
+FetchContent_Declare(
+    json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG v3.11.3
+)
+
+FetchContent_MakeAvailable(json)
+
+#==============================================================================
 # MPI Configuration (Phase 3)
 #==============================================================================
 option(USE_MPI "Enable MPI distributed parallelization" OFF)
@@ -109,11 +122,12 @@ set(LIB_SOURCES
     src/benchmark_types.cpp
     src/benchmark_runner.cpp
     src/mpi_parallel.cpp
+    src/noise_import.cpp
 )
 
 # Create static library
 add_library(qlret_lib STATIC ${LIB_SOURCES})
-target_link_libraries(qlret_lib PUBLIC Eigen3::Eigen)
+target_link_libraries(qlret_lib PUBLIC Eigen3::Eigen nlohmann_json::nlohmann_json)
 
 if(OpenMP_CXX_FOUND)
     target_link_libraries(qlret_lib PUBLIC OpenMP::OpenMP_CXX)
@@ -204,6 +218,12 @@ endif()
 if(EXISTS "${CMAKE_SOURCE_DIR}/test_minimal.cpp")
     add_executable(test_minimal test_minimal.cpp)
     target_link_libraries(test_minimal PRIVATE qlret_lib)
+endif()
+
+# Noise import test (Phase 4.1)
+if(EXISTS "${CMAKE_SOURCE_DIR}/test_noise_import.cpp")
+    add_executable(test_noise_import test_noise_import.cpp)
+    target_link_libraries(test_noise_import PRIVATE qlret_lib)
 endif()
 
 # Compiler optimizations for Release builds

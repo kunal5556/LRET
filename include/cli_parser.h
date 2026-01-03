@@ -97,6 +97,11 @@ struct CLIOptions {
     bool use_cuquantum = true;         // --cuquantum / --no-cuquantum
     size_t gpu_memory_limit = 0;       // --gpu-memory-limit N (in GB, 0=no limit)
     
+    // Noise model import (Phase 4.1 of roadmap)
+    std::string noise_model_path;      // --noise-model path/to/noise.json
+    bool validate_noise_model = true;  // --validate-noise / --no-validate-noise
+    bool print_noise_summary = false;  // --print-noise-summary
+    
     // FDM options
     bool enable_fdm = false;
     bool fdm_force = false;  // Bypass memory check, attempt FDM anyway

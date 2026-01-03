@@ -200,6 +200,22 @@ GPU OPTIONS (Phase 2):
     --gpu-memory-limit N  Maximum GPU memory in GB (0=no limit)
     --gpu-info            Print GPU information and exit
 
+NOISE MODEL OPTIONS (Phase 4.1 - Real Device Simulation):
+    --noise-model PATH    Load Qiskit Aer noise model from JSON file.
+                          Use scripts/download_ibm_noise.py to fetch real device
+                          noise profiles from IBM Quantum backends.
+                          
+                          Example:
+                            # Download IBM device noise
+                            python scripts/download_ibm_noise.py --backend ibmq_quito -o quito.json
+                            
+                            # Simulate with real device noise
+                            ./quantum_sim -n 5 -d 20 --noise-model quito.json
+    
+    --validate-noise      Validate noise model on load (default)
+    --no-validate-noise   Skip noise model validation
+    --print-noise-summary Print detailed noise model summary before simulation
+
 MPI OPTIONS (Phase 3 - Distributed Computing):
     NOTE: MPI modes require a special MPI-enabled build (USE_MPI=ON).
     The standard Docker image does NOT include MPI support.
@@ -553,6 +569,24 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
         if (arg == "--gpu-info") {
             // This will be handled in main.cpp
             opts.show_version = true;  // Reuse version flag for now
+            continue;
+        }
+        
+        // Noise model options (Phase 4.1)
+        if (arg == "--noise-model" && i + 1 < argc) {
+            opts.noise_model_path = argv[++i];
+            continue;
+        }
+        if (arg == "--validate-noise") {
+            opts.validate_noise_model = true;
+            continue;
+        }
+        if (arg == "--no-validate-noise") {
+            opts.validate_noise_model = false;
+            continue;
+        }
+        if (arg == "--print-noise-summary") {
+            opts.print_noise_summary = true;
             continue;
         }
         
