@@ -312,6 +312,11 @@ private:
 //==============================================================================
 
 class MPISimulatorImpl;
+#ifndef USE_MPI
+// Provide a dummy definition when MPI is disabled so std::unique_ptr has a
+// complete type in non-MPI builds.
+class MPISimulatorImpl {};
+#endif
 
 //==============================================================================
 // MPI Simulator (Main Interface)
