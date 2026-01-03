@@ -33,6 +33,7 @@ COPY CMakeLists.txt .
 COPY include/ include/
 COPY src/ src/
 COPY scripts/ scripts/
+COPY scripts/example_commands_phase4.txt scripts/example_commands_phase4.txt
 COPY main.cpp .
 COPY test_noise_import.cpp .
 
@@ -46,12 +47,16 @@ FROM ubuntu:24.04 AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install runtime dependencies (including Python for noise model download script)
+# Install runtime dependencies (Python stack for calibration tools)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libomp5 \
     libgomp1 \
     python3 \
     python3-pip \
+    python3-numpy \
+    python3-scipy \
+    python3-pandas \
+    python3-matplotlib \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

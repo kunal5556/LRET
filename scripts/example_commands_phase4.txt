@@ -1,0 +1,20 @@
+# Phase 4.2 end-to-end example commands
+
+# 1) Generate synthetic calibration data
+python3 scripts/generate_calibration_data.py --outdir /tmp/cal
+
+# 2) Fit depolarizing + T1/T2 to produce a calibrated noise model
+python3 scripts/calibrate_noise_model.py \
+  --fidelity-csv /tmp/cal/synthetic_fidelity.csv \
+  --relaxation-csv /tmp/cal/synthetic_relaxation.csv \
+  -o /tmp/cal/calibrated_noise.json
+
+# 3) Run simulation with calibrated noise
+./quantum_sim -n 8 -d 50 --noise-model /tmp/cal/calibrated_noise.json --print-noise-summary -o /tmp/cal/calibrated_fid.csv
+
+# 4) (Optional) Run simulation with IBM/fake noise for comparison
+python3 scripts/download_ibm_noise.py --fake-backend FakeQuito -o /tmp/cal/ibm_noise.json
+./quantum_sim -n 8 -d 50 --noise-model /tmp/cal/ibm_noise.json -o /tmp/cal/ibm_fid.csv
+
+# 5) Compare fidelities (calibrated vs IBM/fake)
+python3 scripts/compare_fidelities.py /tmp/cal/ibm_fid.csv /tmp/cal/calibrated_fid.csv --column fidelity
