@@ -302,6 +302,12 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/test_noise_import.cpp")
     target_link_libraries(test_noise_import PRIVATE qlret_lib)
 endif()
 
+# Distributed GPU smoke test (Phase 8.1)
+if(USE_GPU AND EXISTS "${CMAKE_SOURCE_DIR}/tests/test_distributed_gpu.cpp")
+    add_executable(test_distributed_gpu tests/test_distributed_gpu.cpp)
+    target_link_libraries(test_distributed_gpu PRIVATE qlret_lib)
+endif()
+
 # Advanced noise test (Phase 4.3)
 if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_advanced_noise.cpp")
     add_executable(test_advanced_noise tests/test_advanced_noise.cpp)
