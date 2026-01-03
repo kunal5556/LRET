@@ -1850,6 +1850,572 @@ Use this checklist to track progress:
 
 ---
 
+## Phase 6b: Integration Tests (ADDED January 3, 2026)
+
+### Overview
+
+Phase 6b integration tests were implemented to validate end-to-end workflows across all execution interfaces. These tests cover JSON API, PennyLane device, CLI executable, and Docker runtime.
+
+**Total Tests:** 22 integration tests across 4 modules  
+**Status:** ❌ NOT RUN (requires proper environment with built binaries)  
+**Location:** `python/tests/integration/`  
+**Estimated Time:** 2-3 minutes execution (if all dependencies available)
+
+---
+
+### 6b.1: JSON Circuit Execution Tests
+
+**File:** `python/tests/integration/test_json_execution.py`  
+**Status:** ❌ NOT RUN  
+**Purpose:** Validate JSON circuit execution via both Python backends (subprocess and native)
+
+**Test Commands:**
+```bash
+cd python
+pytest tests/integration/test_json_execution.py -v --tb=short
+```
+
+**Tests Included:**
+
+**Test 1: `test_bell_pair_subprocess`**
+```python
+# Purpose: Validate Bell state via subprocess backend
+# Circuit: H(0), CNOT(0,1)
+# Observables: Z0, Z0⊗Z1
+# Expected: <Z0> ≈ 0, <Z0Z1> ≈ 1
+```
+
+**Expected Output:**
+```
+test_json_execution.py::test_bell_pair_subprocess PASSED
+  Result status: success
+  <Z0>: 0.0000 (tolerance: 0.1)
+  <Z0Z1>: 1.0000 (tolerance: 0.1)
+  Final rank: 1
+```
+
+**Test 2: `test_bell_pair_native`**
+```python
+# Purpose: Same as above but via native pybind11 backend
+# Marks: @pytest.mark.native
+# Skips if: Native module not built
+```
+
+**Expected Output:**
+```
+test_json_execution.py::test_bell_pair_native PASSED
+  Using native backend
+  Result status: success
+  <Z0>: 0.0000
+  <Z0Z1>: 1.0000
+```
+
+**Test 3: `test_parametric_circuit_rotations`**
+```python
+# Purpose: Validate parameterized rotations
+# Circuit: RX(π/2, 0)
+# Observable: Z0
+# Expected: <Z> ≈ 0 (rotation to |+Y⟩ state)
+```
+
+**Expected Output:**
+```
+test_json_execution.py::test_parametric_circuit_rotations PASSED
+  Theta: 1.5708 (π/2)
+  <Z>: -0.0123 (should be ≈ 0)
+```
+
+**Test 4: `test_sampling_results_have_expected_length`**
+```python
+# Purpose: Validate shot-based sampling
+# Circuit: H(0), CNOT(0,1), shots=100
+# Expected: 100 samples returned
+# Marks: @pytest.mark.slow
+```
+
+**Expected Output:**
+```
+test_json_execution.py::test_sampling_results_have_expected_length PASSED
+  Samples received: 100
+  Sample values: [0, 3, 0, 3, 0, 0, 3, ...]  # Bell state: only 0 or 3
+```
+
+**Test 5: `test_invalid_circuit_error`**
+```python
+# Purpose: Validate error handling for invalid circuits
+# Circuit: num_qubits = -1 (invalid)
+# Expected: QLRETError raised
+```
+
+**Expected Output:**
+```
+test_json_execution.py::test_invalid_circuit_error PASSED
+  Exception raised: QLRETError
+  Message contains: "qubits"
+```
+
+**Test 6: `test_state_export_optional`**
+```python
+# Purpose: Validate state export functionality
+# Circuit: H(0) with export_state=True
+# Expected: State dictionary with L_real, L_imag, rank
+```
+
+**Expected Output:**
+```
+test_json_execution.py::test_state_export_optional PASSED
+  State exported: True
+  Rank: 1
+  L_real shape: (4, 1)
+  L_imag shape: (4, 1)
+```
+
+**Success Criteria:**
+- All 6 tests pass
+- Bell state expectations correct (tolerance < 0.1)
+- Error handling works
+- Both subprocess and native backends functional
+- Exit code: 0
+
+---
+
+### 6b.2: PennyLane Device Tests
+
+**File:** `python/tests/integration/test_pennylane_device.py`  
+**Status:** ❌ NOT RUN  
+**Purpose:** Validate PennyLane plugin integration for variational quantum algorithms
+
+**Test Commands:**
+```bash
+cd python
+pytest tests/integration/test_pennylane_device.py -v --tb=short
+```
+
+**Tests Included (organized in test classes):**
+
+**Class: `TestQLRETDeviceBasics`**
+
+**Test 1: `test_device_creation`**
+```python
+# Purpose: Verify device initialization
+# Device: wires=4, shots=1000
+# Expected: Device attributes set correctly
+```
+
+**Expected Output:**
+```
+test_pennylane_device.py::TestQLRETDeviceBasics::test_device_creation PASSED
+  Device created: QLRETDevice
+  Wires: 4
+  Shots: 1000
+  Epsilon: 0.0001
+```
+
+**Test 2: `test_device_capabilities`**
+```python
+# Purpose: Verify device capabilities reporting
+# Expected: Correct capability flags
+```
+
+**Expected Output:**
+```
+test_pennylane_device.py::TestQLRETDeviceBasics::test_device_capabilities PASSED
+  Model: qubit
+  Supports tensor observables: True
+  Supports analytic computation: True
+```
+
+**Test 3: `test_basic_circuit_execution`**
+```python
+# Purpose: Execute simple QNode
+# Circuit: H(0)
+# Observable: Z0
+# Expected: <Z> ≈ 0 (|+⟩ state)
+```
+
+**Expected Output:**
+```
+test_pennylane_device.py::TestQLRETDeviceBasics::test_basic_circuit_execution PASSED
+  Result: 0.0012
+  Expected: ≈ 0 (tolerance: 0.1)
+```
+
+**Class: `TestObservables`**
+
+**Test 4: `test_single_observable`**
+```python
+# Purpose: Single Pauli observable
+# Circuit: X(0)
+# Observable: Z0
+# Expected: <Z> = -1 (|1⟩ state)
+```
+
+**Expected Output:**
+```
+test_pennylane_device.py::TestObservables::test_single_observable PASSED
+  Result: -0.9998
+  Expected: -1.0 (tolerance: 0.1)
+```
+
+**Test 5: `test_tensor_observables`**
+```python
+# Purpose: Multi-qubit tensor product
+# Circuit: H(0), CNOT(0,1)
+# Observable: Z0⊗Z1
+# Expected: <Z0Z1> = 1 (Bell state)
+```
+
+**Expected Output:**
+```
+test_pennylane_device.py::TestObservables::test_tensor_observables PASSED
+  Result: 0.9997
+  Expected: 1.0 (tolerance: 0.1)
+```
+
+**Test 6: `test_hermitian_observable`**
+```python
+# Purpose: Custom Hermitian matrix observable
+# Circuit: H(0)
+# Observable: Pauli X matrix [[0,1],[1,0]]
+# Expected: <X> = 1 (|+⟩ state)
+```
+
+**Expected Output:**
+```
+test_pennylane_device.py::TestObservables::test_hermitian_observable PASSED
+  Result: 0.9995
+  Expected: 1.0 (tolerance: 0.1)
+```
+
+**Class: `TestGradients`**
+
+**Test 7: `test_parameter_shift_single_param`**
+```python
+# Purpose: Single parameter gradient via parameter-shift
+# Circuit: RX(θ, 0)
+# Observable: Z0
+# Expected: ∂<Z>/∂θ = -sin(θ)
+```
+
+**Expected Output:**
+```
+test_pennylane_device.py::TestGradients::test_parameter_shift_single_param PASSED
+  Theta: 0.5
+  Gradient: -0.4794
+  Expected: -0.4794 (sin(0.5) = 0.4794)
+  Error: 0.0003
+```
+
+**Test 8: `test_multi_param_gradients`**
+```python
+# Purpose: Multiple parameter gradients
+# Circuit: RX(θ1, 0), RY(θ2, 0), CNOT(0,1)
+# Observable: Z0⊗Z1
+# Expected: Gradient vector of length 2
+```
+
+**Expected Output:**
+```
+test_pennylane_device.py::TestGradients::test_multi_param_gradients PASSED
+  Parameters: [0.3, 0.7]
+  Gradients: [-0.2134, -0.3567]
+  Length: 2
+```
+
+**Class: `TestSampling` (slow tests)**
+
+**Test 9: `test_sampling_mode`**
+```python
+# Purpose: Shot-based sampling
+# Circuit: H(0), CNOT(0,1), shots=100
+# Expected: 100 samples returned
+# Marks: @pytest.mark.slow
+```
+
+**Expected Output:**
+```
+test_pennylane_device.py::TestSampling::test_sampling_mode PASSED
+  Samples: 100
+  Sample format: array-like
+```
+
+**Success Criteria:**
+- All 9 tests pass (8 + 1 slow)
+- Device integration works
+- Gradients match analytical expectations (tolerance < 0.1)
+- Custom observables supported
+- Exit code: 0
+
+---
+
+### 6b.3: CLI Regression Tests
+
+**File:** `python/tests/integration/test_cli_regression.py`  
+**Status:** ❌ NOT RUN  
+**Purpose:** Ensure CLI maintains expected behavior across updates
+
+**Test Commands:**
+```bash
+cd python
+pytest tests/integration/test_cli_regression.py -v --tb=short
+```
+
+**Tests Included:**
+
+**Test 1: `test_basic_simulation`**
+```bash
+# Command: ./quantum_sim -n 6 -d 8 --mode sequential
+# Purpose: Basic CLI execution
+# Expected: Exit code 0, output contains metrics
+```
+
+**Expected Output:**
+```
+test_cli_regression.py::test_basic_simulation PASSED
+  Command: quantum_sim -n 6 -d 8 --mode sequential
+  Exit code: 0
+  Output includes:
+    - "Final Rank"
+    - "Simulation Time"
+```
+
+**Test 2: `test_parallel_modes`**
+```bash
+# Commands: Test all modes (sequential, row, column, hybrid)
+# Purpose: Verify all parallel modes work
+# Expected: All modes exit with code 0
+```
+
+**Expected Output:**
+```
+test_cli_regression.py::test_parallel_modes PASSED
+  Mode 'sequential': ✓
+  Mode 'row': ✓
+  Mode 'column': ✓
+  Mode 'hybrid': ✓
+```
+
+**Test 3: `test_csv_output`**
+```bash
+# Command: ./quantum_sim -n 6 -d 8 -o results.csv
+# Purpose: Validate CSV generation
+# Expected: CSV file created with proper schema
+```
+
+**Expected Output:**
+```
+test_cli_regression.py::test_csv_output PASSED
+  CSV file: results.csv (created)
+  Rows: 1
+  Columns: num_qubits, depth, time_ms, final_rank
+  Schema valid: ✓
+```
+
+**Test 4: `test_fdm_comparison`**
+```bash
+# Command: ./quantum_sim -n 8 -d 10 --fdm
+# Purpose: FDM validation mode
+# Expected: Output contains fidelity metrics
+# Marks: @pytest.mark.slow
+```
+
+**Expected Output:**
+```
+test_cli_regression.py::test_fdm_comparison PASSED
+  Command: quantum_sim -n 8 -d 10 --fdm
+  Exit code: 0
+  Output contains: "fidelity" or "FDM"
+```
+
+**Test 5: `test_json_io`**
+```bash
+# Command: ./quantum_sim --input-json bell_pair.json --output-json result.json
+# Purpose: JSON input/output workflow
+# Expected: Valid JSON output with success status
+```
+
+**Expected Output:**
+```
+test_cli_regression.py::test_json_io PASSED
+  Input: samples/json/bell_pair.json
+  Output: result.json (created)
+  Status: success
+  Expectation values: [0.0000, 1.0000]
+```
+
+**Success Criteria:**
+- All 5 tests pass
+- All exit codes = 0
+- CSV/JSON files properly formatted
+- FDM mode produces fidelity output
+- Exit code: 0
+
+---
+
+### 6b.4: Docker Runtime Tests
+
+**File:** `python/tests/integration/test_docker_runtime.py`  
+**Status:** ❌ NOT RUN  
+**Purpose:** Validate Docker container execution modes
+
+**Test Commands:**
+```bash
+cd python
+pytest tests/integration/test_docker_runtime.py -v --tb=short
+```
+
+**Prerequisites:**
+- Docker installed and running
+- Image `qlret:latest` built via: `docker build -t qlret:latest .`
+
+**Tests Included:**
+
+**Test 1: `test_docker_cli_execution`**
+```bash
+# Command: docker run --rm qlret:latest ./quantum_sim -n 6 -d 8 --mode sequential
+# Purpose: Verify CLI works in container
+# Expected: Container executes and exits with code 0
+```
+
+**Expected Output:**
+```
+test_docker_runtime.py::test_docker_cli_execution PASSED
+  Container: qlret:latest
+  Command: ./quantum_sim -n 6 -d 8 --mode sequential
+  Exit code: 0
+  Output includes: "Final Rank"
+```
+
+**Test 2: `test_docker_python_import`**
+```bash
+# Command: docker run --rm qlret:latest python -c "import qlret; print(qlret.__version__)"
+# Purpose: Verify Python module accessible in container
+# Expected: Version string printed
+```
+
+**Expected Output:**
+```
+test_docker_runtime.py::test_docker_python_import PASSED
+  Container: qlret:latest
+  Command: python -c "import qlret; print(qlret.__version__)"
+  Exit code: 0
+  Version: 1.0.0
+```
+
+**Test 3: `test_docker_pennylane`**
+```python
+# Command: docker run --rm qlret:latest python -c "<pennylane code>"
+# Purpose: Verify PennyLane device works in container
+# Expected: QNode executes and returns result
+# Marks: @pytest.mark.pennylane
+```
+
+**Expected Output:**
+```
+test_docker_runtime.py::test_docker_pennylane PASSED
+  Container: qlret:latest
+  Circuit: H(0), CNOT(0,1)
+  Observable: Z0⊗Z1
+  Result: 1.0000
+```
+
+**Success Criteria:**
+- All 3 tests pass (if Docker available)
+- Tests skip gracefully if image not built
+- Container executes both CLI and Python
+- Exit code: 0
+
+---
+
+### Integration Test Execution Summary
+
+**Test Matrix:**
+
+| Module | Tests | Marks | Execution Time |
+|--------|-------|-------|----------------|
+| test_json_execution.py | 6 | subprocess, native, slow | 30-45s |
+| test_pennylane_device.py | 9 | pennylane, slow | 45-60s |
+| test_cli_regression.py | 5 | subprocess, slow | 30-45s |
+| test_docker_runtime.py | 3 | docker, pennylane | 60-90s |
+| **Total** | **23** | | **2-4 minutes** |
+
+**Fixture Summary:**
+
+Located in `python/tests/integration/conftest.py`:
+- `quantum_sim_path`: Finds quantum_sim executable
+- `samples_dir`: Path to sample circuits
+- `has_native_module`: Checks pybind11 module availability
+- `has_pennylane`: Checks PennyLane installation
+- `has_docker`: Checks Docker availability
+- `bell_circuit`: Standard Bell pair circuit fixture
+- `temp_output_dir`: Temporary directory for test outputs
+- `assert_bell_state_expectations`: Helper for Bell state validation
+- `assert_result_valid`: Helper for result structure validation
+
+**Test Execution Commands:**
+
+```bash
+# Run all integration tests
+cd python
+pytest tests/integration/ -v --tb=short
+
+# Run specific module
+pytest tests/integration/test_json_execution.py -v
+
+# Run only fast tests (skip slow)
+pytest tests/integration/ -v -m "not slow"
+
+# Run only native backend tests
+pytest tests/integration/ -v -m native
+
+# Run with coverage
+pytest tests/integration/ -v --cov=qlret --cov-report=html
+```
+
+**Known Skip Conditions:**
+
+Tests will skip (not fail) when:
+- `quantum_sim` executable not found
+- Native pybind11 module not built
+- PennyLane not installed
+- Docker not available or image not built
+- Sample files missing
+
+**Troubleshooting:**
+
+If tests fail:
+
+1. **quantum_sim not found:**
+   ```bash
+   cd build && cmake .. -DUSE_PYTHON=ON && cmake --build .
+   ```
+
+2. **Native module not found:**
+   ```bash
+   cd build && cmake .. -DUSE_PYTHON=ON && cmake --build .
+   # Module should be at python/qlret/_qlret_native*.so
+   ```
+
+3. **PennyLane not installed:**
+   ```bash
+   pip install pennylane>=0.30
+   ```
+
+4. **Docker image not built:**
+   ```bash
+   docker build -t qlret:latest .
+   ```
+
+**Success Criteria for Phase 6b:**
+- ✅ All 23 tests implemented
+- ✅ Fixtures and helpers in place
+- ✅ pytest.ini configuration complete
+- ✅ Skip conditions handle missing dependencies
+- ✅ Tests validate end-to-end workflows
+- ❌ Tests NOT RUN (requires proper environment)
+
+---
+
 ## Contact and Reporting
 
 If tests fail or unexpected behavior occurs:
@@ -1867,11 +2433,573 @@ Create detailed issue report with:
 
 ---
 
+## Phase 6c: Performance Benchmarking Tests (ADDED January 4, 2026)
+
+### Overview
+
+Phase 6c implements a comprehensive benchmarking framework to measure, analyze, and track LRET simulator performance across multiple dimensions:
+- **Scaling benchmarks:** Time vs qubit count (exponential analysis)
+- **Parallel benchmarks:** Speedup comparison across modes
+- **Accuracy benchmarks:** LRET vs FDM fidelity validation
+- **Depth benchmarks:** Circuit depth scaling analysis
+- **Memory benchmarks:** Memory usage profiling
+
+**Files Created:**
+- `scripts/benchmark_suite.py` - Master benchmark orchestrator
+- `scripts/benchmark_analysis.py` - Statistical analysis module
+- `scripts/benchmark_visualize.py` - Visualization generation
+
+**Prerequisites:**
+- Built `quantum_sim` executable
+- Python 3.11+ with numpy, scipy, matplotlib, seaborn
+- 30+ minutes for full benchmark suite
+
+---
+
+### 6c.1 Benchmark Suite Execution Tests
+
+#### Test 6c.1.1: Full Benchmark Suite
+
+**Command:**
+```bash
+python scripts/benchmark_suite.py --quantum-sim build/quantum_sim --output-dir benchmark_output/
+```
+
+**Expected Output:**
+```
+Starting LRET benchmark suite...
+
+============================================================
+RUNNING SCALING BENCHMARKS
+============================================================
+  n=8 qubits...
+    Trial 1: 45.2 ms, rank=12
+    Trial 2: 46.1 ms, rank=12
+    Trial 3: 44.8 ms, rank=12
+  n=9 qubits...
+    Trial 1: 89.4 ms, rank=14
+...
+
+============================================================
+RUNNING PARALLEL MODE BENCHMARKS
+============================================================
+  Mode: sequential...
+    Trial 1: 1234.5 ms
+...
+
+============================================================
+BENCHMARK SUMMARY
+============================================================
+SCALING:
+  Total runs: 21 (21 successful, 0 failed)
+  Time range: 45.2 - 2456.8 ms
+  Mean time: 456.7 ms
+
+PARALLEL:
+  Total runs: 20 (20 successful, 0 failed)
+  Speedups vs sequential:
+    sequential: 1.00x
+    row: 2.34x
+    column: 2.28x
+    hybrid: 4.12x
+...
+
+Results saved to: benchmark_output/benchmark_results.csv
+Summary saved to: benchmark_output/benchmark_summary.json
+
+✅ Benchmark suite complete!
+```
+
+**Success Criteria:**
+- CSV file created with valid data
+- JSON summary contains all categories
+- No benchmark failures
+- Exit code: 0
+
+---
+
+#### Test 6c.1.2: Quick CI Mode
+
+**Command:**
+```bash
+python scripts/benchmark_suite.py --quick --categories scaling,parallel
+```
+
+**Expected Output:**
+```
+Starting LRET benchmark suite...
+(Quick mode enabled - reduced trials and ranges)
+
+============================================================
+RUNNING SCALING BENCHMARKS
+============================================================
+  n=8 qubits...
+    Trial 1: 45.2 ms, rank=12
+  n=10 qubits...
+    Trial 1: 178.4 ms, rank=15
+  n=12 qubits...
+    Trial 1: 712.3 ms, rank=18
+
+============================================================
+BENCHMARK SUMMARY
+============================================================
+SCALING:
+  Total runs: 3 (3 successful, 0 failed)
+...
+
+✅ Benchmark suite complete!
+```
+
+**Success Criteria:**
+- Completes in < 2 minutes
+- Reduced trial counts (1 trial per config)
+- Smaller qubit ranges tested
+
+---
+
+#### Test 6c.1.3: Category Selection
+
+**Command:**
+```bash
+python scripts/benchmark_suite.py --categories accuracy
+```
+
+**Expected Output:**
+```
+Starting LRET benchmark suite...
+
+============================================================
+RUNNING ACCURACY VALIDATION BENCHMARKS
+============================================================
+  n=6 qubits (LRET vs FDM)...
+    noise=0.0...
+      Trial 1: fidelity=0.999998
+      Trial 2: fidelity=0.999997
+      Trial 3: fidelity=0.999998
+    noise=0.001...
+      Trial 1: fidelity=0.999845
+...
+
+============================================================
+BENCHMARK SUMMARY
+============================================================
+ACCURACY:
+  Total runs: 45 (45 successful, 0 failed)
+  Fidelity range: 0.999234 - 0.999998
+  Mean fidelity: 0.999567
+
+✅ Benchmark suite complete!
+```
+
+**Success Criteria:**
+- Only accuracy category runs
+- Fidelity values > 0.999
+- Multiple noise levels tested
+
+---
+
+### 6c.2 Benchmark Analysis Tests
+
+#### Test 6c.2.1: Single Run Analysis
+
+**Command:**
+```bash
+python scripts/benchmark_analysis.py benchmark_output/benchmark_results.csv
+```
+
+**Expected Output:**
+```
+Analyzing benchmark_output/benchmark_results.csv...
+Analysis report saved to: benchmark_analysis.json
+
+✅ Analysis complete!
+```
+
+**Expected JSON Output (benchmark_analysis.json):**
+```json
+{
+  "metadata": {
+    "source_file": "benchmark_output/benchmark_results.csv",
+    "analysis_timestamp": "2026-01-04T...",
+    "total_benchmarks": 142,
+    "successful_benchmarks": 142
+  },
+  "categories_analyzed": ["scaling", "parallel", "accuracy", "depth_scaling"],
+  "scaling": {
+    "per_qubit_stats": {
+      "8": {"mean": 45.67, "std": 2.1, "min": 43.2, "max": 48.1},
+      "9": {"mean": 89.23, "std": 3.4, "min": 85.1, "max": 92.8}
+    },
+    "exponential_fit": {
+      "a": 0.0234,
+      "b": 1.02,
+      "r_squared": 0.998,
+      "doubling_ratio": 2.028
+    },
+    "scaling_quality": "excellent"
+  },
+  "parallel": {
+    "speedups": {
+      "sequential": {"speedup": 1.0},
+      "hybrid": {"speedup": 4.47, "efficiency": 1.12}
+    },
+    "best_mode": "hybrid"
+  },
+  "accuracy": {
+    "all_passing": true,
+    "worst_fidelity": 0.999234,
+    "threshold": 0.999
+  },
+  "overall_assessment": {
+    "status": "pass",
+    "warnings": [],
+    "recommendations": []
+  }
+}
+```
+
+**Success Criteria:**
+- JSON report generated
+- Exponential fit R² > 0.95
+- Parallel speedup > 3x for hybrid
+- All accuracy tests passing
+
+---
+
+#### Test 6c.2.2: Regression Detection
+
+**Command:**
+```bash
+# First run (baseline)
+python scripts/benchmark_suite.py --output-dir baseline/
+mv baseline/benchmark_results.csv baseline.csv
+
+# Second run (current)
+python scripts/benchmark_suite.py --output-dir current/
+
+# Compare
+python scripts/benchmark_analysis.py current/benchmark_results.csv --compare baseline.csv
+```
+
+**Expected Output (No Regression):**
+```
+Comparing current/benchmark_results.csv against baseline baseline.csv...
+Comparison report saved to: benchmark_analysis.json
+
+✅ No regressions detected.
+```
+
+**Expected Output (With Regression):**
+```
+Comparing current/benchmark_results.csv against baseline baseline.csv...
+Comparison report saved to: benchmark_analysis.json
+
+⚠️  REGRESSIONS DETECTED:
+  - scaling_doubling_ratio: 15.2% change (severity: minor)
+
+✅ Analysis complete!
+```
+
+**Success Criteria:**
+- Comparison completes successfully
+- Regressions detected when performance degrades > 10%
+- Exit code 1 when regression detected
+
+---
+
+#### Test 6c.2.3: Analysis with Summary
+
+**Command:**
+```bash
+python scripts/benchmark_analysis.py benchmark_results.csv --print-summary
+```
+
+**Expected Output:**
+```
+Analyzing benchmark_results.csv...
+Analysis report saved to: benchmark_analysis.json
+
+============================================================
+ANALYSIS SUMMARY
+============================================================
+Total benchmarks: 142
+Successful: 142
+Categories: scaling, parallel, accuracy, depth_scaling
+
+Overall status: PASS
+  💡 Review parallelization strategy or increase workload size
+
+✅ Analysis complete!
+```
+
+**Success Criteria:**
+- Summary printed to console
+- Warnings and recommendations shown
+
+---
+
+### 6c.3 Visualization Generation Tests
+
+#### Test 6c.3.1: Generate All Plots
+
+**Command:**
+```bash
+python scripts/benchmark_visualize.py benchmark_results.csv --output plots/
+```
+
+**Expected Output:**
+```
+Generating visualizations to: plots
+
+  Generating scaling plots...
+  Saved: plots/scaling_time.png
+  Saved: plots/scaling_rank.png
+  Generating parallel speedup plots...
+  Saved: plots/parallel_speedup.png
+  Saved: plots/parallel_times.png
+  Generating accuracy plots...
+  Saved: plots/accuracy_fidelity.png
+  Saved: plots/accuracy_by_noise.png
+  Generating depth scaling plot...
+  Saved: plots/depth_scaling.png
+  Generating summary plot...
+  Saved: plots/benchmark_summary.png
+
+✅ Generated 8 plots
+
+All plots saved to: plots
+```
+
+**Success Criteria:**
+- All PNG files created (8+ plots)
+- No matplotlib errors
+- Plots are valid images (not corrupted)
+
+---
+
+#### Test 6c.3.2: SVG Format Output
+
+**Command:**
+```bash
+python scripts/benchmark_visualize.py benchmark_results.csv --format svg --dpi 300
+```
+
+**Expected Output:**
+```
+Generating visualizations to: plots
+
+  Saved: plots/scaling_time.svg
+  Saved: plots/parallel_speedup.svg
+...
+
+✅ Generated 8 plots
+```
+
+**Success Criteria:**
+- SVG files generated
+- Files are valid SVG (viewable in browser)
+- High resolution (300 DPI equivalent)
+
+---
+
+#### Test 6c.3.3: Skip Summary Plot
+
+**Command:**
+```bash
+python scripts/benchmark_visualize.py benchmark_results.csv --no-summary
+```
+
+**Expected Output:**
+```
+Generating visualizations to: plots
+...
+
+✅ Generated 7 plots
+```
+
+**Success Criteria:**
+- No summary plot generated
+- Individual plots still created
+
+---
+
+### 6c.4 Data Format Validation Tests
+
+#### Test 6c.4.1: CSV Schema Validation
+
+**Command:**
+```bash
+head -5 benchmark_output/benchmark_results.csv
+```
+
+**Expected Output:**
+```csv
+category,n_qubits,depth,mode,trial,time_ms,final_rank,memory_mb,fidelity,trace_distance,noise_level,reported_time_ms,error_message
+scaling,8,15,hybrid,0,45.23,12,,,,,45.12,
+scaling,8,15,hybrid,1,46.11,12,,,,,46.02,
+scaling,8,15,hybrid,2,44.98,12,,,,,44.89,
+scaling,9,15,hybrid,0,89.45,14,,,,,89.34,
+```
+
+**Success Criteria:**
+- Header row present with all columns
+- Data types correct (int, float, string)
+- No corrupted data
+
+---
+
+#### Test 6c.4.2: JSON Summary Validation
+
+**Command:**
+```bash
+python -c "import json; print(json.load(open('benchmark_output/benchmark_summary.json'))['statistics'])"
+```
+
+**Expected Output:**
+```python
+{'total_benchmarks': 142, 'successful': 142, 'failed': 0, 'categories': ['scaling', 'parallel', 'accuracy', 'depth_scaling', 'memory']}
+```
+
+**Success Criteria:**
+- Valid JSON structure
+- Metadata present
+- Statistics accurate
+
+---
+
+### 6c.5 End-to-End Pipeline Test
+
+#### Test 6c.5.1: Complete Pipeline
+
+**Command:**
+```bash
+# Run entire pipeline
+python scripts/benchmark_suite.py --quick
+python scripts/benchmark_analysis.py benchmark_output/benchmark_results.csv --output benchmark_output/analysis.json
+python scripts/benchmark_visualize.py benchmark_output/benchmark_results.csv --output benchmark_output/plots/
+
+# Verify outputs
+ls benchmark_output/
+```
+
+**Expected Output:**
+```
+benchmark_results.csv
+benchmark_summary.json
+analysis.json
+plots/
+```
+
+**Success Criteria:**
+- All three tools run successfully
+- Output files created in correct locations
+- Pipeline completes in < 5 minutes (quick mode)
+
+---
+
+### 6c.6 Error Handling Tests
+
+#### Test 6c.6.1: Missing Executable
+
+**Command:**
+```bash
+python scripts/benchmark_suite.py --quantum-sim /nonexistent/path
+```
+
+**Expected Output:**
+```
+Error: quantum_sim not found at /nonexistent/path
+Please build the project first or specify --quantum-sim path
+```
+
+**Success Criteria:**
+- Clear error message
+- Exit code: 1
+
+---
+
+#### Test 6c.6.2: Invalid CSV Input
+
+**Command:**
+```bash
+python scripts/benchmark_analysis.py /nonexistent/file.csv
+```
+
+**Expected Output:**
+```
+Error: Results file not found: /nonexistent/file.csv
+```
+
+**Success Criteria:**
+- File not found error handled gracefully
+- Exit code: 1
+
+---
+
+#### Test 6c.6.3: Benchmark Timeout
+
+**Command:**
+```bash
+# Simulate timeout (if executable hangs)
+timeout 10 python scripts/benchmark_suite.py --categories scaling
+```
+
+**Expected Output:**
+```
+# Should handle timeout gracefully and record error
+Trial 1 FAILED: Benchmark timed out after 300s
+```
+
+**Success Criteria:**
+- Timeout handled without crash
+- Error recorded in results
+- Suite continues with next benchmark
+
+---
+
+### Success Criteria for Phase 6c
+
+**All 15 tests must pass:**
+
+| Test ID | Test Name | Status |
+|---------|-----------|--------|
+| 6c.1.1 | Full Benchmark Suite | ❌ NOT RUN |
+| 6c.1.2 | Quick CI Mode | ❌ NOT RUN |
+| 6c.1.3 | Category Selection | ❌ NOT RUN |
+| 6c.2.1 | Single Run Analysis | ❌ NOT RUN |
+| 6c.2.2 | Regression Detection | ❌ NOT RUN |
+| 6c.2.3 | Analysis with Summary | ❌ NOT RUN |
+| 6c.3.1 | Generate All Plots | ❌ NOT RUN |
+| 6c.3.2 | SVG Format Output | ❌ NOT RUN |
+| 6c.3.3 | Skip Summary Plot | ❌ NOT RUN |
+| 6c.4.1 | CSV Schema Validation | ❌ NOT RUN |
+| 6c.4.2 | JSON Summary Validation | ❌ NOT RUN |
+| 6c.5.1 | Complete Pipeline | ❌ NOT RUN |
+| 6c.6.1 | Missing Executable | ❌ NOT RUN |
+| 6c.6.2 | Invalid CSV Input | ❌ NOT RUN |
+| 6c.6.3 | Benchmark Timeout | ❌ NOT RUN |
+
+**Expected Execution Time:** 30-60 minutes (full suite), 5 minutes (quick mode)
+
+**Required Dependencies:**
+```bash
+pip install numpy scipy matplotlib seaborn
+```
+
+---
+
 ## Conclusion
 
 This document provides a comprehensive testing roadmap for LRET quantum simulator. Execute tests in order, document results, and report any failures with detailed logs.
 
-**Estimated Completion Time:** 5-6 hours  
+**Phase Summary:**
+- Phase 1-4: Core C++ tests (5-6 hours)
+- Phase 5: Python integration (30 minutes)
+- **Phase 6b: Integration tests (2-4 minutes) - ADDED January 3, 2026**
+- **Phase 6c: Benchmarking tests (30-60 minutes) - ADDED January 4, 2026**
+- Phase 6d-6e: Remaining Docker/CI tasks
+
+**Estimated Total Completion Time:** 8-10 hours  
 **Required Environment:** Linux/macOS with proper build tools  
 **Expected Success Rate:** > 95% (assuming environment is correctly configured)
 
