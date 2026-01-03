@@ -17,6 +17,10 @@ using VectorXcd = Eigen::VectorXcd;
 using MatrixXd = Eigen::MatrixXd;
 using VectorXd = Eigen::VectorXd;
 
+// Fixed-size matrix types for gates
+using Matrix2cd = Eigen::Matrix2cd;  // 2x2 complex (single-qubit gates)
+using Matrix4cd = Eigen::Matrix<Complex, 4, 4>;  // 4x4 complex (two-qubit gates)
+
 // Constants
 constexpr double PI = 3.14159265358979323846;
 constexpr double SQRT2 = 1.41421356237309504880;
