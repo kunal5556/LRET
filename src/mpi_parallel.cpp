@@ -536,9 +536,8 @@ MatrixXcd simulate_distributed(
     int initialized = 0;
     MPI_Initialized(&initialized);
     if (!initialized || !prefer_mpi) {
-        extern MatrixXcd run_lret_simulation(
-            const MatrixXcd&, const QuantumSequence&, size_t, const SimConfig&);
-        return run_lret_simulation(L_init, sequence, num_qubits, config);
+        SimResult res = run_simulation(L_init, sequence, num_qubits, config);
+        return res.L_final;
     }
 
     MPIConfig mpi_cfg;
@@ -746,9 +745,8 @@ MatrixXcd simulate_mpi(const MatrixXcd&, const QuantumSequence&, size_t, const S
 
 MatrixXcd simulate_distributed(const MatrixXcd& L_init, const QuantumSequence& sequence,
                                size_t num_qubits, const SimConfig& config, bool) {
-    extern MatrixXcd run_lret_simulation(
-        const MatrixXcd&, const QuantumSequence&, size_t, const SimConfig&);
-    return run_lret_simulation(L_init, sequence, num_qubits, config);
+    SimResult res = run_simulation(L_init, sequence, num_qubits, config);
+    return res.L_final;
 }
 
 bool is_mpi_available() { return false; }
