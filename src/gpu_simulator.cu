@@ -224,12 +224,135 @@ void print_gpu_info() {
 //==============================================================================
 
 /**
- * @brief CUDA kernel: Apply single-qubit gate to L matrix
+ * @brief CUDA kernel: Apply single-qubit gate to L matrix (column-major, coalesced)
+ * 
+ * Column-major layout: L[row, col] stored at L[col * dim + row]
+ * Adjacent threads access adjacent memory locations for coalesced reads/writes.
+ * 
+ * Each thread handles one (row_pair, column) combination.
+ * Gate matrix cached in shared memory.
+ */
+__global__ void apply_single_qubit_gate_kernel_colmajor(
+    cuDoubleComplex* L,
+    size_t dim,
+    size_t rank,
+    size_t qubit,
+    cuDoubleComplex u00, cuDoubleComplex u01,
+    cuDoubleComplex u10, cuDoubleComplex u11
+) {
+    // Cache gate matrix in shared memory
+    __shared__ cuDoubleComplex gate_shared[4];
+    if (threadIdx.x == 0) {
+        gate_shared[0] = u00;
+        gate_shared[1] = u01;
+        gate_shared[2] = u10;
+        gate_shared[3] = u11;
+    }
+    __syncthreads();
+
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t step = 1ULL << qubit;
+    size_t num_pairs = dim / 2;
+    
+    // Total work: num_pairs * rank
+    size_t total_work = num_pairs * rank;
+    if (idx >= total_work) return;
+    
+    // Decode: column-first ordering for coalesced access
+    size_t col = idx / num_pairs;
+    size_t pair_idx = idx % num_pairs;
+    
+    // Calculate row indices for the pair
+    size_t block_idx = pair_idx / step;
+    size_t within_block = pair_idx % step;
+    size_t row0 = block_idx * (2 * step) + within_block;
+    size_t row1 = row0 + step;
+    
+    // Read gate from shared memory
+    cuDoubleComplex g00 = gate_shared[0];
+    cuDoubleComplex g01 = gate_shared[1];
+    cuDoubleComplex g10 = gate_shared[2];
+    cuDoubleComplex g11 = gate_shared[3];
+    
+    // Column-major access: L[row, col] = L[col * dim + row]
+    cuDoubleComplex v0 = L[col * dim + row0];
+    cuDoubleComplex v1 = L[col * dim + row1];
+    
+    // Apply 2x2 unitary
+    L[col * dim + row0] = cuCadd(cuCmul(g00, v0), cuCmul(g01, v1));
+    L[col * dim + row1] = cuCadd(cuCmul(g10, v0), cuCmul(g11, v1));
+}
+
+/**
+ * @brief CUDA kernel: Apply Kraus expansion (column-major, coalesced)
+ * 
+ * Column-major layout with coalesced memory access pattern.
+ * Adjacent threads process adjacent rows within same column for coalescing.
+ */
+__global__ void apply_kraus_expansion_kernel_colmajor(
+    const cuDoubleComplex* L_in,   // Input L matrix (dim x old_rank), column-major
+    cuDoubleComplex* L_out,        // Output L matrix (dim x new_rank), column-major
+    size_t dim,
+    size_t old_rank,
+    size_t num_kraus,
+    size_t qubit,
+    const cuDoubleComplex* kraus_ops  // num_kraus * 4 elements
+) {
+    // Cache Kraus operators in shared memory
+    extern __shared__ cuDoubleComplex kraus_shared[];
+    size_t total_kraus_elems = num_kraus * 4;
+    for (size_t i = threadIdx.x; i < total_kraus_elems; i += blockDim.x) {
+        kraus_shared[i] = kraus_ops[i];
+    }
+    __syncthreads();
+
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t step = 1ULL << qubit;
+    size_t num_pairs = dim / 2;
+    
+    // Total work: num_pairs * old_rank * num_kraus
+    size_t total_work = num_pairs * old_rank * num_kraus;
+    if (idx >= total_work) return;
+    
+    // Decode with pair_idx varying fastest for coalesced row access
+    size_t pair_idx = idx % num_pairs;
+    size_t remainder = idx / num_pairs;
+    size_t col_in = remainder % old_rank;
+    size_t kraus_idx = remainder / old_rank;
+    
+    // Calculate row indices
+    size_t block_idx = pair_idx / step;
+    size_t within_block = pair_idx % step;
+    size_t row0 = block_idx * (2 * step) + within_block;
+    size_t row1 = row0 + step;
+    
+    // Load Kraus operator from shared memory
+    cuDoubleComplex k00 = kraus_shared[kraus_idx * 4 + 0];
+    cuDoubleComplex k01 = kraus_shared[kraus_idx * 4 + 1];
+    cuDoubleComplex k10 = kraus_shared[kraus_idx * 4 + 2];
+    cuDoubleComplex k11 = kraus_shared[kraus_idx * 4 + 3];
+    
+    // Column-major access for input
+    cuDoubleComplex v0 = L_in[col_in * dim + row0];
+    cuDoubleComplex v1 = L_in[col_in * dim + row1];
+    
+    // Compute output column index
+    size_t new_rank = old_rank * num_kraus;
+    size_t col_out = kraus_idx * old_rank + col_in;
+    
+    // Column-major access for output
+    L_out[col_out * dim + row0] = cuCadd(cuCmul(k00, v0), cuCmul(k01, v1));
+    L_out[col_out * dim + row1] = cuCadd(cuCmul(k10, v0), cuCmul(k11, v1));
+}
+
+/**
+ * @brief CUDA kernel: Apply single-qubit gate to L matrix (shared-memory optimized)
  * 
  * For L matrix (dim × rank), applies U to qubit q:
  * L[i, :] and L[i ^ (1 << q), :] are mixed according to U
  * 
  * Each thread handles one pair of rows.
+ * Gate matrix cached in shared memory to avoid redundant global reads.
  */
 __global__ void apply_single_qubit_gate_kernel(
     cuDoubleComplex* L,
@@ -239,6 +362,16 @@ __global__ void apply_single_qubit_gate_kernel(
     cuDoubleComplex u00, cuDoubleComplex u01,
     cuDoubleComplex u10, cuDoubleComplex u11
 ) {
+    // Cache gate matrix in shared memory (all threads in block share)
+    __shared__ cuDoubleComplex gate_shared[4];
+    if (threadIdx.x == 0) {
+        gate_shared[0] = u00;
+        gate_shared[1] = u01;
+        gate_shared[2] = u10;
+        gate_shared[3] = u11;
+    }
+    __syncthreads();
+
     size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
     size_t step = 1ULL << qubit;
     
@@ -252,15 +385,86 @@ __global__ void apply_single_qubit_gate_kernel(
     size_t row0 = block_idx * (2 * step) + within_block;
     size_t row1 = row0 + step;
     
+    // Read gate from shared memory
+    cuDoubleComplex g00 = gate_shared[0];
+    cuDoubleComplex g01 = gate_shared[1];
+    cuDoubleComplex g10 = gate_shared[2];
+    cuDoubleComplex g11 = gate_shared[3];
+    
     // Process all columns (rank elements)
     for (size_t c = 0; c < rank; ++c) {
         cuDoubleComplex v0 = L[row0 * rank + c];
         cuDoubleComplex v1 = L[row1 * rank + c];
         
-        // Apply 2x2 unitary: [u00 u01; u10 u11] * [v0; v1]
-        L[row0 * rank + c] = cuCadd(cuCmul(u00, v0), cuCmul(u01, v1));
-        L[row1 * rank + c] = cuCadd(cuCmul(u10, v0), cuCmul(u11, v1));
+        // Apply 2x2 unitary: [g00 g01; g10 g11] * [v0; v1]
+        L[row0 * rank + c] = cuCadd(cuCmul(g00, v0), cuCmul(g01, v1));
+        L[row1 * rank + c] = cuCadd(cuCmul(g10, v0), cuCmul(g11, v1));
     }
+}
+
+/**
+ * @brief CUDA kernel: Apply multiple Kraus operators to expand L matrix rank
+ * 
+ * LRET Kraus expansion: L_out[:, k*old_rank : (k+1)*old_rank] = K_k ⊗ I * L_in
+ * Output matrix has rank = old_rank * num_kraus
+ * 
+ * Each thread handles one (row_pair, column, kraus_index) combination.
+ * Kraus operators cached in shared memory for efficiency.
+ */
+__global__ void apply_kraus_expansion_kernel(
+    const cuDoubleComplex* L_in,   // Input L matrix (dim x old_rank)
+    cuDoubleComplex* L_out,        // Output L matrix (dim x new_rank)
+    size_t dim,
+    size_t old_rank,
+    size_t num_kraus,
+    size_t qubit,
+    const cuDoubleComplex* kraus_ops  // num_kraus * 4 elements (K0, K1, ...)
+) {
+    // Cache all Kraus operators in shared memory (max 16 Kraus ops = 64 elements)
+    extern __shared__ cuDoubleComplex kraus_shared[];
+    size_t total_kraus_elems = num_kraus * 4;
+    for (size_t i = threadIdx.x; i < total_kraus_elems; i += blockDim.x) {
+        kraus_shared[i] = kraus_ops[i];
+    }
+    __syncthreads();
+
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t step = 1ULL << qubit;
+    size_t num_pairs = dim / 2;
+    
+    // Total work items: num_pairs * old_rank * num_kraus
+    size_t total_work = num_pairs * old_rank * num_kraus;
+    if (idx >= total_work) return;
+    
+    // Decode work item
+    size_t kraus_idx = idx % num_kraus;
+    size_t remainder = idx / num_kraus;
+    size_t col_in = remainder % old_rank;
+    size_t pair_idx = remainder / old_rank;
+    
+    // Calculate row indices for the pair
+    size_t block_idx = pair_idx / step;
+    size_t within_block = pair_idx % step;
+    size_t row0 = block_idx * (2 * step) + within_block;
+    size_t row1 = row0 + step;
+    
+    // Load Kraus operator from shared memory
+    cuDoubleComplex k00 = kraus_shared[kraus_idx * 4 + 0];
+    cuDoubleComplex k01 = kraus_shared[kraus_idx * 4 + 1];
+    cuDoubleComplex k10 = kraus_shared[kraus_idx * 4 + 2];
+    cuDoubleComplex k11 = kraus_shared[kraus_idx * 4 + 3];
+    
+    // Load input values
+    cuDoubleComplex v0 = L_in[row0 * old_rank + col_in];
+    cuDoubleComplex v1 = L_in[row1 * old_rank + col_in];
+    
+    // Compute output column index
+    size_t new_rank = old_rank * num_kraus;
+    size_t col_out = kraus_idx * old_rank + col_in;
+    
+    // Apply Kraus: K * [v0; v1]
+    L_out[row0 * new_rank + col_out] = cuCadd(cuCmul(k00, v0), cuCmul(k01, v1));
+    L_out[row1 * new_rank + col_out] = cuCadd(cuCmul(k10, v0), cuCmul(k11, v1));
 }
 
 /**
@@ -276,36 +480,42 @@ __global__ void apply_two_qubit_gate_kernel(
     size_t qubit2,  // Higher qubit index
     const cuDoubleComplex* gate  // 4x4 gate matrix in row-major order
 ) {
+    // Cache 4x4 gate in shared memory once per block to avoid repeated global reads
+    __shared__ cuDoubleComplex gate_shared[16];
+    if (threadIdx.x < 16) {
+        gate_shared[threadIdx.x] = gate[threadIdx.x];
+    }
+    __syncthreads();
+
     size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     size_t step1 = 1ULL << qubit1;
     size_t step2 = 1ULL << qubit2;
-    
+
     // Number of 4-tuples
     size_t num_quads = dim / 4;
     if (idx >= num_quads) return;
-    
-    // Calculate base row index
-    // Skip rows where either qubit bit is set
-    size_t base = 0;
-    size_t count = 0;
-    for (size_t r = 0; r < dim && count <= idx; ++r) {
-        if (((r >> qubit1) & 1) == 0 && ((r >> qubit2) & 1) == 0) {
-            if (count == idx) {
-                base = r;
-                break;
-            }
-            count++;
-        }
-    }
-    
+
+    // Compute base row by inserting zero bits at qubit1 and qubit2 positions
+    size_t low_mask = (1ULL << qubit1) - 1ULL;
+    size_t middle_bits = (qubit2 > qubit1 + 1) ? (qubit2 - qubit1 - 1) : 0;
+    size_t mid_mask = (middle_bits == 0) ? 0ULL : ((1ULL << middle_bits) - 1ULL);
+
+    size_t low = idx & low_mask;
+    size_t mid = (middle_bits == 0) ? 0ULL : ((idx >> qubit1) & mid_mask);
+    size_t high = idx >> (qubit1 + middle_bits);
+
+    size_t base = low;
+    base |= mid << (qubit1 + 1);          // insert zero at qubit1
+    base |= high << (qubit2 + 1);         // insert zero at qubit2 (after first insert)
+
     // Get the 4 row indices
     size_t rows[4];
     rows[0] = base;                        // |00⟩
     rows[1] = base | step1;                // |01⟩
     rows[2] = base | step2;                // |10⟩
     rows[3] = base | step1 | step2;        // |11⟩
-    
+
     // Process all columns
     for (size_t c = 0; c < rank; ++c) {
         // Load 4 values
@@ -313,16 +523,16 @@ __global__ void apply_two_qubit_gate_kernel(
         for (int i = 0; i < 4; ++i) {
             v[i] = L[rows[i] * rank + c];
         }
-        
-        // Apply 4x4 gate
+
+        // Apply 4x4 gate using cached matrix
         cuDoubleComplex result[4];
         for (int i = 0; i < 4; ++i) {
             result[i] = make_cuDoubleComplex(0.0, 0.0);
             for (int j = 0; j < 4; ++j) {
-                result[i] = cuCadd(result[i], cuCmul(gate[i * 4 + j], v[j]));
+                result[i] = cuCadd(result[i], cuCmul(gate_shared[i * 4 + j], v[j]));
             }
         }
-        
+
         // Store results
         for (int i = 0; i < 4; ++i) {
             L[rows[i] * rank + c] = result[i];
@@ -385,6 +595,7 @@ public:
             std::cout << "  Dimension: " << dim_ << "\n";
             std::cout << "  Device: " << device << "\n";
             std::cout << "  cuQuantum: " << (is_cuquantum_available() ? "Yes" : "No") << "\n";
+            std::cout << "  Layout: " << (config.use_column_major ? "column-major (coalesced)" : "row-major") << "\n";
         }
     }
     
@@ -407,14 +618,25 @@ public:
         CUDA_CHECK(cudaMalloc(&d_L_, size));
         allocated_bytes_ = size;
         
-        // Copy data (Eigen is column-major, CUDA expects row-major for our kernels)
-        // Convert to row-major layout
         std::vector<cuDoubleComplex> host_data(dim_ * rank_);
-        for (size_t r = 0; r < dim_; ++r) {
+        
+        if (config_.use_column_major) {
+            // Column-major: L[row, col] at L[col * dim + row] (matches Eigen)
             for (size_t c = 0; c < rank_; ++c) {
-                host_data[r * rank_ + c] = make_cuDoubleComplex(
-                    L(r, c).real(), L(r, c).imag()
-                );
+                for (size_t r = 0; r < dim_; ++r) {
+                    host_data[c * dim_ + r] = make_cuDoubleComplex(
+                        L(r, c).real(), L(r, c).imag()
+                    );
+                }
+            }
+        } else {
+            // Row-major: L[row, col] at L[row * rank + col]
+            for (size_t r = 0; r < dim_; ++r) {
+                for (size_t c = 0; c < rank_; ++c) {
+                    host_data[r * rank_ + c] = make_cuDoubleComplex(
+                        L(r, c).real(), L(r, c).imag()
+                    );
+                }
             }
         }
         
@@ -422,7 +644,8 @@ public:
         
         if (config_.verbose) {
             std::cout << "Uploaded L matrix: " << dim_ << " x " << rank_ 
-                      << " (" << (size / (1024.0 * 1024.0)) << " MB)\n";
+                      << " (" << (size / (1024.0 * 1024.0)) << " MB, "
+                      << (config_.use_column_major ? "col-major" : "row-major") << ")\n";
         }
     }
     
@@ -432,12 +655,23 @@ public:
         
         CUDA_CHECK(cudaMemcpy(host_data.data(), d_L_, size, cudaMemcpyDeviceToHost));
         
-        // Convert back to Eigen column-major
         MatrixXcd L(dim_, rank_);
-        for (size_t r = 0; r < dim_; ++r) {
+        
+        if (config_.use_column_major) {
+            // Column-major: L[row, col] at L[col * dim + row]
             for (size_t c = 0; c < rank_; ++c) {
-                auto& val = host_data[r * rank_ + c];
-                L(r, c) = Complex(cuCreal(val), cuCimag(val));
+                for (size_t r = 0; r < dim_; ++r) {
+                    auto& val = host_data[c * dim_ + r];
+                    L(r, c) = Complex(cuCreal(val), cuCimag(val));
+                }
+            }
+        } else {
+            // Row-major: L[row, col] at L[row * rank + col]
+            for (size_t r = 0; r < dim_; ++r) {
+                for (size_t c = 0; c < rank_; ++c) {
+                    auto& val = host_data[r * rank_ + c];
+                    L(r, c) = Complex(cuCreal(val), cuCimag(val));
+                }
             }
         }
         
@@ -461,13 +695,26 @@ public:
         cuDoubleComplex u10 = make_cuDoubleComplex(gate(1,0).real(), gate(1,0).imag());
         cuDoubleComplex u11 = make_cuDoubleComplex(gate(1,1).real(), gate(1,1).imag());
         
-        size_t num_pairs = dim_ / 2;
-        int threads = 256;
-        int blocks = (num_pairs + threads - 1) / threads;
-        
-        apply_single_qubit_gate_kernel<<<blocks, threads>>>(
-            d_L_, dim_, rank_, qubit, u00, u01, u10, u11
-        );
+        if (config_.use_column_major) {
+            // Column-major kernel with coalesced access
+            size_t num_pairs = dim_ / 2;
+            size_t total_work = num_pairs * rank_;
+            int threads = 256;
+            int blocks = (total_work + threads - 1) / threads;
+            
+            apply_single_qubit_gate_kernel_colmajor<<<blocks, threads>>>(
+                d_L_, dim_, rank_, qubit, u00, u01, u10, u11
+            );
+        } else {
+            // Row-major kernel
+            size_t num_pairs = dim_ / 2;
+            int threads = 256;
+            int blocks = (num_pairs + threads - 1) / threads;
+            
+            apply_single_qubit_gate_kernel<<<blocks, threads>>>(
+                d_L_, dim_, rank_, qubit, u00, u01, u10, u11
+            );
+        }
         
         CUDA_CHECK(cudaGetLastError());
     }
@@ -540,6 +787,73 @@ public:
         CUDA_CHECK(cudaGetLastError());
         cudaFree(d_gate);
     }
+    
+    /**
+     * @brief Apply Kraus operators with proper LRET rank expansion on GPU
+     * 
+     * For LRET: applying k Kraus operators multiplies rank by k.
+     * L_out has dimensions (dim x new_rank) where new_rank = old_rank * num_kraus.
+     * Supports both row-major and column-major layouts.
+     */
+    void apply_kraus_expand(size_t qubit, const std::vector<Matrix2cd>& kraus_ops) {
+        if (kraus_ops.empty()) return;
+        
+        size_t num_kraus = kraus_ops.size();
+        size_t new_rank = rank_ * num_kraus;
+        size_t new_size = dim_ * new_rank * sizeof(cuDoubleComplex);
+        
+        // Allocate output buffer
+        cuDoubleComplex* d_L_out;
+        CUDA_CHECK(cudaMalloc(&d_L_out, new_size));
+        
+        // Prepare and upload Kraus operators (row-major: K[i][j] = kraus[k](i,j))
+        std::vector<cuDoubleComplex> h_kraus(num_kraus * 4);
+        for (size_t k = 0; k < num_kraus; ++k) {
+            const auto& K = kraus_ops[k];
+            h_kraus[k * 4 + 0] = make_cuDoubleComplex(K(0,0).real(), K(0,0).imag());
+            h_kraus[k * 4 + 1] = make_cuDoubleComplex(K(0,1).real(), K(0,1).imag());
+            h_kraus[k * 4 + 2] = make_cuDoubleComplex(K(1,0).real(), K(1,0).imag());
+            h_kraus[k * 4 + 3] = make_cuDoubleComplex(K(1,1).real(), K(1,1).imag());
+        }
+        
+        cuDoubleComplex* d_kraus;
+        CUDA_CHECK(cudaMalloc(&d_kraus, h_kraus.size() * sizeof(cuDoubleComplex)));
+        CUDA_CHECK(cudaMemcpy(d_kraus, h_kraus.data(), 
+                              h_kraus.size() * sizeof(cuDoubleComplex),
+                              cudaMemcpyHostToDevice));
+        
+        // Launch appropriate kernel based on memory layout
+        size_t num_pairs = dim_ / 2;
+        size_t total_work = num_pairs * rank_ * num_kraus;
+        int threads = 256;
+        int blocks = (total_work + threads - 1) / threads;
+        size_t shared_mem = num_kraus * 4 * sizeof(cuDoubleComplex);
+        
+        if (config_.use_column_major) {
+            apply_kraus_expansion_kernel_colmajor<<<blocks, threads, shared_mem>>>(
+                d_L_, d_L_out, dim_, rank_, num_kraus, qubit, d_kraus
+            );
+        } else {
+            apply_kraus_expansion_kernel<<<blocks, threads, shared_mem>>>(
+                d_L_, d_L_out, dim_, rank_, num_kraus, qubit, d_kraus
+            );
+        }
+        
+        CUDA_CHECK(cudaGetLastError());
+        
+        // Swap buffers and update rank
+        cudaFree(d_L_);
+        cudaFree(d_kraus);
+        d_L_ = d_L_out;
+        rank_ = new_rank;
+        allocated_bytes_ = new_size;
+        
+        if (config_.verbose) {
+            std::cout << "Kraus expansion: rank " << (rank_ / num_kraus) 
+                      << " -> " << rank_ << " (" << num_kraus << " operators, "
+                      << (config_.use_column_major ? "col-major" : "row-major") << ")\n";
+        }
+    }
 };
 
 //==============================================================================
@@ -590,25 +904,20 @@ void GPUSimulator::apply_two_qubit_gate(size_t qubit1, size_t qubit2, const Matr
 }
 
 void GPUSimulator::apply_noise(const NoiseOp& noise) {
-    // For LRET noise: Apply Kraus operators
-    // L_new = sum_k K_k ⊗ I * L
-    // This requires expanding L rank by number of Kraus operators
-    // For now, apply first Kraus operator (simplified)
+    // For LRET noise: Apply Kraus operators with proper rank expansion
+    // L_new = [K_0 ⊗ I * L | K_1 ⊗ I * L | ... | K_k ⊗ I * L]
+    // Rank increases by factor of num_kraus_operators
     auto kraus = get_kraus_operators(noise.type, noise.probability);
     if (!kraus.empty()) {
-        // TODO: Implement full Kraus expansion on GPU
-        // For now, use simplified noise application
         size_t target = noise.qubits.empty() ? 0 : noise.qubits[0];
-        apply_single_qubit_gate(target, kraus[0]);
+        apply_kraus(target, kraus);
     }
 }
 
 void GPUSimulator::apply_kraus(size_t qubit, const std::vector<Matrix2cd>& kraus_ops) {
-    // TODO: Implement Kraus operator expansion on GPU
+    // Full LRET Kraus expansion on GPU
     // This increases rank: L_new has rank = old_rank * num_kraus_ops
-    if (!kraus_ops.empty()) {
-        apply_single_qubit_gate(qubit, kraus_ops[0]);
-    }
+    impl_->apply_kraus_expand(qubit, kraus_ops);
 }
 
 size_t GPUSimulator::truncate(double threshold) {

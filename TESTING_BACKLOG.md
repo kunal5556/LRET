@@ -3078,3 +3078,152 @@ This document provides a comprehensive testing roadmap for LRET quantum simulato
 **Expected Success Rate:** > 95% (assuming environment is correctly configured)
 
 Good luck with testing! 🚀
+
+---
+
+## Phase 8: GPU Memory Optimization Tests (Pending GPU Hardware)
+
+**Status:** ❌ NOT RUN (no GPU on current system)  
+**Objective:** Validate shared-memory/coalesced two-qubit kernel changes and measure bandwidth gains.
+
+### 8.1 Single-GPU Build + Info
+
+**Commands:**
+```bash
+cd build
+cmake .. -DUSE_GPU=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build .
+./quantum_sim --gpu-info
+```
+
+**Success Criteria:**
+- Build completes with CUDA/cuBLAS (cuQuantum optional)
+- `--gpu-info` prints detected GPU(s) without errors
+
+---
+
+### 8.2 GPU vs CPU Parity (Two-Qubit Kernel Regression)
+
+**Commands:**
+```bash
+# Small circuit parity check (compares GPU vs CPU outputs)
+./quantum_sim -n 5 -d 6 --mode compare --gpu
+```
+
+**Success Criteria:**
+- GPU run completes without CUDA errors
+- Fidelity/trace distance matches CPU within tolerance (e.g., fidelity > 0.9999)
+
+---
+
+### 8.3 Two-Qubit Kernel Bandwidth Check
+
+**Commands (example with Nsight Systems):**
+```bash
+nsys profile --stats=true ./quantum_sim -n 18 -d 24 --gpu
+```
+
+**Success Criteria:**
+- No kernel launches fail; occupancy > 50%
+- Memory throughput approaches target (aim 80%+ of device peak for two-qubit gate kernel)
+
+---
+
+### 8.4 Distributed GPU Smoke (Reuse Section 2.2/2.3)
+
+**Commands:**
+```bash
+# Single-node distributed GPU
+./test_distributed_gpu
+
+# Multi-GPU MPI+NCCL (if available)
+mpirun -np 2 ./test_distributed_gpu_mpi
+```
+
+**Success Criteria:**
+- All collectives succeed; no NCCL/MPI errors
+- Exit code: 0 for both binaries
+
+---
+
+### 8.5 Shared-Memory Single-Qubit Kernel Test
+
+**Purpose:** Validate single-qubit gate kernel with shared-memory gate caching.
+
+**Commands:**
+```bash
+# Run with verbose GPU output
+./quantum_sim -n 12 -d 20 --gpu --verbose 2>&1 | grep -i "single"
+```
+
+**Success Criteria:**
+- No CUDA errors during single-qubit gate application
+- Results match CPU reference (fidelity > 0.9999)
+
+---
+
+### 8.6 Full Kraus Expansion Kernel Test
+
+**Purpose:** Validate proper LRET rank expansion via GPU Kraus kernel.
+
+**Commands:**
+```bash
+# Run noisy simulation that triggers Kraus expansion
+./quantum_sim -n 8 -d 10 --noise depolarizing --gpu --verbose
+```
+
+**Expected Output (sample):**
+```
+Kraus expansion: rank 1 -> 4 (4 operators)
+Kraus expansion: rank 4 -> 16 (4 operators)
+...truncation...
+```
+
+**Success Criteria:**
+- Rank correctly multiplies by number of Kraus operators (e.g., 4 for depolarizing)
+- Truncation reduces rank as expected
+- Final fidelity reasonable (> 0.9 for low noise)
+
+---
+
+### 8.7 Column-Major Coalesced Access Benchmark
+
+**Purpose:** Compare row-major vs column-major GPU kernel performance.
+
+**Commands:**
+```bash
+# Row-major (default)
+time ./quantum_sim -n 16 -d 30 --gpu 2>&1 | tail -3
+
+# Column-major (coalesced) - requires code modification or CLI flag
+# GPUConfig().set_column_major(true)
+```
+
+**Success Criteria:**
+- Column-major kernel shows improved memory bandwidth (Nsight Compute)
+- Performance improvement 1.2-2x for memory-bound kernels
+- Results identical between layouts (fidelity = 1.0)
+
+---
+
+### 8.8 GPU Memory Layout Upload/Download Test
+
+**Purpose:** Verify correct data transfer between CPU (Eigen column-major) and GPU layouts.
+
+**Test Code (add to test_distributed_gpu.cpp or new test):**
+```cpp
+GPUConfig cfg;
+cfg.use_column_major = true;
+GPUSimulator gpu(4, cfg);
+
+MatrixXcd L = MatrixXcd::Random(16, 3);
+gpu.upload_state(L);
+MatrixXcd L2 = gpu.download_state();
+
+assert((L - L2).norm() < 1e-12);
+std::cout << "Column-major upload/download: PASS\n";
+```
+
+**Success Criteria:**
+- Upload followed by download returns identical matrix (within floating-point tolerance)
+- Works for both row-major and column-major configurations

@@ -91,6 +91,9 @@ struct GPUConfig {
     bool use_cuquantum = true;           ///< Use cuQuantum if available
     bool enable_tensor_cores = true;     ///< Use tensor cores (Ampere+)
     
+    // Memory layout optimization (Phase 8.2)
+    bool use_column_major = false;       ///< Use column-major layout for coalesced access
+    
     GPUConfig() = default;
     
     GPUConfig& set_device(int id) { device_id = id; return *this; }
@@ -98,6 +101,7 @@ struct GPUConfig {
     GPUConfig& set_fallback(bool f) { auto_fallback = f; return *this; }
     GPUConfig& set_memory_limit(size_t m) { max_gpu_memory = m; return *this; }
     GPUConfig& set_verbose(bool v) { verbose = v; return *this; }
+    GPUConfig& set_column_major(bool cm) { use_column_major = cm; return *this; }
 };
 
 //==============================================================================
