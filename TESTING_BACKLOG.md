@@ -3915,3 +3915,123 @@ mpirun -np 4 ./build/test_distributed_e2e  # planned integration test
 - Performance profiling (8.31)
 
 **Next:** Phase 9 (Quantum Error Correction)
+
+---
+
+## Phase 9: Quantum Error Correction Tests
+
+### 9.1 Stabilizer Code Tests
+
+**File:** `tests/test_qec_stabilizer.cpp`  
+**Status:**  NOT RUN (requires build on target system)  
+**Purpose:** Validate Pauli string algebra and stabilizer code generation
+
+**Test Commands:**
+```bash
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . --target test_qec_stabilizer
+./test_qec_stabilizer
+```
+
+**Success Criteria:**
+- All Pauli multiplication tests pass
+- Repetition code generates correct stabilizers
+- Surface code generates correct stabilizers and logical operators
+- All stabilizers commute with each other
+- Logical operators anti-commute with each other
+
+---
+
+### 9.2 Syndrome Extraction Tests
+
+**File:** `tests/test_qec_syndrome.cpp`  
+**Status:**  NOT RUN (requires build on target system)  
+**Purpose:** Validate syndrome extraction circuits and error injection
+
+**Test Commands:**
+```bash
+cmake --build . --target test_qec_syndrome
+./test_qec_syndrome
+```
+
+**Success Criteria:**
+- Single X errors create two defects in repetition code
+- Edge errors create single defect
+- Z errors invisible to Z-stabilizers (bit-flip code)
+- Detection events correctly compute syndrome XOR
+
+---
+
+### 9.3 Decoder Tests
+
+**File:** `tests/test_qec_decoder.cpp`  
+**Status:**  NOT RUN (requires build on target system)  
+**Purpose:** Validate MWPM, Union-Find, and Lookup Table decoders
+
+**Test Commands:**
+```bash
+cmake --build . --target test_qec_decoder
+./test_qec_decoder
+```
+
+**Success Criteria:**
+- All decoders decode empty syndrome to identity correction
+- Single errors produce weight-1 corrections
+- MWPM and Union-Find produce comparable results
+- Lookup table has non-zero size for distance-3 codes
+
+---
+
+### 9.4 Logical Qubit Tests
+
+**File:** `tests/test_qec_logical.cpp`  
+**Status:**  NOT RUN (requires build on target system)  
+**Purpose:** Validate logical qubit interface and QEC simulation
+
+**Test Commands:**
+```bash
+cmake --build . --target test_qec_logical
+./test_qec_logical
+```
+
+**Success Criteria:**
+- Logical qubits initialize correctly
+- Logical gates apply transversal operations
+- QEC rounds detect and correct errors
+- Logical error detection works for weight-d error chains
+- QEC simulator produces reasonable logical error rates
+
+---
+
+### 9.5 Execution Summary
+
+**Phase 9.1 Status:**  IMPLEMENTATION COMPLETE |  VALIDATION PENDING
+
+**Implemented Components:**
+- Pauli string algebra (qec_types.h/cpp)
+- Repetition code generation (qec_stabilizer.h/cpp)
+- Rotated surface code generation (qec_stabilizer.h/cpp)
+- Syndrome extraction circuits (qec_syndrome.h/cpp)
+- Error injection utilities (qec_syndrome.h/cpp)
+- MWPM decoder with greedy matching (qec_decoder.h/cpp)
+- Union-Find decoder (qec_decoder.h/cpp)
+- Lookup table decoder for small codes (qec_decoder.h/cpp)
+- Logical qubit interface (qec_logical.h/cpp)
+- Logical register for multi-qubit systems (qec_logical.h/cpp)
+- QEC Monte Carlo simulator (qec_logical.h/cpp)
+
+**Tests Created:**
+- test_qec_stabilizer.cpp (17 tests)
+- test_qec_syndrome.cpp (15 tests)
+- test_qec_decoder.cpp (14 tests)
+- test_qec_logical.cpp (24 tests)
+
+**Pending Validation:**
+- All tests require build on target system
+- No GPU/MPI dependencies (CPU-only Phase 9.1)
+
+**Next Steps (Phase 9.2):**
+- Distributed QEC for large codes
+- GPU-accelerated syndrome extraction
+- Parallel decoding across measurement rounds
