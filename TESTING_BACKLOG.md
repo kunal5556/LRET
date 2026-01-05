@@ -3790,3 +3790,58 @@ cmake --build build
 - Checkpoint/restart restores state with fidelity > 0.9999
 - Scheduler meets or beats FIFO baseline throughput
 - ML integration runs end-to-end without deadlocks; gradients consistent within 1e-6
+
+---
+
+## Phase 8.4: Integration & Advanced Distributed Features
+
+### 8.28 Distributed Autodiff Implementation (Phase 8.4)
+
+**Status:** ⏭️ SKIPPED (implemented; pending multi-GPU/MPI/NCCL validation)
+
+**Purpose:** Full multi-GPU parameter-shift gradients with all-reduce aggregation.
+
+**Implementation:**
+- `include/distributed_autodiff.h` + `src/distributed_autodiff.cpp`
+- `DistributedAutoDiffCircuit` class: forward/backward with collective ops
+- `validate_distributed_gradients()` helper for L2 error comparison
+- Updated `tests/test_autodiff_multi_gpu.cpp` with real gradient checks
+
+**Commands:**
+```bash
+cmake -S . -B build -DUSE_GPU=ON -DUSE_MPI=ON -DBUILD_MULTI_GPU_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+mpirun -np 2 ./build/test_autodiff_multi_gpu
+```
+
+**Success Criteria:**
+- Distributed gradients match single-GPU reference within L2 error < 1e-4
+- All-reduce expectation values correct
+- Exit code: 0; no MPI/NCCL errors
+
+---
+
+### 8.29 Fault Tolerance Integration (Phase 8.4)
+
+**Status:** ⏭️ SKIPPED (implemented; pending multi-GPU/MPI/NCCL validation)
+
+**Purpose:** Combine checkpointing + scheduler + distributed simulator for fault-tolerant execution.
+
+**Implementation:**
+- `include/fault_tolerance.h` + `src/fault_tolerance.cpp`
+- `FaultTolerantRunner` class: periodic checkpointing, recovery, scheduler integration
+- `test_fault_recovery()` helper: run, fail, recover, continue
+- `tests/test_fault_tolerance.cpp` added
+
+**Commands:**
+```bash
+cmake -S . -B build -DUSE_GPU=ON -DUSE_MPI=ON -DBUILD_MULTI_GPU_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+mpirun -np 2 ./build/test_fault_tolerance
+```
+
+**Success Criteria:**
+- Checkpoint saved at intervals; recovery loads correct state
+- Execution resumes from checkpoint step
+- All operations complete after recovery
+- Exit code: 0; no corruption or deadlocks
