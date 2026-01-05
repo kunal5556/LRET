@@ -3845,3 +3845,73 @@ mpirun -np 2 ./build/test_fault_tolerance
 - Execution resumes from checkpoint step
 - All operations complete after recovery
 - Exit code: 0; no corruption or deadlocks
+
+---
+
+### 8.30 End-to-End Distributed Workflow (Phase 8.4 Integration)
+
+**Status:** ⏭️ SKIPPED (pending multi-GPU/MPI/NCCL HPC environment)
+
+**Purpose:** Validate complete distributed stack: simulator + autodiff + checkpoint + scheduler.
+
+**Scope:**
+- Execute parameterized circuit on distributed GPU backend
+- Compute gradients via `DistributedAutoDiffCircuit`
+- Periodic checkpointing during execution
+- Scheduler-driven operation prioritization
+- Recovery from mid-execution checkpoint
+
+**Commands:**
+```bash
+cmake -S . -B build -DUSE_GPU=ON -DUSE_MPI=ON -DBUILD_MULTI_GPU_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+mpirun -np 4 ./build/test_distributed_e2e  # planned integration test
+```
+
+**Success Criteria:**
+- Circuit executes correctly across all ranks
+- Gradients match single-GPU reference within 1e-4
+- Checkpoints save/restore without state corruption
+- Scheduler improves latency by >10% vs FIFO baseline
+- Recovery after simulated failure completes successfully
+- Exit code: 0; no deadlocks or NCCL errors
+
+---
+
+### 8.31 Performance Profiling Suite (Phase 8.4)
+
+**Status:** ⏭️ SKIPPED (requires multi-GPU HPC + profiling tools)
+
+**Purpose:** Measure and optimize distributed performance at scale.
+
+**Tasks:**
+- Nsight Systems profiling of comm/compute overlap
+- Bandwidth measurement for various transfer sizes
+- Load imbalance detection across ranks
+- Scheduler throughput comparison (FIFO vs Adaptive vs Priority)
+
+**Success Criteria:**
+- Bandwidth within 80% of device peak
+- Comm/compute overlap >70% for eligible operations
+- Load imbalance <15% for balanced circuits
+- Adaptive scheduler improves throughput by >15% vs FIFO
+
+---
+
+### 8.32 Execution Summary
+
+**Phase 8 Status:** ✅ IMPLEMENTATION COMPLETE | ⏭️ VALIDATION DEFERRED
+
+**Implemented Components:**
+- Multi-GPU synchronization & collectives (8.21, 8.24)
+- Distributed autodiff with all-reduce (8.22, 8.28)
+- Load balancing infrastructure (8.25)
+- Performance utilities: pinned memory, bandwidth measurement, overlap (8.26)
+- Checkpointing & scheduling (8.27)
+- Fault tolerance integration (8.29)
+
+**Deferred Validation (Requires HPC):**
+- All multi-GPU tests (8.21–8.30)
+- Performance profiling (8.31)
+
+**Next:** Phase 9 (Quantum Error Correction)
