@@ -194,6 +194,8 @@ set(LIB_SOURCES
     src/qec_logical.cpp
     # Phase 9.2: Distributed QEC
     src/qec_distributed.cpp
+    # Phase 9.3: Adaptive QEC
+    src/qec_adaptive.cpp
 )
 
 # Create static library
@@ -444,6 +446,12 @@ endif()
 if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_distributed.cpp")
     add_executable(test_qec_distributed tests/test_qec_distributed.cpp)
     target_link_libraries(test_qec_distributed PRIVATE qlret_lib)
+endif()
+
+# QEC Adaptive test (Phase 9.3)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_adaptive.cpp")
+    add_executable(test_qec_adaptive tests/test_qec_adaptive.cpp)
+    target_link_libraries(test_qec_adaptive PRIVATE qlret_lib)
 endif()
 
 # Compiler optimizations for Release builds

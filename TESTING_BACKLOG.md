@@ -60,6 +60,9 @@ This document catalogs **all testing tasks** that were planned but not executed 
 - ❌ `tests/test_qec_decoder.cpp` — build: `cmake --build . --target test_qec_decoder`; run: `./test_qec_decoder`
 - ❌ `tests/test_qec_logical.cpp` — build: `cmake --build . --target test_qec_logical`; run: `./test_qec_logical`
 - ❌ `tests/test_qec_distributed.cpp` — build: `cmake --build . --target test_qec_distributed`; run: `./test_qec_distributed`
+- ❌ `tests/test_qec_adaptive.cpp` — build: `cmake --build . --target test_qec_adaptive`; run: `./test_qec_adaptive`
+- ❌ `scripts/generate_qec_training_data.py` — run: `python scripts/generate_qec_training_data.py --help`
+- ❌ `scripts/train_ml_decoder.py` — run: `python scripts/train_ml_decoder.py --help` (requires JAX/Flax)
 
 ---
 
@@ -4236,3 +4239,166 @@ cmake --build . --target test_qec_distributed
 - Distributed QEC for large codes
 - GPU-accelerated syndrome extraction
 - Parallel decoding across measurement rounds
+
+---
+
+## Phase 9.3: Adaptive & ML-Driven QEC Tests
+
+### 9.3.1 NoiseProfile Tests
+
+**File:** `tests/test_qec_adaptive.cpp`  
+**Status:**  NOT RUN  
+**Purpose:** Validate NoiseProfile data structure and derived statistics
+
+**Tests Included:**
+- `noise_profile_default_construction` - Default constructor initialization
+- `noise_profile_avg_gate_error` - Average gate error computation
+- `noise_profile_max_gate_error` - Maximum gate error identification
+- `noise_profile_avg_two_qubit_error` - Two-qubit error averaging
+- `noise_profile_avg_t1` - T1 coherence time averaging
+- `noise_profile_avg_t2` - T2 coherence time averaging
+- `noise_profile_t1_t2_ratio` - Bias ratio computation
+- `noise_profile_is_biased` - Bias detection with threshold
+- `noise_profile_has_correlations` - Correlation detection
+- `noise_profile_effective_error_rate` - Combined error rate computation
+- `noise_profile_json_roundtrip` - JSON serialization/deserialization
+- `noise_profile_relative_difference` - Profile comparison
+- `noise_profile_differs_from` - Drift detection
+
+### 9.3.2 AdaptiveCodeSelector Tests
+
+**Tests Included:**
+- `code_selector_default_construction` - Default configuration
+- `code_selector_select_surface_for_balanced` - Surface code for balanced noise
+- `code_selector_select_for_biased` - Repetition code for biased noise
+- `code_selector_select_for_correlated` - Surface code for correlated noise
+- `code_selector_select_distance` - Distance selection for target error rate
+- `code_selector_select_code_and_distance` - Combined selection
+- `code_selector_predict_logical_error_rate` - Error rate prediction model
+- `code_selector_rank_codes` - Code ranking by predicted performance
+- `code_selector_higher_distance_lower_error` - Distance scaling verification
+
+### 9.3.3 MLDecoder Tests (Fallback Mode)
+
+**Tests Included:**
+- `ml_decoder_construction` - Decoder initialization
+- `ml_decoder_fallback_decode` - MWPM fallback when ML unavailable
+- `ml_decoder_batch_decode` - Batch decoding interface
+
+### 9.3.4 ClosedLoopController Tests
+
+**Tests Included:**
+- `closed_loop_default_construction` - Default state initialization
+- `closed_loop_update_no_error` - Update cycle with no errors
+- `closed_loop_update_with_errors` - Error rate tracking
+- `closed_loop_detect_drift` - Drift detection from error rate changes
+- `closed_loop_should_not_recalibrate_early` - Minimum cycle enforcement
+- `closed_loop_reset` - State reset functionality
+- `closed_loop_set_noise_profile` - Noise profile configuration
+
+### 9.3.5 DynamicDistanceSelector Tests
+
+**Tests Included:**
+- `distance_selector_default_construction` - Default distance initialization
+- `distance_selector_recommend_no_change_initially` - Insufficient data handling
+- `distance_selector_recommend_increase` - Distance increase recommendation
+- `distance_selector_recommend_decrease` - Distance decrease recommendation
+- `distance_selector_respect_max` - Maximum distance enforcement
+
+### 9.3.6 AdaptiveQECController Tests
+
+**Tests Included:**
+- `adaptive_controller_construction` - Controller initialization
+- `adaptive_controller_initialize` - Initialization with noise profile
+- `adaptive_controller_process_round` - QEC round processing
+- `adaptive_controller_decode` - Syndrome decoding dispatch
+- `adaptive_controller_distance_adaptation` - Dynamic distance adjustment
+- `adaptive_controller_reset` - State reset
+
+### 9.3.7 Training Data Tests
+
+**Tests Included:**
+- `training_data_generation` - Synthetic training data generation
+- `training_sample_json_roundtrip` - Sample serialization
+- `training_metadata_json_roundtrip` - Metadata serialization
+
+### 9.3.8 Integration Tests
+
+**Tests Included:**
+- `integration_full_adaptive_qec_cycle` - End-to-end adaptive QEC
+- `integration_code_selection_pipeline` - Code selection for different noise types
+
+### 9.3.9 Performance Tests
+
+**Tests Included:**
+- `performance_code_selection` - Code selection latency (< 0.1ms target)
+- `performance_decode_latency` - Decode latency (< 5ms target)
+
+### 9.3.10 Test Execution Commands
+
+```bash
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . --target test_qec_adaptive
+./test_qec_adaptive
+```
+
+### 9.3.11 Python Training Script Tests
+
+**File:** `scripts/generate_qec_training_data.py`  
+**Status:**  NOT RUN  
+
+**Test Commands:**
+```bash
+cd scripts
+python generate_qec_training_data.py --code surface --distance 5 \
+    --num-samples 10000 --output ../data/train_test.npz --seed 42
+```
+
+**File:** `scripts/train_ml_decoder.py`  
+**Status:**  NOT RUN (requires JAX/Flax)
+
+### 9.3.12 Execution Summary
+
+**Phase 9.3 Status:**  IMPLEMENTATION COMPLETE |  VALIDATION PENDING
+
+**Implemented Components:**
+- NoiseProfile data structure with derived statistics
+- AdaptiveCodeSelector with decision tree logic
+- MLDecoder with pybind11 bridge design (MWPM fallback)
+- ClosedLoopController with drift detection
+- DynamicDistanceSelector for runtime distance adjustment
+- AdaptiveQECController as master orchestrator
+- TrainingSample and TrainingDatasetMetadata types
+- generate_training_data() utility function
+
+**Tests Created:**
+- test_qec_adaptive.cpp (45 tests)
+
+**Python Scripts Created:**
+- scripts/generate_qec_training_data.py (~500 lines)
+- scripts/train_ml_decoder.py (~450 lines)
+
+**Files Created:**
+- include/qec_adaptive.h (~550 lines)
+- src/qec_adaptive.cpp (~700 lines)
+- tests/test_qec_adaptive.cpp (~850 lines)
+
+**Dependencies:**
+- Phase 9.1 QEC infrastructure (required)
+- Phase 9.2 Distributed QEC (optional)
+- Phase 4 Noise calibration (for recalibration)
+- nlohmann/json (for serialization)
+- JAX/Flax (optional, for ML training)
+- pybind11 (optional, for ML inference bridge)
+
+**Performance Targets:**
+- Code selection: < 1ms
+- ML decoder inference: < 5ms (fallback mode)
+- Drift detection: < 1ms
+- Distance adaptation: < 1ms
+
+**Pending Validation:**
+- All C++ tests require build on target system
+- ML decoder requires Python model training
+- Recalibration integration requires Phase 4 scripts

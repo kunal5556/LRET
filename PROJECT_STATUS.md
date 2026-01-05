@@ -644,6 +644,66 @@ cmake -DCMAKE_BUILD_TYPE=Release \
 
 ---
 
+## Quantum Error Correction (Phase 9)
+
+### ✅ Phase 9.1: QEC Foundation
+
+**Status:** Complete
+
+**Files:**
+- `include/qec_types.h`, `src/qec_types.cpp` - Core QEC types
+- `include/qec_stabilizer.h`, `src/qec_stabilizer.cpp` - Stabilizer codes
+- `include/qec_syndrome.h`, `src/qec_syndrome.cpp` - Syndrome extraction
+- `include/qec_decoder.h`, `src/qec_decoder.cpp` - MWPM decoder
+- `include/qec_logical.h`, `src/qec_logical.cpp` - Logical qubit operations
+
+**Features:**
+- Surface and repetition code construction
+- Syndrome extraction from error patterns
+- Minimum Weight Perfect Matching decoder
+- Logical qubit encoding and operations
+- Error injection framework
+
+### ✅ Phase 9.2: Distributed QEC
+
+**Status:** Complete
+
+**Files:**
+- `include/qec_distributed.h`, `src/qec_distributed.cpp`
+- `tests/test_qec_distributed.cpp`
+
+**Features:**
+- Partitioned syndrome extraction across MPI ranks
+- Parallel MWPM decoding with boundary merging
+- Fault-tolerant QEC runner with checkpointing
+- Monte Carlo analysis for logical error rates
+- Support for ROW_WISE, COLUMN_WISE, BLOCK_2D, ROUND_ROBIN partitioning
+
+### ✅ Phase 9.3: Adaptive & ML-Driven QEC
+
+**Status:** Complete
+
+**Files:**
+- `include/qec_adaptive.h`, `src/qec_adaptive.cpp`
+- `scripts/generate_qec_training_data.py`
+- `scripts/train_ml_decoder.py`
+- `tests/test_qec_adaptive.cpp`
+
+**Features:**
+- **NoiseProfile** - Unified noise representation with T1/T2, gate errors, correlations
+- **AdaptiveCodeSelector** - Decision tree for code selection based on noise characteristics
+- **MLDecoder** - Neural network decoder with pybind11 bridge, MWPM fallback
+- **ClosedLoopController** - Drift detection and automatic recalibration trigger
+- **DynamicDistanceSelector** - Runtime distance adjustment based on error rate
+- **AdaptiveQECController** - Master orchestrator coordinating all adaptive components
+
+**ML Training Pipeline:**
+- Transformer-based decoder architecture (JAX/Flax)
+- Synthetic training data generation
+- Per-qubit Pauli prediction (I/X/Z/Y)
+
+---
+
 ## Testing & Validation
 
 ### ✅ Fidelity Validation Suite
