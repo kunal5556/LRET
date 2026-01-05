@@ -3666,7 +3666,7 @@ mpirun -np 2 ./build/test_multi_gpu_sync
 
 ### 8.22 Distributed Autodiff Multi-GPU (Phase 8.1)
 
-**Status:** ⏭️ SKIPPED (pending multi-GPU environment)
+**Status:** ⏭️ SKIPPED (pending multi-GPU environment; test stub added)
 
 **Purpose:** Extend autodiff gradient checks to multi-GPU distributed simulator.
 
@@ -3680,6 +3680,8 @@ mpirun -np 2 ./build/test_multi_gpu_sync
 - Works with USE_GPU=ON, USE_MPI=ON, NCCL available
 - Exit code: 0; no MPI/NCCL errors
 
+**Note:** Test binary exists (`test_autodiff_multi_gpu`) but is a skip stub until multi-GPU autodiff is implemented; run on >=2 GPUs with MPI+NCCL.
+
 ---
 
 ### 8.23 Execution Record (Tests Skipped This Session)
@@ -3692,20 +3694,26 @@ mpirun -np 2 ./build/test_multi_gpu_sync
 - Run 8.19 Phase 8.3 Validation on Linux/macOS via CI
 - Run 8.21 Multi-GPU Synchronization & Collectives on >=2 GPUs with MPI+NCCL
 - Implement and run 8.22 Distributed Autodiff Multi-GPU gradients once hardware available
+- Build: `cmake -S . -B build -DUSE_GPU=ON -DUSE_MPI=ON -DBUILD_MULTI_GPU_TESTS=ON`
+- Run 8.22 stub: `mpirun -np 2 ./build/test_autodiff_multi_gpu`
+- Run 8.24 collectives: `mpirun -np 4 ./build/test_multi_gpu_collectives`
+- Run 8.25 load balance: `mpirun -np 4 ./build/test_multi_gpu_load_balance`
 
 ---
 
 ### 8.24 Collective Communication Patterns (Phase 8.1)
 
-**Status:** ⏭️ SKIPPED (pending multi-GPU/MPI/NCCL)
+**Status:** ⏭️ SKIPPED (test implemented; pending multi-GPU/MPI/NCCL)
 
 **Purpose:** Validate AllGather, ReduceScatter, and P2P exchange correctness/perf.
+
+**Implementation:** `tests/test_multi_gpu_collectives.cpp` added with AllReduce, Distribute+Gather, and P2P overlap tests.
 
 **Commands (target):**
 ```bash
 cmake -S . -B build -DUSE_GPU=ON -DUSE_MPI=ON -DBUILD_MULTI_GPU_TESTS=ON -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
-mpirun -np 4 ./build/test_multi_gpu_collectives  # planned test binary
+mpirun -np 4 ./build/test_multi_gpu_collectives
 ```
 
 **Success Criteria:**
@@ -3717,12 +3725,14 @@ mpirun -np 4 ./build/test_multi_gpu_collectives  # planned test binary
 
 ### 8.25 Load Balancing / Dynamic Work Distribution (Phase 8.1)
 
-**Status:** ⏭️ SKIPPED (pending multi-GPU/MPI environment)
+**Status:** ⏭️ SKIPPED (test implemented; pending multi-GPU/MPI environment)
 
 **Purpose:** Measure and validate dynamic load balancing across ranks for uneven partitions.
 
+**Implementation:** `tests/test_multi_gpu_load_balance.cpp` added with imbalance metric capture and correctness check.
+
 **Tasks:**
-- Add `tests/test_multi_gpu_load_balance.cpp` to vary row partitions and rebalance
+- ✅ Add `tests/test_multi_gpu_load_balance.cpp` to vary row partitions and rebalance
 - Capture imbalance metrics before/after; ensure correctness of final state
 
 **Success Criteria:**
@@ -3734,12 +3744,18 @@ mpirun -np 4 ./build/test_multi_gpu_collectives  # planned test binary
 
 ### 8.26 Phase 8.2 Performance Optimization (Distributed GPU)
 
-**Status:** ⏭️ SKIPPED (requires profiling on multi-GPU Linux)
+**Status:** ⏭️ SKIPPED (implementation added; requires profiling on multi-GPU Linux)
 
 **Scope:**
 - Memory bandwidth optimization for distributed states
 - Overlap comm/compute for two-qubit gates
 - Pinned memory + GPU-Direct RDMA benchmarking
+
+**Implementation:**
+- `include/distributed_perf.h` + `src/distributed_perf.cpp` added
+- PinnedBuffer RAII wrapper for pinned memory
+- `measure_bandwidth()` for H2D/D2H/D2D throughput measurement
+- `schedule_overlap_begin/sync()` stubs for comm/compute overlap
 
 **Success Criteria:**
 - Bandwidth within 80% of device peak for target kernels
@@ -3750,12 +3766,25 @@ mpirun -np 4 ./build/test_multi_gpu_collectives  # planned test binary
 
 ### 8.27 Phase 8.3+ Reliability & Scheduling
 
-**Status:** ⏭️ SKIPPED (defer to HPC env)
+**Status:** ⏭️ SKIPPED (implementation added; defer testing to HPC env)
 
 **Scope:**
 - Fault tolerance / checkpointing for long-running distributed jobs
 - Advanced scheduling strategies (FIFO, adaptive)
 - Integration with ML frameworks at scale
+
+**Implementation:**
+- `include/checkpoint.h` + `src/checkpoint.cpp`: save/load checkpoint with async writer
+- `include/scheduler.h`: FIFO, Adaptive, Priority schedulers with factory
+- `tests/test_checkpoint.cpp` + `tests/test_scheduler.cpp` added
+
+**Commands (local, no GPU):**
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+./build/test_checkpoint
+./build/test_scheduler
+```
 
 **Success Criteria:**
 - Checkpoint/restart restores state with fidelity > 0.9999
