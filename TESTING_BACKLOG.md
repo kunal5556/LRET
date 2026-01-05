@@ -55,6 +55,11 @@ This document catalogs **all testing tasks** that were planned but not executed 
 - ❌ `python/tests/test_jax_interface.py` — run: `pytest python/tests/test_jax_interface.py -v`
 - ❌ `python/tests/test_pytorch_interface.py` — run: `pytest python/tests/test_pytorch_interface.py -v`
 - ❌ `python/tests/test_ml_integration.py` — run: `pytest python/tests/test_ml_integration.py -v`
+- ❌ `tests/test_qec_stabilizer.cpp` — build: `cmake --build . --target test_qec_stabilizer`; run: `./test_qec_stabilizer`
+- ❌ `tests/test_qec_syndrome.cpp` — build: `cmake --build . --target test_qec_syndrome`; run: `./test_qec_syndrome`
+- ❌ `tests/test_qec_decoder.cpp` — build: `cmake --build . --target test_qec_decoder`; run: `./test_qec_decoder`
+- ❌ `tests/test_qec_logical.cpp` — build: `cmake --build . --target test_qec_logical`; run: `./test_qec_logical`
+- ❌ `tests/test_qec_distributed.cpp` — build: `cmake --build . --target test_qec_distributed`; run: `./test_qec_distributed`
 
 ---
 
@@ -4030,6 +4035,202 @@ cmake --build . --target test_qec_logical
 **Pending Validation:**
 - All tests require build on target system
 - No GPU/MPI dependencies (CPU-only Phase 9.1)
+
+---
+
+## Phase 9.2: Distributed QEC Tests
+
+### 9.2.1 Distributed QEC Configuration Tests
+
+**File:** `tests/test_qec_distributed.cpp`  
+**Status:** ❌ NOT RUN (requires build on target system)  
+**Purpose:** Validate distributed QEC configuration and partition strategies
+
+**Test Commands:**
+```bash
+cmake --build . --target test_qec_distributed
+./test_qec_distributed
+```
+
+**Tests Include:**
+1. `test_default_config` - Verify default DistributedQECConfig values
+2. `test_config_custom` - Test custom configuration settings
+
+**Success Criteria:**
+- Default config has world_size=1, rank=0, SURFACE code, ROW_WISE partition
+- Custom configs accept all partition strategies and code types
+
+---
+
+### 9.2.2 Partition Map Tests
+
+**Tests Include:**
+1. `test_partition_map_row_wise` - Row-wise code partitioning
+2. `test_partition_map_column_wise` - Column-wise code partitioning
+3. `test_partition_map_round_robin` - Round-robin qubit distribution
+4. `test_partition_map_local_qubits` - Verify all qubits are assigned
+5. `test_partition_map_stabilizer_ownership` - Stabilizer ownership mapping
+6. `test_partition_map_neighbor_ranks` - Neighbor rank connectivity
+7. `test_partition_map_boundary_qubits` - Boundary qubit identification
+
+**Success Criteria:**
+- All qubits assigned to exactly one rank (no duplicates, no gaps)
+- All stabilizers have valid owner ranks
+- Neighbor ranks form connected graph
+- Boundary qubits correctly identified at partition edges
+
+---
+
+### 9.2.3 Local/Global Syndrome Tests
+
+**Tests Include:**
+1. `test_local_syndrome_default` - Empty LocalSyndrome initialization
+2. `test_local_syndrome_with_defects` - Defect counting
+3. `test_local_syndrome_no_defects` - Zero-defect validation
+4. `test_global_syndrome_default` - Empty GlobalSyndrome
+5. `test_global_syndrome_aggregated` - Aggregated defect count
+
+**Success Criteria:**
+- LocalSyndrome correctly counts X and Z defects
+- GlobalSyndrome aggregates local syndromes correctly
+- Boundary defects identified from global view
+
+---
+
+### 9.2.4 Distributed Syndrome Extractor Tests
+
+**Tests Include:**
+1. `test_extractor_extract_local_no_error` - No error produces zero syndrome
+2. `test_extractor_extract_local_with_error` - Single X error detection
+3. `test_extractor_gather_syndromes` - Multi-rank syndrome gathering
+4. `test_extractor_allgather_mpi_stub` - MPI allgather stub validation
+
+**Success Criteria:**
+- No error produces zero syndrome
+- Single errors produce detectable syndromes
+- Gathering combines local syndromes correctly
+- MPI stub returns correct structure
+
+---
+
+### 9.2.5 Parallel MWPM Decoder Tests
+
+**Tests Include:**
+1. `test_decoder_decode_local_empty` - Empty syndrome produces identity
+2. `test_decoder_merge_corrections` - Multi-rank correction merging
+3. `test_decoder_decode_parallel` - Parallel decode across ranks
+4. `test_decoder_decode_global` - Global decode fallback
+5. `test_decoder_stats` - Decoder statistics tracking
+
+**Success Criteria:**
+- Empty syndrome → identity correction
+- Parallel decode produces valid corrections
+- Merge correctly combines local corrections
+- Stats track decode count and timing
+
+---
+
+### 9.2.6 Distributed Logical Qubit Tests
+
+**Tests Include:**
+1. `test_distributed_logical_qubit_init` - Initialization with config
+2. `test_distributed_logical_qubit_qec_round` - Single QEC round
+3. `test_distributed_logical_qubit_inject_error` - Error injection
+4. `test_distributed_logical_qubit_multiple_ranks` - Multi-rank simulation
+5. `test_distributed_logical_qubit_logical_ops` - Logical X, Z, H operations
+6. `test_distributed_logical_qubit_qec_rounds` - Multiple QEC rounds
+7. `test_distributed_logical_qubit_stats` - Statistics tracking
+
+**Success Criteria:**
+- Initialization creates valid code and partition
+- QEC rounds complete without crash
+- Logical operations apply correctly across ranks
+- Statistics accurately track rounds and timing
+
+---
+
+### 9.2.7 Fault-Tolerant QEC Runner Tests
+
+**Tests Include:**
+1. `test_ft_runner_basic` - Basic FT-QEC execution
+2. `test_ft_runner_with_gates` - FT-QEC with logical gate application
+3. `test_ft_runner_checkpoint` - Checkpointing during execution
+4. `test_ft_runner_syndrome_history` - Syndrome history logging
+
+**Success Criteria:**
+- Runner completes specified cycles
+- Gate callbacks execute at correct cycles
+- Checkpointing saves/loads state
+- Syndrome history has correct length
+
+---
+
+### 9.2.8 Distributed QEC Simulator Tests
+
+**Tests Include:**
+1. `test_simulator_basic` - Basic Monte Carlo simulation
+2. `test_simulator_high_error_rate` - High error rate validation
+3. `test_simulator_compare_distributed_serial` - Distributed vs serial comparison
+4. `test_simulator_timing` - Timing statistics validation
+
+**Success Criteria:**
+- Simulator completes trials without crash
+- Logical error rate in [0, 1] range
+- Comparison returns both distributed and serial results
+- Timing values are non-negative
+
+---
+
+### 9.2.9 Integration Tests
+
+**Tests Include:**
+1. `test_full_qec_pipeline_single_rank` - Complete QEC pipeline (1 rank)
+2. `test_full_qec_pipeline_multi_rank` - Complete QEC pipeline (4 ranks)
+3. `test_partition_strategies` - All 4 partition strategies
+4. `test_repetition_code_distributed` - Distributed repetition code
+5. `test_surface_code_distributed` - Distributed surface code
+
+**Success Criteria:**
+- Single-rank pipeline has ≤3 logical errors in 10 cycles at p=0.001
+- Multi-rank pipeline completes 5 rounds
+- All partition strategies assign all qubits
+- Both code types work in distributed mode
+
+---
+
+### 9.2.10 Execution Summary
+
+**Phase 9.2 Status:** ✅ IMPLEMENTATION COMPLETE | ❌ VALIDATION PENDING
+
+**Implemented Components:**
+- PartitionStrategy enum (ROW_WISE, COLUMN_WISE, BLOCK_2D, ROUND_ROBIN)
+- DistributedQECConfig with all distributed parameters
+- LocalSyndrome/GlobalSyndrome data structures
+- LocalCorrection/GlobalCorrection data structures
+- PartitionMap for qubit/stabilizer ownership mapping
+- DistributedSyndromeExtractor with MPI stubs
+- ParallelMWPMDecoder with local decode and merge
+- DistributedLogicalQubit for multi-rank QEC
+- FaultTolerantQECRunner with checkpointing
+- DistributedQECSimulator for Monte Carlo analysis
+
+**Tests Created:**
+- test_qec_distributed.cpp (52 tests)
+
+**Files Created:**
+- include/qec_distributed.h (~400 lines)
+- src/qec_distributed.cpp (~750 lines)
+- tests/test_qec_distributed.cpp (~700 lines)
+
+**Dependencies:**
+- Phase 9.1 QEC infrastructure (required)
+- MPI (optional, stubs provided for single-process testing)
+- NCCL (optional, for GPU communication)
+
+**Pending Validation:**
+- All tests require build on target system
+- MPI tests need multi-process execution
+- GPU tests need CUDA-enabled system
 
 **Next Steps (Phase 9.2):**
 - Distributed QEC for large codes

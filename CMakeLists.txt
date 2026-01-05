@@ -192,6 +192,8 @@ set(LIB_SOURCES
     src/qec_syndrome.cpp
     src/qec_decoder.cpp
     src/qec_logical.cpp
+    # Phase 9.2: Distributed QEC
+    src/qec_distributed.cpp
 )
 
 # Create static library
@@ -436,6 +438,12 @@ endif()
 if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_logical.cpp")
     add_executable(test_qec_logical tests/test_qec_logical.cpp)
     target_link_libraries(test_qec_logical PRIVATE qlret_lib)
+endif()
+
+# QEC Distributed test (Phase 9.2)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_distributed.cpp")
+    add_executable(test_qec_distributed tests/test_qec_distributed.cpp)
+    target_link_libraries(test_qec_distributed PRIVATE qlret_lib)
 endif()
 
 # Compiler optimizations for Release builds
