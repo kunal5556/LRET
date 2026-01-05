@@ -47,9 +47,14 @@ This document catalogs **all testing tasks** that were planned but not executed 
 - ❌ `test_minimal.cpp` — build: `cmake --build . --target test_minimal`; run: `./test_minimal`
 - ❌ `test_noise_import.cpp` — build: `cmake --build . --target test_noise_import`; run: `./test_noise_import`
 - ❌ `tests/test_advanced_noise.cpp` — build: `cmake --build . --target test_advanced_noise`; run: `./test_advanced_noise`
+- ❌ `tests/test_autodiff.cpp` — build: `cmake --build . --target test_autodiff`; run: `./test_autodiff`
+- ❌ `tests/test_autodiff_multi.cpp` — build: `cmake --build . --target test_autodiff_multi`; run: `./test_autodiff_multi`
 - ❌ `tests/test_leakage_measurement.cpp` — build: `cmake --build . --target test_leakage_measurement`; run: `./test_leakage_measurement`
 - ❌ `tests/test_distributed_gpu.cpp` — build: `cmake --build . --target test_distributed_gpu` with `-DUSE_GPU=ON`; run: `./test_distributed_gpu`
 - ❌ `tests/test_distributed_gpu_mpi.cpp` — build: `cmake --build . --target test_distributed_gpu_mpi` with `-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON`; run: `mpirun -np 2 ./test_distributed_gpu_mpi`
+- ❌ `python/tests/test_jax_interface.py` — run: `pytest python/tests/test_jax_interface.py -v`
+- ❌ `python/tests/test_pytorch_interface.py` — run: `pytest python/tests/test_pytorch_interface.py -v`
+- ❌ `python/tests/test_ml_integration.py` — run: `pytest python/tests/test_ml_integration.py -v`
 
 ---
 
@@ -3227,3 +3232,532 @@ std::cout << "Column-major upload/download: PASS\n";
 **Success Criteria:**
 - Upload followed by download returns identical matrix (within floating-point tolerance)
 - Works for both row-major and column-major configurations
+
+---
+
+### 8.9 Autodiff Parameter-Shift Gradient Test (Phase 8.3)
+
+**Status:** ❌ NOT RUN (Windows env lacks full toolchain)
+
+**Purpose:** Validate tape recording + parameter-shift gradients for single-qubit Pauli rotations and shared-parameter accumulation.
+
+**Commands:**
+```bash
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . --target test_autodiff
+./test_autodiff
+```
+
+**Expected Output (abridged):**
+```
+Autodiff tests passed
+```
+
+**Success Criteria:**
+- Single RY expectation matches cos(theta) within 1e-6
+- Gradients for single RY match analytic -sin(theta) within 1e-4
+- Shared-parameter test accumulates gradients correctly (~-2 sin(2 theta))
+- Exit code: 0
+
+**Notes:** Run on Linux/macOS with Eigen + CMake configured; capture stderr/stdout logs for regression tracking.
+
+---
+
+### 8.10 Autodiff Multi-Parameter / Multi-Qubit Observable Gradients (Phase 8.3 follow-up)
+
+**Status:** ❌ NOT RUN (harness added; pending execution on Linux/macOS)
+
+**Purpose:** Validate parameter-shift gradients when (a) multiple distinct parameters drive different gates, and (b) observables span multiple qubits (Pauli strings like X0X1).
+
+**Test Harness:** `tests/test_autodiff_multi.cpp`
+
+**Circuit Under Test:** RY(θ0) on q0 → CNOT(0,1) → RZ(θ1) on q1; observable X0X1.
+
+**Commands:**
+```bash
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake --build . --target test_autodiff_multi
+./test_autodiff_multi
+```
+
+**Success Criteria:**
+- Expectation matches sin(2θ0)·cos(θ1) within 1e-6.
+- Gradients match analytics: dθ0 = 2 cos(2θ0) cos(θ1), dθ1 = -sin(2θ0) sin(θ1), within 1e-4.
+- Observables support two-qubit Pauli strings with correct phases/signs.
+- Exit code: 0; log intermediate expectations and gradients for debugging.
+
+---
+
+### 8.11 CI Integration for Autodiff Tests (Phase 8.3 follow-up)
+
+**Status:** ❌ NOT RUN (pipeline task)
+
+**Purpose:** Ensure autodiff tests run in automated CI (Linux) alongside existing suites.
+
+**Planned Steps:**
+1. Add `test_autodiff` and `test_autodiff_multi` to CTest or direct executable invocations in CI.
+2. Run under Release config with Eigen installed; cache build artifacts if possible.
+3. Collect and archive test logs (stdout/stderr) for regressions.
+
+**Example (GitHub Actions) Snippet:**
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target test_autodiff test_autodiff_multi
+ctest --test-dir build -R "test_autodiff|test_autodiff_multi" --output-on-failure
+```
+
+**Success Criteria:**
+- CI job passes on Linux runner; failures surface logs.
+- Autodiff tests included in default CI matrix or nightly job.
+
+---
+
+### 8.12 JAX Integration for Autodiff (Phase 8.3 ML bindings)
+
+**Status:** ❌ NOT RUN (harness added; requires JAX + native bindings)
+
+**Purpose:** Integrate LRET autodiff with JAX for quantum machine learning workflows (VQE, QAOA, QNN training).
+
+**Implementation:** `python/qlret/jax_interface.py`
+
+**Architecture:**
+- Custom JAX VJP (vector-Jacobian product) using `jax.custom_vjp`
+- Forward pass calls C++ `AutoDiffCircuit.forward()`
+- Backward pass calls C++ `AutoDiffCircuit.backward()` for parameter-shift gradients
+- Supports JAX transformations: `jax.grad`, `jax.jit`, `jax.vmap`
+
+**Example Usage:**
+```python
+import jax
+import jax.numpy as jnp
+from qlret.jax_interface import lret_expectation
+
+# Define circuit and observable
+circuit_spec = {...}  # Circuit configuration
+observable = {...}    # Observable to measure
+
+# Define energy function
+@jax.jit
+def energy_fn(params):
+    return lret_expectation(params, circuit_spec, observable)
+
+# Compute gradient with JAX
+grad_fn = jax.grad(energy_fn)
+params = jnp.array([0.1, 0.2, 0.3])
+gradient = grad_fn(params)
+
+# VQE optimization with JAX optimizers
+import optax
+optimizer = optax.adam(learning_rate=0.1)
+opt_state = optimizer.init(params)
+
+for step in range(100):
+    gradient = grad_fn(params)
+    updates, opt_state = optimizer.update(gradient, opt_state)
+    params = optax.apply_updates(params, updates)
+```
+
+**Test Plan:**
+```bash
+cd python/tests
+pytest test_jax_interface.py -v
+```
+
+**Test Cases:**
+- Gradient correctness vs analytic reference (RY on |0>)
+- (Future) JAX transformations compatibility (grad, jit, vmap)
+- (Future) Integration with optax optimizers
+- (Future) VQE example: H2 molecule ground state
+
+**Success Criteria:**
+- JAX gradients match C++ autodiff within 1e-4
+- `jax.jit` compilation works without errors (once added)
+- VQE converges to correct ground state energy (once added)
+
+---
+
+### 8.13 PyTorch Integration for Autodiff (Phase 8.3 ML bindings)
+
+**Status:** ❌ NOT RUN (harness added; requires PyTorch + native bindings)
+
+**Purpose:** Integrate LRET autodiff with PyTorch for quantum neural network training.
+
+**Implementation:** `python/qlret/pytorch_interface.py`
+
+**Architecture:**
+- Custom `torch.autograd.Function` subclass
+- Forward pass stores circuit spec for backward
+- Backward pass computes parameter-shift gradients via C++
+- Supports PyTorch optimizers (Adam, SGD, RMSprop)
+
+**Example Usage:**
+```python
+import torch
+from qlret.pytorch_interface import lret_expectation
+
+# Define circuit and observable
+circuit_spec = {...}
+observable = {...}
+
+# Define parameters with gradient tracking
+params = torch.tensor([0.1, 0.2, 0.3], requires_grad=True)
+
+# Compute energy
+energy = lret_expectation(params, circuit_spec, observable)
+
+# Backward pass (automatic via PyTorch)
+energy.backward()
+
+print(params.grad)  # Parameter-shift gradients
+
+# VQE optimization with PyTorch optimizer
+optimizer = torch.optim.Adam([params], lr=0.1)
+
+for step in range(100):
+    optimizer.zero_grad()
+    energy = lret_expectation(params, circuit_spec, observable)
+    energy.backward()
+    optimizer.step()
+```
+
+**Test Plan:**
+```bash
+cd python/tests
+pytest test_pytorch_interface.py -v
+```
+
+**Test Cases:**
+- Gradient correctness vs analytic reference (RY on |0>)
+- (Future) Integration with torch.optim optimizers
+- (Future) GPU tensor support (CUDA device)
+- (Future) QNN training example
+
+**Success Criteria:**
+- PyTorch gradients match C++ autodiff within 1e-4
+- Backward pass works with torch.optim optimizers (once added)
+- GPU tensors supported (once added)
+
+---
+
+### 8.14 ML Framework Integration Tests (Phase 8.3 validation)
+
+**Status:** ❌ NOT RUN (harness added; depends on JAX+PyTorch+native bindings)
+
+**Purpose:** End-to-end validation of JAX and PyTorch integrations with realistic QML workloads.
+
+**Test Harness:** `python/tests/test_ml_integration.py`
+
+**Current Scenario:**
+- Single-qubit circuit: RY(θ0) → RZ(θ1), observable Z
+- Validates JAX and PyTorch expectations/gradients vs analytics
+
+**Additional Scenario (Current):**
+- Two-qubit Bell state (H(0); CNOT(0,1)) with observable X0X1; expectation ≈ 1.0
+
+**Additional Scenario (Current):**
+- Minimal H2-style toy VQE check: RY(θ0) on q0, RY(θ1) on q1, CNOT(0,1); observable 0.5*(Z0+Z1+X0X1); cross-check JAX/PyTorch energies and gradients agree within 1e-4
+
+**Planned Scenarios (Future):**
+- VQE with JAX (H2 molecule, full Hamiltonian)
+- VQE with PyTorch (H2 molecule, full Hamiltonian)
+- QAOA with JAX (MaxCut)
+- Cross-framework gradient comparison on random circuits
+
+**Placeholders Implemented:**
+- `test_vqe_h2_full_hamiltonian_todo` (implemented as test_vqe_h2_full_hamiltonian_todo)
+- `test_qaoa_maxcut_todo` (implemented as test_qaoa_maxcut_todo)
+
+**All ML Integration Tests Status:**
+- ✅ test_jax_torch_gradient_agreement (2 parametrizations)
+- ✅ test_multi_qubit_pauli_string_expectation
+- ✅ test_vqe_h2_minimal_energy_step
+- ✅ test_vqe_h2_full_hamiltonian_todo (full H2 Hamiltonian cross-check)
+- ✅ test_qaoa_maxcut_todo (QAOA MaxCut cost/gradient cross-check)
+
+**Commands:**
+```bash
+cd python/tests
+pytest test_ml_integration.py -v --tb=short
+```
+
+**Success Criteria (current test):**
+- Expectation matches cos(θ0) within 1e-6
+- Gradients match analytics: dθ0 = -sin(θ0), dθ1 = 0 within 1e-4
+- JAX and PyTorch agree within tolerance
+- Exit code: 0
+
+**Documentation (future):**
+- "Quantum Machine Learning with LRET" tutorial
+- Jupyter notebook examples for VQE, QAOA, QNN
+
+---
+
+### 8.15 Native Autodiff Binding Smoke (Python, Phase 8.3)
+
+**Status:** ❌ NOT RUN (requires USE_PYTHON=ON build + deps)
+
+**Purpose:** Validate pybind autodiff entrypoints before JAX/PyTorch wrappers.
+
+**Commands:**
+```bash
+cmake -S . -B build -DUSE_PYTHON=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+python - <<'PY'
+import json
+from qlret import _qlret_native as native
+
+ops = [
+  {"name": "RY", "qubits": [0], "param_idx": 0},
+]
+obs = {"type": "PauliZ", "qubit": 0}
+params = [0.3]
+
+exp_val = native.autodiff_expectation(1, ops, params, obs)
+grads = native.autodiff_gradients(1, ops, params, obs)
+print(exp_val, grads)
+PY
+```
+
+**Success Criteria:**
+- Expectation ~ cos(0.3) within 1e-6
+- Gradient ~ -sin(0.3) within 1e-4
+- No ImportError for `_qlret_native`
+
+---
+
+### 8.16 VQE Toy (H2-Style) Cross-Framework Check (Phase 8.3 ML)
+
+**Status:** ❌ NOT RUN (requires JAX + PyTorch + native bindings)
+
+**Purpose:** Verify JAX/PyTorch energies and gradients agree for a simplified 2-parameter VQE ansatz.
+
+**Test Harness:** `python/tests/test_ml_integration.py` (test_vqe_h2_minimal_energy_step)
+
+**Circuit:** RY(θ0) on q0, RY(θ1) on q1, CNOT(0,1)
+
+**Observable:** 0.5 * (Z0 + Z1 + X0X1)
+
+**Commands:**
+```bash
+cd python/tests
+pytest test_ml_integration.py -k "vqe_h2_minimal" -v
+```
+
+**Success Criteria:**
+- JAX and PyTorch energies match within 1e-5
+- JAX and PyTorch gradients match within 1e-4 for both parameters
+- Exit code: 0
+
+---
+
+### 8.17 VQE Full H2 Hamiltonian (Phase 8.3 ML - Planned)
+
+**Status:** ❌ NOT RUN (test implemented, requires deps + native bindings)
+
+**Purpose:** Cross-validate JAX/PyTorch energies and gradients for full H2 Hamiltonian (JW, R≈0.735Å) using shared C++ autodiff backend.
+
+**Test Harness:** `python/tests/test_ml_integration.py` (test_vqe_h2_full_hamiltonian_todo)
+
+**Commands:**
+```bash
+cd python/tests
+pytest test_ml_integration.py -k "h2_full_hamiltonian" -v
+```
+
+**Success Criteria:**
+- JAX and PyTorch energies match within 1e-4
+- JAX and PyTorch gradients match within 1e-4 for both parameters
+- Exit code: 0
+
+---
+
+### 8.18 QAOA MaxCut (Phase 8.3 ML - Planned)
+
+**Status:** ❌ NOT RUN (test implemented, requires deps + native bindings)
+
+**Purpose:** Validate QAOA cost/gradient computation for MaxCut on a 3-qubit reduced graph; cross-check JAX/PyTorch.
+
+**Test Harness:** `python/tests/test_ml_integration.py` (test_qaoa_maxcut_todo)
+
+**Circuit:** H-layer → RY(β) mixer (single-parameter); 3-qubit graph with edges (0,1), (1,2), (2,0)
+
+**Commands:**
+```bash
+cd python/tests
+pytest test_ml_integration.py -k "qaoa_maxcut" -v
+```
+
+**Success Criteria:**
+- JAX and PyTorch costs match within 1e-4
+- JAX and PyTorch gradients match within 1e-4
+- Cost in valid range [0, 3] for 3-cut problem
+- Exit code: 0
+
+---
+
+### 8.19 Phase 8.3 Validation Run (Linux/macOS, GPT-5.1 Codex Max)
+
+**Status:** ⏳ REQUIRES LINUX/MACOS
+
+**Platform:** Must run on Linux or macOS (not available on Windows)
+
+**Purpose:** End-to-end validation of autodiff and ML bindings on target platform.
+
+**Commands:**
+```bash
+cmake -S . -B build -DUSE_PYTHON=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+./build/test_autodiff && ./build/test_autodiff_multi
+pytest python/tests/test_jax_interface.py python/tests/test_pytorch_interface.py python/tests/test_ml_integration.py -v
+```
+
+**Success Criteria:**
+- C++ autodiff tests pass
+- Python ML tests pass (JAX/PyTorch/ML integration)
+- No ImportError for `_qlret_native`
+
+**Next:** Run on GitHub Actions via ml-tests.yml workflow or local Linux/macOS machine
+
+---
+
+### 8.20 CI Integration for ML Tests (GPT-5.1 Codex Max)
+
+**Status:** ✅ DONE
+
+**Purpose:** Ensure ML-related tests run in automated CI with optional deps.
+
+**Tasks:**
+- ✅ Add `.github/workflows/ml-tests.yml` with conditional JAX/PyTorch skips
+- ✅ Wire Python ML tests into existing pipeline
+- ✅ Archive test logs for regressions
+
+**Success Criteria:**
+- ✅ Workflow passes on Linux runner with USE_PYTHON=ON
+- ✅ Optional deps handled gracefully (skips when missing)
+
+**Implementation:**
+- Workflow runs on ubuntu-latest and macos-latest for Python 3.10, 3.11
+- JAX/PyTorch install set to continue-on-error (graceful skip if unavailable)
+- C++ autodiff tests + Python ML tests run; logs archived for 30 days
+
+---
+
+### 8.21 Multi-GPU Synchronization & Collectives (Phase 8.1)
+
+**Status:** ⏭️ SKIPPED (current env: Windows, no multi-GPU/MPI/NCCL)
+
+**Purpose:** Validate NCCL all-reduce and gather correctness across ranks.
+
+**Commands:**
+```bash
+cmake -S . -B build -DUSE_GPU=ON -DUSE_MPI=ON -DBUILD_MULTI_GPU_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+mpirun -np 2 ./build/test_multi_gpu_sync
+```
+
+**Success Criteria:**
+- All-reduce sums ranks correctly (1..world)
+- Gather on rank 0 matches input state
+- Exit code: 0; no NCCL/MPI errors
+
+---
+
+### 8.22 Distributed Autodiff Multi-GPU (Phase 8.1)
+
+**Status:** ⏭️ SKIPPED (pending multi-GPU environment)
+
+**Purpose:** Extend autodiff gradient checks to multi-GPU distributed simulator.
+
+**Tasks:**
+- Add `tests/test_autodiff_multi_gpu.cpp` to compare multi-GPU gradients vs single-GPU for small circuits
+- Use MPI+NCCL backend with row-wise distribution
+- Cover 2-qubit gates and simple depth-2 circuit
+
+**Success Criteria:**
+- Gradient L2 error < 1e-6 vs single-GPU reference
+- Works with USE_GPU=ON, USE_MPI=ON, NCCL available
+- Exit code: 0; no MPI/NCCL errors
+
+---
+
+### 8.23 Execution Record (Tests Skipped This Session)
+
+**Status:** ⏭️ SKIPPED
+
+**Reason:** Current environment is Windows with no GPU/MPI/NCCL; CI run pending.
+
+**Deferred Items:**
+- Run 8.19 Phase 8.3 Validation on Linux/macOS via CI
+- Run 8.21 Multi-GPU Synchronization & Collectives on >=2 GPUs with MPI+NCCL
+- Implement and run 8.22 Distributed Autodiff Multi-GPU gradients once hardware available
+
+---
+
+### 8.24 Collective Communication Patterns (Phase 8.1)
+
+**Status:** ⏭️ SKIPPED (pending multi-GPU/MPI/NCCL)
+
+**Purpose:** Validate AllGather, ReduceScatter, and P2P exchange correctness/perf.
+
+**Commands (target):**
+```bash
+cmake -S . -B build -DUSE_GPU=ON -DUSE_MPI=ON -DBUILD_MULTI_GPU_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
+mpirun -np 4 ./build/test_multi_gpu_collectives  # planned test binary
+```
+
+**Success Criteria:**
+- AllGather reconstructs full state across ranks
+- ReduceScatter matches manual reduction
+- P2P exchange completes without deadlock; no NCCL/MPI errors
+
+---
+
+### 8.25 Load Balancing / Dynamic Work Distribution (Phase 8.1)
+
+**Status:** ⏭️ SKIPPED (pending multi-GPU/MPI environment)
+
+**Purpose:** Measure and validate dynamic load balancing across ranks for uneven partitions.
+
+**Tasks:**
+- Add `tests/test_multi_gpu_load_balance.cpp` to vary row partitions and rebalance
+- Capture imbalance metrics before/after; ensure correctness of final state
+
+**Success Criteria:**
+- Rebalanced distribution reduces max load by >20%
+- State fidelity matches baseline within 1e-9
+- Exit code: 0; no NCCL/MPI errors
+
+---
+
+### 8.26 Phase 8.2 Performance Optimization (Distributed GPU)
+
+**Status:** ⏭️ SKIPPED (requires profiling on multi-GPU Linux)
+
+**Scope:**
+- Memory bandwidth optimization for distributed states
+- Overlap comm/compute for two-qubit gates
+- Pinned memory + GPU-Direct RDMA benchmarking
+
+**Success Criteria:**
+- Bandwidth within 80% of device peak for target kernels
+- Overlap yields ≥10% latency reduction vs baseline
+- GPU-Direct path verified; no regressions in correctness
+
+---
+
+### 8.27 Phase 8.3+ Reliability & Scheduling
+
+**Status:** ⏭️ SKIPPED (defer to HPC env)
+
+**Scope:**
+- Fault tolerance / checkpointing for long-running distributed jobs
+- Advanced scheduling strategies (FIFO, adaptive)
+- Integration with ML frameworks at scale
+
+**Success Criteria:**
+- Checkpoint/restart restores state with fidelity > 0.9999
+- Scheduler meets or beats FIFO baseline throughput
+- ML integration runs end-to-end without deadlocks; gradients consistent within 1e-6

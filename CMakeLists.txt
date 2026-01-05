@@ -167,6 +167,7 @@ set(LIB_SOURCES
     src/circuit_optimizer.cpp
     src/simd_kernels.cpp
     src/simulator.cpp
+    src/autodiff.cpp
     src/utils.cpp
     src/cli_parser.cpp
     src/output_formatter.cpp
@@ -321,12 +322,32 @@ if(BUILD_MULTI_GPU_TESTS AND USE_GPU AND USE_MPI)
             target_compile_definitions(test_distributed_gpu_mpi PRIVATE USE_NCCL)
         endif()
     endif()
+
+    if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_multi_gpu_sync.cpp")
+        add_executable(test_multi_gpu_sync tests/test_multi_gpu_sync.cpp)
+        target_link_libraries(test_multi_gpu_sync PRIVATE qlret_lib)
+        if(NCCL_FOUND)
+            target_compile_definitions(test_multi_gpu_sync PRIVATE USE_NCCL)
+        endif()
+    endif()
 endif()
 
 # Advanced noise test (Phase 4.3)
 if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_advanced_noise.cpp")
     add_executable(test_advanced_noise tests/test_advanced_noise.cpp)
     target_link_libraries(test_advanced_noise PRIVATE qlret_lib)
+endif()
+
+# Autodiff gradient test (Phase 8.3)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_autodiff.cpp")
+    add_executable(test_autodiff tests/test_autodiff.cpp)
+    target_link_libraries(test_autodiff PRIVATE qlret_lib)
+endif()
+
+# Autodiff multi-parameter / multi-qubit test (Phase 8.3)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_autodiff_multi.cpp")
+    add_executable(test_autodiff_multi tests/test_autodiff_multi.cpp)
+    target_link_libraries(test_autodiff_multi PRIVATE qlret_lib)
 endif()
 
 # Leakage and measurement test (Phase 4.4/4.5)

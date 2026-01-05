@@ -33,9 +33,15 @@ setup(
     ],
     extras_require={
         "pennylane": ["pennylane>=0.30"],
+        "jax": ["jax", "jaxlib"],
+        "torch": ["torch"],
+        "ml": ["jax", "jaxlib", "torch"],
         "dev": [
             "pytest>=7.0",
             "pennylane>=0.30",
+            "jax",
+            "jaxlib",
+            "torch",
         ],
     },
     classifiers=[
