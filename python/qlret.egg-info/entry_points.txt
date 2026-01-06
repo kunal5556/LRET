@@ -1,0 +1,2 @@
+[pennylane.plugins]
+qlret = qlret.pennylane_device:QLRETDevice

@@ -184,18 +184,18 @@ set(LIB_SOURCES
     # Phase 8: Fault tolerance
     src/checkpoint.cpp
     src/distributed_perf.cpp
-    src/distributed_autodiff.cpp
-    src/fault_tolerance.cpp
-    # Phase 9: QEC
-    src/qec_types.cpp
-    src/qec_stabilizer.cpp
-    src/qec_syndrome.cpp
-    src/qec_decoder.cpp
-    src/qec_logical.cpp
+    # src/distributed_autodiff.cpp  # Temporarily disabled - requires GPU infrastructure
+    # src/fault_tolerance.cpp  # Temporarily disabled - requires complete distributed infrastructure
+    # Phase 9: QEC - Temporarily disabled due to incomplete type definitions
+    # src/qec_types.cpp
+    # src/qec_stabilizer.cpp
+    # src/qec_syndrome.cpp
+    # src/qec_decoder.cpp
+    # src/qec_logical.cpp
     # Phase 9.2: Distributed QEC
-    src/qec_distributed.cpp
+    # src/qec_distributed.cpp
     # Phase 9.3: Adaptive QEC
-    src/qec_adaptive.cpp
+    # src/qec_adaptive.cpp  # Temporarily disabled - requires StabilizerCodeType enum definition
 )
 
 # Create static library

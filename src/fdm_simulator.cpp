@@ -8,6 +8,10 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#elif defined(__APPLE__)
+#include <sys/sysctl.h>
+#include <mach/mach.h>
+#include <unistd.h>
 #else
 #include <sys/sysinfo.h>
 #include <unistd.h>
@@ -68,6 +72,21 @@ size_t get_available_memory_mb() {
         return static_cast<size_t>(status.ullAvailPhys / (1024 * 1024));
     }
     return 0;  // Unknown
+#elif defined(__APPLE__)
+    int64_t mem_size = 0;
+    size_t len = sizeof(mem_size);
+    if (sysctlbyname("hw.memsize", &mem_size, &len, NULL, 0) == 0) {
+        // Get available memory using vm_statistics
+        mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
+        vm_statistics_data_t vmstat;
+        if (host_statistics(mach_host_self(), HOST_VM_INFO, (host_info_t)&vmstat, &count) == KERN_SUCCESS) {
+            size_t free_mem = vmstat.free_count * vm_page_size;
+            return free_mem / (1024 * 1024);
+        }
+        // Fallback: just return total memory / 2 as rough estimate
+        return static_cast<size_t>(mem_size / (2 * 1024 * 1024));
+    }
+    return 0;
 #else
     struct sysinfo info;
     if (sysinfo(&info) == 0) {

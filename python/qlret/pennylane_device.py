@@ -212,9 +212,7 @@ class QLRETDevice(Device):
         self.epsilon = epsilon
         self._kwargs = kwargs
 
-    @property
-    def num_wires(self) -> int:
-        return len(self.wires)
+    # num_wires is set by parent Device.__init__, no need to override
 
     # ------------------------------------------------------------------
     # Execution
@@ -222,10 +220,33 @@ class QLRETDevice(Device):
 
     def execute(
         self,
-        circuits: Union[QuantumTape, List[QuantumTape]],
+        circuits: Union[QuantumTape, List[QuantumTape], List[Any]],
         execution_config: Any = None,
+        **kwargs: Any,
     ) -> Union[np.ndarray, List[np.ndarray]]:
-        """Execute quantum circuits and return results."""
+        """Execute quantum circuits and return results.
+        
+        Supports both modern API (QuantumTape) and legacy API (operations, measurements).
+        """
+        # Handle legacy API call: execute(operations, measurements)
+        if not isinstance(circuits, (list, QuantumTape)) or (
+            isinstance(circuits, list) and circuits and not isinstance(circuits[0], QuantumTape)
+        ):
+            # Legacy: circuits is actually operations, second arg is measurements
+            operations = circuits
+            measurements = execution_config  # Actually measurements in legacy mode
+            
+            # Build a tape from operations and measurements
+            with qml.tape.QuantumTape() as tape:
+                for op in operations:
+                    qml.apply(op)
+                if measurements:
+                    for m in measurements:
+                        qml.apply(m)
+            
+            return self._execute_tape(tape)
+        
+        # Modern API: circuits is QuantumTape or list of tapes
         is_single = isinstance(circuits, QuantumTape)
         if is_single:
             circuits = [circuits]
@@ -236,6 +257,30 @@ class QLRETDevice(Device):
             results.append(result)
 
         return results[0] if is_single else results
+
+    # ------------------------------------------------------------------
+    # Legacy API Support (for PennyLane < 0.30 compatibility)
+    # ------------------------------------------------------------------
+
+    def apply(self, operations, **kwargs):
+        """Apply operations (legacy API - not used in modern PennyLane)."""
+        raise NotImplementedError(
+            "Legacy apply() method not supported. Use @qml.qnode(device) decorator pattern."
+        )
+
+    def expval(self, observable, **kwargs):
+        """Return expectation value (legacy API - not used in modern PennyLane)."""
+        raise NotImplementedError(
+            "Legacy expval() method not supported. Use @qml.qnode(device) with qml.expval()."
+        )
+
+    def reset(self):
+        """Reset device (legacy API - not needed in modern PennyLane)."""
+        pass  # No-op for stateless device
+
+    # ------------------------------------------------------------------
+    # Execution (Modern API)
+    # ------------------------------------------------------------------
 
     def _execute_tape(self, tape: QuantumTape) -> np.ndarray:
         """Execute a single quantum tape."""

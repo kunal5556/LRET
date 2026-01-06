@@ -9,7 +9,7 @@
 #include <cstdint>
 #if defined(_MSC_VER)
 #include <intrin.h>
-#else
+#elif defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
 #include <cpuid.h>
 #endif
 
@@ -27,8 +27,11 @@ namespace {
 inline void cpuid(int info[4], int function_id, int subfunction_id = 0) {
 #if defined(_MSC_VER)
     __cpuidex(info, function_id, subfunction_id);
-#else
+#elif defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
     __cpuid_count(function_id, subfunction_id, info[0], info[1], info[2], info[3]);
+#else
+    // ARM or other architectures - no CPUID
+    info[0] = info[1] = info[2] = info[3] = 0;
 #endif
 }
 
@@ -43,25 +46,39 @@ inline bool os_supports_xsave() {
 inline bool xcr0_supports_avx() {
 #if defined(_MSC_VER)
     unsigned long long xcr0 = _xgetbv(0);
-#else
+#elif defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
     uint32_t eax = 0, edx = 0;
     __asm__ volatile("xgetbv" : "=a"(eax), "=d"(edx) : "c"(0));
     unsigned long long xcr0 = (static_cast<unsigned long long>(edx) << 32) | eax;
+#else
+    // ARM or other architectures - no AVX
+    return false;
 #endif
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86) || defined(_MSC_VER)
     // Bit 1 (XMM) and bit 2 (YMM) must be set for AVX
     return (xcr0 & 0x6) == 0x6;
+#else
+    return false;
+#endif
 }
 
 inline bool xcr0_supports_zmm() {
 #if defined(_MSC_VER)
     unsigned long long xcr0 = _xgetbv(0);
-#else
+#elif defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86)
     uint32_t eax = 0, edx = 0;
     __asm__ volatile("xgetbv" : "=a"(eax), "=d"(edx) : "c"(0));
     unsigned long long xcr0 = (static_cast<unsigned long long>(edx) << 32) | eax;
+#else
+    // ARM or other architectures - no AVX-512
+    return false;
 #endif
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386) || defined(_M_IX86) || defined(_MSC_VER)
     // Bits 1 (XMM), 2 (YMM), 5 (opmask), 6 (ZMM_hi256), 7 (ZMM_16_31)
     return (xcr0 & 0xE6) == 0xE6;
+#else
+    return false;
+#endif
 }
 
 //------------------------------------------------------------------------------

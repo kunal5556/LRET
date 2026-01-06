@@ -10,6 +10,11 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <psapi.h>
+#elif defined(__APPLE__)
+#include <sys/sysctl.h>
+#include <mach/mach.h>
+#include <unistd.h>
+#include <sys/resource.h>
 #else
 #include <sys/sysinfo.h>
 #include <unistd.h>
