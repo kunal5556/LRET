@@ -304,6 +304,12 @@ else()
     set(BUILD_DEMO_BATCH FALSE)
 endif()
 
+# Simple test (Tier 1 - Core LRET)
+if(EXISTS "${CMAKE_SOURCE_DIR}/test_simple.cpp")
+    add_executable(test_simple test_simple.cpp)
+    target_link_libraries(test_simple PRIVATE qlret_lib)
+endif()
+
 # Fidelity debug test
 if(EXISTS "${CMAKE_SOURCE_DIR}/test_fidelity.cpp")
     add_executable(test_fidelity test_fidelity.cpp)
@@ -442,17 +448,17 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_logical.cpp")
     target_link_libraries(test_qec_logical PRIVATE qlret_lib)
 endif()
 
-# QEC Distributed test (Phase 9.2) - disabled temporarily for type fixes
-# if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_distributed.cpp")
-#     add_executable(test_qec_distributed tests/test_qec_distributed.cpp)
-#     target_link_libraries(test_qec_distributed PRIVATE qlret_lib)
-# endif()
+# QEC Distributed test (Phase 9.2)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_distributed.cpp")
+    add_executable(test_qec_distributed tests/test_qec_distributed.cpp)
+    target_link_libraries(test_qec_distributed PRIVATE qlret_lib)
+endif()
 
-# QEC Adaptive test (Phase 9.3) - disabled temporarily for type fixes
-# if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_adaptive.cpp")
-#     add_executable(test_qec_adaptive tests/test_qec_adaptive.cpp)
-#     target_link_libraries(test_qec_adaptive PRIVATE qlret_lib)
-# endif()
+# QEC Adaptive test (Phase 9.3)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_adaptive.cpp")
+    add_executable(test_qec_adaptive tests/test_qec_adaptive.cpp)
+    target_link_libraries(test_qec_adaptive PRIVATE qlret_lib)
+endif()
 
 # Compiler optimizations for Release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Release")

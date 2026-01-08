@@ -100,5 +100,7 @@ def test_state_export_optional():
     if "state" in result:
         state = result["state"]
         assert "L_real" in state and "L_imag" in state
-        assert "rank" in state
-        assert state["rank"] == result["final_rank"]
+        # Check for low_rank state format (type field instead of rank)
+        assert "type" in state or "rank" in state
+        if "rank" in state:
+            assert state["rank"] == result["final_rank"]

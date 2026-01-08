@@ -51,6 +51,12 @@ public:
 private:
     double forward_no_record(const std::vector<double>& params,
                              const Observable& obs) const;
+    
+    // Forward with shift applied to a single gate occurrence
+    double forward_with_single_shift(const std::vector<double>& params,
+                                     const Observable& obs,
+                                     size_t gate_index,
+                                     double shift) const;
 
     double compute_expectation(const MatrixXcd& L, const Observable& obs) const;
 

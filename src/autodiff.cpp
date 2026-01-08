@@ -94,6 +94,47 @@ double AutoDiffCircuit::forward_no_record(const std::vector<double>& params,
     return compute_expectation(L, obs);
 }
 
+// Forward pass with shift applied to a single gate occurrence
+// gate_index: which gate in the circuit to shift
+// shift: the shift to apply to that gate's parameter
+double AutoDiffCircuit::forward_with_single_shift(const std::vector<double>& params,
+                                                   const Observable& obs,
+                                                   size_t gate_index,
+                                                   double shift) const {
+    if (params.size() < num_params_) {
+        throw std::invalid_argument("Parameter vector too small for circuit");
+    }
+
+    size_t dim = 1ULL << num_qubits_;
+    MatrixXcd L = MatrixXcd::Zero(dim, 1);
+    L(0, 0) = Complex(1.0, 0.0);
+
+    for (size_t i = 0; i < circuit_template_.operations.size(); ++i) {
+        const auto& op = circuit_template_.operations[i];
+
+        if (std::holds_alternative<GateOp>(op)) {
+            GateOp gate = std::get<GateOp>(op);
+            int pidx = param_indices_[i];
+            if (pidx >= 0) {
+                double param_val = params[static_cast<size_t>(pidx)];
+                // Apply shift only to the specified gate
+                if (i == gate_index) {
+                    param_val += shift;
+                }
+                gate.params = {param_val};
+            }
+            L = apply_gate_to_L(L, gate, num_qubits_);
+        } else if (std::holds_alternative<NoiseOp>(op)) {
+            const auto& noise = std::get<NoiseOp>(op);
+            L = apply_noise_to_L(L, noise, num_qubits_);
+        } else {
+            continue;
+        }
+    }
+
+    return compute_expectation(L, obs);
+}
+
 std::vector<double> AutoDiffCircuit::backward(const std::vector<double>& params,
                                               const Observable& obs) {
     // Run forward pass to populate tape
@@ -102,19 +143,21 @@ std::vector<double> AutoDiffCircuit::backward(const std::vector<double>& params,
     std::vector<double> grads(num_params_, 0.0);
     const double shift = PI / 2.0;  // parameter-shift rule for Pauli rotations
 
-    for (const auto& entry : tape_) {
-        size_t pidx = entry.param_idx;
-        if (pidx >= grads.size()) continue;
+    // For each gate in the circuit, compute the gradient contribution
+    // and accumulate to the corresponding parameter
+    for (size_t i = 0; i < circuit_template_.operations.size(); ++i) {
+        int pidx = param_indices_[i];
+        if (pidx < 0 || static_cast<size_t>(pidx) >= grads.size()) continue;
+        
+        // Only process parameterized gates
+        const auto& op = circuit_template_.operations[i];
+        if (!std::holds_alternative<GateOp>(op)) continue;
 
-        auto params_plus = params;
-        params_plus[pidx] += shift;
-        double exp_plus = forward_no_record(params_plus, obs);
+        // Parameter shift applied to this specific gate occurrence
+        double exp_plus = forward_with_single_shift(params, obs, i, shift);
+        double exp_minus = forward_with_single_shift(params, obs, i, -shift);
 
-        auto params_minus = params;
-        params_minus[pidx] -= shift;
-        double exp_minus = forward_no_record(params_minus, obs);
-
-        grads[pidx] += (exp_plus - exp_minus) * 0.5;
+        grads[static_cast<size_t>(pidx)] += (exp_plus - exp_minus) * 0.5;
     }
 
     return grads;

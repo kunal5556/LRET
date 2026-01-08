@@ -52,7 +52,7 @@ struct DistributedQECConfig {
 //==============================================================================
 
 struct LocalSyndrome {
-    int rank;
+    int rank = 0;
     std::vector<int> x_syndrome;
     std::vector<int> z_syndrome;
     std::vector<size_t> local_stabilizer_indices;
