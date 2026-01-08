@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <memory>
 #include <chrono>
+#include <string>
 
 namespace qlret {
 
@@ -32,6 +33,11 @@ public:
     };
 
     virtual ~QECDecoder() = default;
+
+    /**
+     * @brief Get decoder name for identification
+     */
+    virtual std::string name() const { return "QECDecoder"; }
 
     /**
      * @brief Decode syndrome to find correction
@@ -83,7 +89,8 @@ public:
         size_t max_matching_iterations = 1000;
     };
 
-    MWPMDecoder(const StabilizerCode& code, Config config = {});
+    explicit MWPMDecoder(const StabilizerCode& code);
+    MWPMDecoder(const StabilizerCode& code, Config config);
 
     Correction decode(const Syndrome& syndrome) override;
     Correction decode_multiple_rounds(const std::vector<Syndrome>& syndromes) override;
@@ -148,7 +155,8 @@ public:
         bool use_peeling = true;   // Use peeling decoder optimization
     };
 
-    UnionFindDecoder(const StabilizerCode& code, Config config = {});
+    explicit UnionFindDecoder(const StabilizerCode& code);
+    UnionFindDecoder(const StabilizerCode& code, Config config);
 
     Correction decode(const Syndrome& syndrome) override;
 

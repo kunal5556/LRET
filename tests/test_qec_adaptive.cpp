@@ -55,8 +55,7 @@ static int tests_failed = 0;
     do {                                                                       \
         if ((a) != (b)) {                                                      \
             std::ostringstream oss;                                            \
-            oss << "Expected " << #a << " == " << #b << ", got " << (a)        \
-                << " != " << (b);                                              \
+            oss << "Expected " << #a << " == " << #b;                          \
             throw std::runtime_error(oss.str());                               \
         }                                                                      \
     } while (0)
@@ -254,8 +253,8 @@ TEST(code_selector_select_surface_for_balanced) {
     AdaptiveCodeSelector selector;
     NoiseProfile noise = create_test_noise_profile(25);  // 5x5 surface code
     
-    StabilizerCodeType code = selector.select_code(noise);
-    ASSERT_EQ(code, StabilizerCodeType::SURFACE);
+    QECCodeType code = selector.select_code(noise);
+    ASSERT_EQ(code, QECCodeType::SURFACE);
 }
 
 TEST(code_selector_select_for_biased) {
@@ -264,19 +263,19 @@ TEST(code_selector_select_for_biased) {
     AdaptiveCodeSelector selector(config);
     
     NoiseProfile biased = create_biased_noise_profile(5);
-    StabilizerCodeType code = selector.select_code(biased);
+    QECCodeType code = selector.select_code(biased);
     
     // For biased noise, should prefer repetition
-    ASSERT_EQ(code, StabilizerCodeType::REPETITION);
+    ASSERT_EQ(code, QECCodeType::REPETITION);
 }
 
 TEST(code_selector_select_for_correlated) {
     AdaptiveCodeSelector selector;
     NoiseProfile correlated = create_correlated_noise_profile(25);
     
-    StabilizerCodeType code = selector.select_code(correlated);
+    QECCodeType code = selector.select_code(correlated);
     // Surface code handles correlations better
-    ASSERT_EQ(code, StabilizerCodeType::SURFACE);
+    ASSERT_EQ(code, QECCodeType::SURFACE);
 }
 
 TEST(code_selector_select_distance) {
@@ -284,7 +283,7 @@ TEST(code_selector_select_distance) {
     NoiseProfile noise = create_test_noise_profile(25, 0.001, 0.005);
     
     size_t distance = selector.select_distance(
-        StabilizerCodeType::SURFACE, noise, 1e-10);
+        QECCodeType::SURFACE, noise, 1e-10);
     
     // Should select a reasonable distance
     ASSERT_GT(distance, 2u);
@@ -297,7 +296,7 @@ TEST(code_selector_select_code_and_distance) {
     
     auto [code, distance] = selector.select_code_and_distance(noise, 1e-10);
     
-    ASSERT_EQ(code, StabilizerCodeType::SURFACE);
+    ASSERT_EQ(code, QECCodeType::SURFACE);
     ASSERT_GT(distance, 2u);
 }
 
@@ -306,7 +305,7 @@ TEST(code_selector_predict_logical_error_rate) {
     NoiseProfile noise = create_test_noise_profile(25, 0.001);
     
     double p_L = selector.predict_logical_error_rate(
-        StabilizerCodeType::SURFACE, 5, noise);
+        QECCodeType::SURFACE, 5, noise);
     
     // Should be less than physical error rate (error suppression)
     ASSERT_GT(p_L, 0.0);
@@ -331,11 +330,11 @@ TEST(code_selector_higher_distance_lower_error) {
     NoiseProfile noise = create_test_noise_profile(25, 0.001);
     
     double p_L_d3 = selector.predict_logical_error_rate(
-        StabilizerCodeType::SURFACE, 3, noise);
+        QECCodeType::SURFACE, 3, noise);
     double p_L_d5 = selector.predict_logical_error_rate(
-        StabilizerCodeType::SURFACE, 5, noise);
+        QECCodeType::SURFACE, 5, noise);
     double p_L_d7 = selector.predict_logical_error_rate(
-        StabilizerCodeType::SURFACE, 7, noise);
+        QECCodeType::SURFACE, 7, noise);
     
     // Higher distance should give lower logical error rate
     ASSERT_LT(p_L_d5, p_L_d3);
@@ -347,7 +346,7 @@ TEST(code_selector_higher_distance_lower_error) {
 //==============================================================================
 
 TEST(ml_decoder_construction) {
-    auto code = create_stabilizer_code(StabilizerCodeType::SURFACE, 5);
+    auto code = create_stabilizer_code(QECCodeType::SURFACE, 5);
     MLDecoder::Config config;
     MLDecoder decoder(*code, config);
     
@@ -356,7 +355,7 @@ TEST(ml_decoder_construction) {
 }
 
 TEST(ml_decoder_fallback_decode) {
-    auto code = create_stabilizer_code(StabilizerCodeType::SURFACE, 5);
+    auto code = create_stabilizer_code(QECCodeType::SURFACE, 5);
     MLDecoder::Config config;
     config.enable_fallback = true;
     MLDecoder decoder(*code, config);
@@ -376,7 +375,7 @@ TEST(ml_decoder_fallback_decode) {
 }
 
 TEST(ml_decoder_batch_decode) {
-    auto code = create_stabilizer_code(StabilizerCodeType::SURFACE, 5);
+    auto code = create_stabilizer_code(QECCodeType::SURFACE, 5);
     MLDecoder::Config config;
     config.enable_fallback = true;
     MLDecoder decoder(*code, config);
@@ -589,10 +588,10 @@ TEST(distance_selector_respect_max) {
 TEST(adaptive_controller_construction) {
     AdaptiveQECController::Config config;
     config.initial_distance = 5;
-    config.initial_code = StabilizerCodeType::SURFACE;
+    config.initial_code = QECCodeType::SURFACE;
     AdaptiveQECController controller(config);
     
-    ASSERT_EQ(controller.current_code_type(), StabilizerCodeType::SURFACE);
+    ASSERT_EQ(controller.current_code_type(), QECCodeType::SURFACE);
     ASSERT_EQ(controller.current_distance(), 5u);
 }
 
@@ -699,7 +698,7 @@ TEST(adaptive_controller_reset) {
 //==============================================================================
 
 TEST(training_data_generation) {
-    auto code = create_stabilizer_code(StabilizerCodeType::SURFACE, 3);
+    auto code = create_stabilizer_code(QECCodeType::SURFACE, 3);
     NoiseProfile noise = create_test_noise_profile(9, 0.01);  // 3x3 = 9 data qubits
     
     auto samples = generate_training_data(*code, noise, 100, 42);
@@ -747,7 +746,7 @@ TEST(integration_full_adaptive_qec_cycle) {
     // Full end-to-end test of adaptive QEC
     AdaptiveQECController::Config config;
     config.initial_distance = 5;
-    config.initial_code = StabilizerCodeType::SURFACE;
+    config.initial_code = QECCodeType::SURFACE;
     config.enable_code_switching = true;
     config.enable_distance_adaptation = true;
     config.enable_closed_loop = false;  // Skip actual recalibration
@@ -790,9 +789,9 @@ TEST(integration_code_selection_pipeline) {
     auto code_correlated = selector.select_code(correlated);
     
     // Verify appropriate code selection
-    ASSERT_EQ(code_balanced, StabilizerCodeType::SURFACE);
-    ASSERT_EQ(code_biased, StabilizerCodeType::REPETITION);
-    ASSERT_EQ(code_correlated, StabilizerCodeType::SURFACE);
+    ASSERT_EQ(code_balanced, QECCodeType::SURFACE);
+    ASSERT_EQ(code_biased, QECCodeType::REPETITION);
+    ASSERT_EQ(code_correlated, QECCodeType::SURFACE);
 }
 
 //==============================================================================
@@ -818,7 +817,7 @@ TEST(performance_code_selection) {
 }
 
 TEST(performance_decode_latency) {
-    auto code = create_stabilizer_code(StabilizerCodeType::SURFACE, 5);
+    auto code = create_stabilizer_code(QECCodeType::SURFACE, 5);
     MLDecoder::Config config;
     config.enable_fallback = true;
     MLDecoder decoder(*code, config);

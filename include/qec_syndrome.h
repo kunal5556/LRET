@@ -29,9 +29,8 @@ public:
         double reset_error = 0.0;         // Ancilla reset error
     };
 
-    explicit SyndromeExtractor(const StabilizerCode& code, 
-                               NoiseParams noise = {},
-                               unsigned seed = 42);
+    explicit SyndromeExtractor(const StabilizerCode& code, unsigned seed = 42);
+    SyndromeExtractor(const StabilizerCode& code, NoiseParams noise, unsigned seed = 42);
 
     /**
      * @brief Extract syndrome from Pauli error pattern

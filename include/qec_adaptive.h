@@ -179,24 +179,25 @@ public:
         size_t max_distance = 9;               // Maximum code distance
     };
     
-    explicit AdaptiveCodeSelector(Config config = {});
+    AdaptiveCodeSelector();  // Uses default Config
+    explicit AdaptiveCodeSelector(Config config);
     
     //==========================================================================
     // Main Selection Interface
     //==========================================================================
     
     /// Select optimal code type based on noise profile
-    StabilizerCodeType select_code(const NoiseProfile& noise);
+    QECCodeType select_code(const NoiseProfile& noise);
     
     /// Select optimal code distance for given code type and target error rate
     size_t select_distance(
-        StabilizerCodeType code,
+        QECCodeType code,
         const NoiseProfile& noise,
         double target_logical_error_rate
     );
     
     /// Combined selection: returns (code_type, distance)
-    std::pair<StabilizerCodeType, size_t> select_code_and_distance(
+    std::pair<QECCodeType, size_t> select_code_and_distance(
         const NoiseProfile& noise,
         double target_logical_error_rate
     );
@@ -206,16 +207,16 @@ public:
     //==========================================================================
     
     /// Select code for biased noise (T1 << T2 or T1 >> T2)
-    StabilizerCodeType select_for_biased_noise(const NoiseProfile& noise);
+    QECCodeType select_for_biased_noise(const NoiseProfile& noise);
     
     /// Select code for correlated noise
-    StabilizerCodeType select_for_correlated_noise(const NoiseProfile& noise);
+    QECCodeType select_for_correlated_noise(const NoiseProfile& noise);
     
     /// Select code for high error rate (> high_error_threshold)
-    StabilizerCodeType select_for_high_error_rate(const NoiseProfile& noise);
+    QECCodeType select_for_high_error_rate(const NoiseProfile& noise);
     
     /// Select code for low error rate (< low_error_threshold)
-    StabilizerCodeType select_for_low_error_rate(const NoiseProfile& noise);
+    QECCodeType select_for_low_error_rate(const NoiseProfile& noise);
     
     //==========================================================================
     // Prediction & Ranking
@@ -223,13 +224,13 @@ public:
     
     /// Predict logical error rate for given code + noise combination
     double predict_logical_error_rate(
-        StabilizerCodeType code,
+        QECCodeType code,
         size_t distance,
         const NoiseProfile& noise
     );
     
     /// Rank all codes by predicted logical error rate (ascending)
-    std::vector<std::pair<StabilizerCodeType, double>> rank_codes(
+    std::vector<std::pair<QECCodeType, double>> rank_codes(
         const NoiseProfile& noise,
         size_t distance
     );
@@ -242,15 +243,15 @@ private:
     
     /// Compute effective error rate for code type given noise profile
     double compute_effective_error_rate(
-        StabilizerCodeType code,
+        QECCodeType code,
         const NoiseProfile& noise
     );
     
     /// Get code-specific threshold constant (A in p_L ≈ A * p_phys^exp)
-    double get_threshold_constant(StabilizerCodeType code);
+    double get_threshold_constant(QECCodeType code);
     
     /// Get code-specific exponent (e.g., (d+1)/2 for surface, d for repetition)
-    double get_exponent(StabilizerCodeType code, size_t distance);
+    double get_exponent(QECCodeType code, size_t distance);
 };
 
 //==============================================================================
@@ -270,7 +271,7 @@ private:
  * - Supports batch inference for efficiency
  * - Model checkpoints stored as .pkl files
  */
-class MLDecoder : public Decoder {
+class MLDecoder : public QECDecoder {
 public:
     struct Config {
         std::string model_path;               // Path to saved .pkl checkpoint
@@ -293,6 +294,10 @@ public:
     
     /// Decode syndrome to correction (single syndrome)
     Correction decode(const Syndrome& syndrome) override;
+    
+    /// Check if correction results in logical error
+    bool has_logical_error(const Correction& correction, 
+                           const PauliString& actual_error) const override;
     
     /// Batch decode for efficiency
     std::vector<Correction> decode_batch(const std::vector<Syndrome>& syndromes);
@@ -385,7 +390,8 @@ public:
         size_t min_cycles_before_recalib = 200; // Minimum cycles before first recalib
     };
     
-    explicit ClosedLoopController(Config config = {});
+    ClosedLoopController();  // Uses default Config
+    explicit ClosedLoopController(Config config);
     
     //==========================================================================
     // Update & Detection
@@ -483,7 +489,8 @@ public:
         size_t evaluation_window = 500;    // Cycles before distance change
     };
     
-    explicit DynamicDistanceSelector(Config config = {});
+    DynamicDistanceSelector();  // Uses default Config
+    explicit DynamicDistanceSelector(Config config);
     
     /// Update with QEC result
     void update(const QECRoundResult& result);
@@ -527,7 +534,7 @@ class AdaptiveQECController {
 public:
     struct Config {
         // Initial settings
-        StabilizerCodeType initial_code = StabilizerCodeType::SURFACE;
+        QECCodeType initial_code = QECCodeType::SURFACE;
         size_t initial_distance = 3;
         double target_logical_error_rate = 1e-6;
         
@@ -546,7 +553,8 @@ public:
         DynamicDistanceSelector::Config distance_config;
     };
     
-    explicit AdaptiveQECController(Config config = {});
+    AdaptiveQECController();  // Uses default Config
+    explicit AdaptiveQECController(Config config);
     
     //==========================================================================
     // Initialization
@@ -586,13 +594,13 @@ public:
     //==========================================================================
     
     /// Get current code type
-    StabilizerCodeType current_code_type() const { return current_code_type_; }
+    QECCodeType current_code_type() const { return current_code_type_; }
     
     /// Get current distance
     size_t current_distance() const { return current_distance_; }
     
     /// Get current decoder
-    Decoder& current_decoder();
+    QECDecoder& current_decoder();
     
     /// Get noise profile
     const NoiseProfile& noise_profile() const { return noise_profile_; }
@@ -617,7 +625,7 @@ private:
     Stats stats_;
     
     // Current state
-    StabilizerCodeType current_code_type_;
+    QECCodeType current_code_type_;
     size_t current_distance_;
     NoiseProfile noise_profile_;
     
@@ -633,17 +641,17 @@ private:
     bool pending_code_switch_ = false;
     bool pending_distance_change_ = false;
     bool pending_recalibration_ = false;
-    StabilizerCodeType pending_code_type_;
+    QECCodeType pending_code_type_;
     size_t pending_distance_;
     
     /// Update code based on new selection
-    void switch_code(StabilizerCodeType new_type, size_t new_distance);
+    void switch_code(QECCodeType new_type, size_t new_distance);
     
     /// Create decoder for current code
     void create_decoder();
     
     /// Get ML model path for code type and distance
-    std::string get_model_path(StabilizerCodeType code, size_t distance);
+    std::string get_model_path(QECCodeType code, size_t distance);
 };
 
 //==============================================================================
@@ -689,14 +697,14 @@ std::vector<TrainingSample> generate_training_data(
 
 /// Evaluate decoder accuracy on test data
 double evaluate_decoder_accuracy(
-    Decoder& decoder,
+    QECDecoder& decoder,
     const std::vector<TrainingSample>& test_data
 );
 
 /// Compare two decoders on same test data
 std::pair<double, double> compare_decoders(
-    Decoder& decoder1,
-    Decoder& decoder2,
+    QECDecoder& decoder1,
+    QECDecoder& decoder2,
     const std::vector<TrainingSample>& test_data
 );
 

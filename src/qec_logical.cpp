@@ -37,6 +37,8 @@ double LogicalState::fidelity_with(const LogicalState& target) const {
 // LogicalQubit Implementation
 //==============================================================================
 
+LogicalQubit::LogicalQubit() : LogicalQubit(Config{}) {}
+
 LogicalQubit::LogicalQubit(Config config) : config_(config) {
     code_ = create_stabilizer_code(config_.code_type, config_.distance);
     decoder_ = create_decoder(config_.decoder_type, *code_, config_.physical_error_rate);
@@ -60,7 +62,7 @@ void LogicalQubit::initialize_zero() {
     // |0_L⟩ for surface code: product state |00...0⟩ (in code space)
     // L-factor: column vector representing |0_L⟩
     L_ = CMatrix(dim, 1);
-    L_[0][0] = Complex(1.0, 0.0);  // |00...0⟩ component
+    L_(0, 0) = Complex(1.0, 0.0);  // |00...0⟩ component
     
     accumulated_error_ = PauliString(n);
 }
@@ -298,6 +300,9 @@ void LogicalQubit::apply_physical_gate(const std::string& /* gate */,
 // LogicalRegister Implementation
 //==============================================================================
 
+LogicalRegister::LogicalRegister(size_t num_qubits)
+    : LogicalRegister(num_qubits, Config{}) {}
+
 LogicalRegister::LogicalRegister(size_t num_qubits, Config config) 
     : config_(config) {
     qubits_.reserve(num_qubits);
@@ -331,8 +336,8 @@ void LogicalRegister::apply_logical_cnot(size_t control, size_t target) {
     
     // For simulation: propagate errors appropriately
     // CNOT: X errors propagate ctrl->tgt, Z errors propagate tgt->ctrl
-    auto& ctrl_error = qubits_[control].get_accumulated_error();
-    auto& tgt_error = qubits_[target].get_accumulated_error();
+    PauliString ctrl_error = qubits_[control].get_accumulated_error();
+    PauliString tgt_error = qubits_[target].get_accumulated_error();
     
     PauliString new_ctrl_error(ctrl_error.size());
     PauliString new_tgt_error(tgt_error.size());
@@ -388,6 +393,8 @@ void LogicalRegister::initialize_all_zero() {
 //==============================================================================
 // QECSimulator Implementation
 //==============================================================================
+
+QECSimulator::QECSimulator() : QECSimulator(SimConfig{}) {}
 
 QECSimulator::QECSimulator(SimConfig config) : config_(config) {}
 

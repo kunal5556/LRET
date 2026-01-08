@@ -123,6 +123,7 @@ private:
     bool success_ = false;
 };
 
+AsyncCheckpointWriter::AsyncCheckpointWriter() = default;
 AsyncCheckpointWriter::~AsyncCheckpointWriter() = default;
 
 void AsyncCheckpointWriter::start(const std::string& path, const MatrixXcd& L, const CheckpointMeta& meta) {

@@ -182,20 +182,20 @@ set(LIB_SOURCES
     src/noise_import.cpp
     src/json_interface.cpp
     # Phase 8: Fault tolerance
-    # src/checkpoint.cpp  # Temporarily disabled - has incomplete Impl type issues
+    src/checkpoint.cpp
     src/distributed_perf.cpp
     # src/distributed_autodiff.cpp  # Temporarily disabled - requires GPU infrastructure
     # src/fault_tolerance.cpp  # Temporarily disabled - requires complete distributed infrastructure
-    # Phase 9: QEC - Temporarily disabled due to incomplete type definitions
-    # src/qec_types.cpp
-    # src/qec_stabilizer.cpp
-    # src/qec_syndrome.cpp
-    # src/qec_decoder.cpp
-    # src/qec_logical.cpp
+    # Phase 9: QEC
+    src/qec_types.cpp
+    src/qec_stabilizer.cpp
+    src/qec_syndrome.cpp
+    src/qec_decoder.cpp
+    src/qec_logical.cpp
     # Phase 9.2: Distributed QEC
-    # src/qec_distributed.cpp
+    src/qec_distributed.cpp
     # Phase 9.3: Adaptive QEC
-    # src/qec_adaptive.cpp  # Temporarily disabled - requires StabilizerCodeType enum definition
+    src/qec_adaptive.cpp
 )
 
 # Create static library
@@ -403,11 +403,11 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_leakage_measurement.cpp")
     target_link_libraries(test_leakage_measurement PRIVATE qlret_lib)
 endif()
 
-# Checkpoint test (Phase 8.3+) - Temporarily disabled due to checkpoint.cpp compilation issues
-# if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_checkpoint.cpp")
-#     add_executable(test_checkpoint tests/test_checkpoint.cpp src/checkpoint.cpp)
-#     target_link_libraries(test_checkpoint PRIVATE qlret_lib)
-# endif()
+# Checkpoint test (Phase 8.3+)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_checkpoint.cpp")
+    add_executable(test_checkpoint tests/test_checkpoint.cpp)
+    target_link_libraries(test_checkpoint PRIVATE qlret_lib)
+endif()
 
 # Scheduler test (Phase 8.3+)
 if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_scheduler.cpp")
@@ -418,37 +418,37 @@ endif()
 #==============================================================================
 # Phase 9: Quantum Error Correction Tests
 #==============================================================================
-# QEC Stabilizer test (Phase 9.1) - Temporarily disabled due to incomplete QEC source files
-# if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_stabilizer.cpp")
-#     add_executable(test_qec_stabilizer tests/test_qec_stabilizer.cpp)
-#     target_link_libraries(test_qec_stabilizer PRIVATE qlret_lib)
-# endif()
+# QEC Stabilizer test (Phase 9.1)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_stabilizer.cpp")
+    add_executable(test_qec_stabilizer tests/test_qec_stabilizer.cpp)
+    target_link_libraries(test_qec_stabilizer PRIVATE qlret_lib)
+endif()
 
-# QEC Syndrome test (Phase 9.1) - Temporarily disabled due to incomplete QEC source files
-# if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_syndrome.cpp")
-#     add_executable(test_qec_syndrome tests/test_qec_syndrome.cpp)
-#     target_link_libraries(test_qec_syndrome PRIVATE qlret_lib)
-# endif()
+# QEC Syndrome test (Phase 9.1)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_syndrome.cpp")
+    add_executable(test_qec_syndrome tests/test_qec_syndrome.cpp)
+    target_link_libraries(test_qec_syndrome PRIVATE qlret_lib)
+endif()
 
-# QEC Decoder test (Phase 9.1) - Temporarily disabled due to incomplete QEC source files
-# if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_decoder.cpp")
-#     add_executable(test_qec_decoder tests/test_qec_decoder.cpp)
-#     target_link_libraries(test_qec_decoder PRIVATE qlret_lib)
-# endif()
+# QEC Decoder test (Phase 9.1)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_decoder.cpp")
+    add_executable(test_qec_decoder tests/test_qec_decoder.cpp)
+    target_link_libraries(test_qec_decoder PRIVATE qlret_lib)
+endif()
 
-# QEC Logical Qubit test (Phase 9.1) - Temporarily disabled due to incomplete QEC source files
-# if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_logical.cpp")
-#     add_executable(test_qec_logical tests/test_qec_logical.cpp)
-#     target_link_libraries(test_qec_logical PRIVATE qlret_lib)
-# endif()
+# QEC Logical Qubit test (Phase 9.1)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_logical.cpp")
+    add_executable(test_qec_logical tests/test_qec_logical.cpp)
+    target_link_libraries(test_qec_logical PRIVATE qlret_lib)
+endif()
 
-# QEC Distributed test (Phase 9.2) - Temporarily disabled due to incomplete QEC source files
+# QEC Distributed test (Phase 9.2) - disabled temporarily for type fixes
 # if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_distributed.cpp")
 #     add_executable(test_qec_distributed tests/test_qec_distributed.cpp)
 #     target_link_libraries(test_qec_distributed PRIVATE qlret_lib)
 # endif()
 
-# QEC Adaptive test (Phase 9.3) - Temporarily disabled due to incomplete QEC source files
+# QEC Adaptive test (Phase 9.3) - disabled temporarily for type fixes
 # if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_adaptive.cpp")
 #     add_executable(test_qec_adaptive tests/test_qec_adaptive.cpp)
 #     target_link_libraries(test_qec_adaptive PRIVATE qlret_lib)

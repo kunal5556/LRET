@@ -90,6 +90,10 @@ struct PauliString {
     // Set Pauli at qubit q
     void set(size_t q, Pauli p) { paulis[q] = p; }
     Pauli get(size_t q) const { return paulis[q]; }
+    
+    // Array-style access operators
+    Pauli operator[](size_t q) const { return paulis[q]; }
+    Pauli& operator[](size_t q) { return paulis[q]; }
 
     // String representation
     std::string to_string() const;
@@ -131,9 +135,35 @@ struct ErrorLocation {
     double time = 0.0; // When error occurred (for time-correlated decoding)
 };
 
+/**
+ * @brief Correction to apply after decoding
+ * 
+ * Contains separate X and Z corrections as PauliStrings.
+ */
 struct Correction {
-    std::vector<ErrorLocation> corrections;
-    double confidence = 1.0;
+    PauliString x_correction;    ///< X-type corrections (fixes Z-syndrome)
+    PauliString z_correction;    ///< Z-type corrections (fixes X-syndrome)
+    std::vector<ErrorLocation> corrections;  ///< Legacy: individual error locations
+    double confidence = 1.0;     ///< Decoder confidence (0-1)
 };
+
+//==============================================================================
+// Type Aliases for Compatibility
+//==============================================================================
+
+/// Complex matrix type alias (for QEC syndrome extraction with LRET)
+using CMatrix = MatrixXcd;
+
+//==============================================================================
+// Stabilizer Code Type Enumeration
+//==============================================================================
+
+/**
+ * @brief Type alias for StabilizerCodeType (uses QECCodeType from qec_stabilizer.h)
+ * 
+ * Used by adaptive QEC for code selection.
+ * Note: This is a forward-compatibility alias. QECCodeType is the canonical enum.
+ */
+// StabilizerCodeType is defined in qec_stabilizer.h as QECCodeType
 
 }  // namespace qlret

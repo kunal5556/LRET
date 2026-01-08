@@ -93,7 +93,8 @@ public:
         bool auto_correct = true;    // Apply corrections automatically
     };
 
-    explicit LogicalQubit(Config config = {});
+    LogicalQubit();  // Uses default Config
+    explicit LogicalQubit(Config config);
     LogicalQubit(const LogicalQubit&) = delete;
     LogicalQubit& operator=(const LogicalQubit&) = delete;
     LogicalQubit(LogicalQubit&&) = default;
@@ -295,7 +296,8 @@ public:
         double physical_error_rate = 0.001;
     };
 
-    LogicalRegister(size_t num_qubits, Config config = {});
+    explicit LogicalRegister(size_t num_qubits);
+    LogicalRegister(size_t num_qubits, Config config);
 
     /**
      * @brief Get logical qubit by index
@@ -355,7 +357,8 @@ public:
         std::vector<size_t> errors_per_round;  // Distribution across rounds
     };
 
-    explicit QECSimulator(SimConfig config = {});
+    QECSimulator();  // Uses default SimConfig
+    explicit QECSimulator(SimConfig config);
 
     /**
      * @brief Run QEC simulation to estimate logical error rate

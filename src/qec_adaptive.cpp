@@ -253,10 +253,13 @@ bool NoiseProfile::differs_from(const NoiseProfile& baseline, double threshold) 
 // AdaptiveCodeSelector Implementation
 //==============================================================================
 
+AdaptiveCodeSelector::AdaptiveCodeSelector()
+    : AdaptiveCodeSelector(Config{}) {}
+
 AdaptiveCodeSelector::AdaptiveCodeSelector(Config config)
     : config_(config) {}
 
-StabilizerCodeType AdaptiveCodeSelector::select_code(const NoiseProfile& noise) {
+QECCodeType AdaptiveCodeSelector::select_code(const NoiseProfile& noise) {
     // Decision tree based on noise characteristics
     
     // 1. High error rate → prefer higher distance or concatenated
@@ -280,11 +283,11 @@ StabilizerCodeType AdaptiveCodeSelector::select_code(const NoiseProfile& noise) 
     }
     
     // 5. Default: standard rotated surface code
-    return StabilizerCodeType::SURFACE;
+    return QECCodeType::SURFACE;
 }
 
 size_t AdaptiveCodeSelector::select_distance(
-    StabilizerCodeType code,
+    QECCodeType code,
     const NoiseProfile& noise,
     double target_logical_error_rate
 ) {
@@ -300,16 +303,16 @@ size_t AdaptiveCodeSelector::select_distance(
     return config_.max_distance;
 }
 
-std::pair<StabilizerCodeType, size_t> AdaptiveCodeSelector::select_code_and_distance(
+std::pair<QECCodeType, size_t> AdaptiveCodeSelector::select_code_and_distance(
     const NoiseProfile& noise,
     double target_logical_error_rate
 ) {
-    StabilizerCodeType code = select_code(noise);
+    QECCodeType code = select_code(noise);
     size_t distance = select_distance(code, noise, target_logical_error_rate);
     return {code, distance};
 }
 
-StabilizerCodeType AdaptiveCodeSelector::select_for_biased_noise(const NoiseProfile& noise) {
+QECCodeType AdaptiveCodeSelector::select_for_biased_noise(const NoiseProfile& noise) {
     double ratio = noise.t1_t2_ratio();
     
     // T1 >> T2: Z errors dominate → repetition code for bit-flip
@@ -317,37 +320,37 @@ StabilizerCodeType AdaptiveCodeSelector::select_for_biased_noise(const NoiseProf
     // Either way, repetition code can be more efficient for single-type errors
     
     if (ratio > 1.5 || ratio < 0.67) {
-        return StabilizerCodeType::REPETITION;
+        return QECCodeType::REPETITION;
     }
     
     // Moderate bias: surface code is still good
-    return StabilizerCodeType::SURFACE;
+    return QECCodeType::SURFACE;
 }
 
-StabilizerCodeType AdaptiveCodeSelector::select_for_correlated_noise(const NoiseProfile& noise) {
+QECCodeType AdaptiveCodeSelector::select_for_correlated_noise(const NoiseProfile& noise) {
     // Surface code with its 2D structure handles correlated errors better
     // than 1D repetition codes
-    return StabilizerCodeType::SURFACE;
+    return QECCodeType::SURFACE;
 }
 
-StabilizerCodeType AdaptiveCodeSelector::select_for_high_error_rate(const NoiseProfile& noise) {
+QECCodeType AdaptiveCodeSelector::select_for_high_error_rate(const NoiseProfile& noise) {
     // For very high error rates, we may need concatenated codes
     // or simply larger distance surface codes
     // For now, return SURFACE with expectation of higher distance
-    return StabilizerCodeType::SURFACE;
+    return QECCodeType::SURFACE;
 }
 
-StabilizerCodeType AdaptiveCodeSelector::select_for_low_error_rate(const NoiseProfile& noise) {
+QECCodeType AdaptiveCodeSelector::select_for_low_error_rate(const NoiseProfile& noise) {
     // Low error rate: surface code is efficient
     // Could use smaller distance
     if (config_.prefer_low_overhead) {
-        return StabilizerCodeType::SURFACE;
+        return QECCodeType::SURFACE;
     }
-    return StabilizerCodeType::SURFACE;
+    return QECCodeType::SURFACE;
 }
 
 double AdaptiveCodeSelector::predict_logical_error_rate(
-    StabilizerCodeType code,
+    QECCodeType code,
     size_t distance,
     const NoiseProfile& noise
 ) {
@@ -359,15 +362,15 @@ double AdaptiveCodeSelector::predict_logical_error_rate(
     return A * std::pow(p_phys, exp);
 }
 
-std::vector<std::pair<StabilizerCodeType, double>> AdaptiveCodeSelector::rank_codes(
+std::vector<std::pair<QECCodeType, double>> AdaptiveCodeSelector::rank_codes(
     const NoiseProfile& noise,
     size_t distance
 ) {
-    std::vector<std::pair<StabilizerCodeType, double>> rankings;
+    std::vector<std::pair<QECCodeType, double>> rankings;
     
-    std::vector<StabilizerCodeType> codes = {
-        StabilizerCodeType::SURFACE,
-        StabilizerCodeType::REPETITION
+    std::vector<QECCodeType> codes = {
+        QECCodeType::SURFACE,
+        QECCodeType::REPETITION
     };
     
     for (auto code : codes) {
@@ -383,7 +386,7 @@ std::vector<std::pair<StabilizerCodeType, double>> AdaptiveCodeSelector::rank_co
 }
 
 double AdaptiveCodeSelector::compute_effective_error_rate(
-    StabilizerCodeType code,
+    QECCodeType code,
     const NoiseProfile& noise
 ) {
     // Different codes have different sensitivities to different error types
@@ -391,12 +394,12 @@ double AdaptiveCodeSelector::compute_effective_error_rate(
     double two_q_err = noise.avg_two_qubit_error();
     
     switch (code) {
-        case StabilizerCodeType::REPETITION:
+        case QECCodeType::REPETITION:
             // Repetition code only protects against one type of error
             // Effective rate is dominated by single-qubit errors
             return gate_err + two_q_err;
             
-        case StabilizerCodeType::SURFACE:
+        case QECCodeType::SURFACE:
         default:
             // Surface code protects against both X and Z
             // Weight two-qubit errors heavily (syndrome circuits use CNOT)
@@ -404,23 +407,23 @@ double AdaptiveCodeSelector::compute_effective_error_rate(
     }
 }
 
-double AdaptiveCodeSelector::get_threshold_constant(StabilizerCodeType code) {
+double AdaptiveCodeSelector::get_threshold_constant(QECCodeType code) {
     // Code-specific threshold constants (empirically determined)
     switch (code) {
-        case StabilizerCodeType::REPETITION:
+        case QECCodeType::REPETITION:
             return 0.5;   // Higher constant (less protection)
-        case StabilizerCodeType::SURFACE:
+        case QECCodeType::SURFACE:
         default:
             return 0.1;   // Lower constant (better protection)
     }
 }
 
-double AdaptiveCodeSelector::get_exponent(StabilizerCodeType code, size_t distance) {
+double AdaptiveCodeSelector::get_exponent(QECCodeType code, size_t distance) {
     switch (code) {
-        case StabilizerCodeType::REPETITION:
+        case QECCodeType::REPETITION:
             // p_L ≈ A * p^d for repetition code (bit-flip only)
             return static_cast<double>(distance);
-        case StabilizerCodeType::SURFACE:
+        case QECCodeType::SURFACE:
         default:
             // p_L ≈ A * p^((d+1)/2) for surface code
             return (distance + 1.0) / 2.0;
@@ -506,6 +509,12 @@ std::vector<Correction> MLDecoder::decode_batch(const std::vector<Syndrome>& syn
     return corrections;
 }
 
+bool MLDecoder::has_logical_error(const Correction& correction, 
+                                   const PauliString& actual_error) const {
+    // Delegate to fallback decoder for logical error checking
+    return fallback_decoder_->has_logical_error(correction, actual_error);
+}
+
 void MLDecoder::load_model(const std::string& path) {
     // In full implementation: load Python model via pybind11
     // For now: just mark as loaded
@@ -587,6 +596,9 @@ bool MLDecoder::should_fallback(const std::vector<float>& logits) {
 //==============================================================================
 // ClosedLoopController Implementation
 //==============================================================================
+
+ClosedLoopController::ClosedLoopController()
+    : ClosedLoopController(Config{}) {}
 
 ClosedLoopController::ClosedLoopController(Config config)
     : config_(config) {}
@@ -734,6 +746,9 @@ void ClosedLoopController::set_noise_profile(const NoiseProfile& noise) {
 // DynamicDistanceSelector Implementation
 //==============================================================================
 
+DynamicDistanceSelector::DynamicDistanceSelector()
+    : DynamicDistanceSelector(Config{}) {}
+
 DynamicDistanceSelector::DynamicDistanceSelector(Config config)
     : config_(config), current_distance_(config.min_distance) {}
 
@@ -788,6 +803,9 @@ void DynamicDistanceSelector::set_target_error_rate(double target) {
 //==============================================================================
 // AdaptiveQECController Implementation
 //==============================================================================
+
+AdaptiveQECController::AdaptiveQECController()
+    : AdaptiveQECController(Config{}) {}
 
 AdaptiveQECController::AdaptiveQECController(Config config)
     : config_(config),
@@ -888,7 +906,7 @@ void AdaptiveQECController::apply_adaptations() {
     }
     
     if (pending_code_switch_ || pending_distance_change_) {
-        StabilizerCodeType new_type = pending_code_switch_ ? pending_code_type_ : current_code_type_;
+        QECCodeType new_type = pending_code_switch_ ? pending_code_type_ : current_code_type_;
         size_t new_distance = pending_distance_change_ ? pending_distance_ : current_distance_;
         
         switch_code(new_type, new_distance);
@@ -901,14 +919,14 @@ void AdaptiveQECController::apply_adaptations() {
     }
 }
 
-Decoder& AdaptiveQECController::current_decoder() {
+QECDecoder& AdaptiveQECController::current_decoder() {
     if (config_.use_ml_decoder && ml_decoder_ && ml_decoder_->is_ready()) {
         return *ml_decoder_;
     }
     return *mwpm_decoder_;
 }
 
-void AdaptiveQECController::switch_code(StabilizerCodeType new_type, size_t new_distance) {
+void AdaptiveQECController::switch_code(QECCodeType new_type, size_t new_distance) {
     current_code_type_ = new_type;
     current_distance_ = new_distance;
     distance_selector_->set_current_distance(new_distance);
@@ -938,13 +956,13 @@ void AdaptiveQECController::create_decoder() {
     }
 }
 
-std::string AdaptiveQECController::get_model_path(StabilizerCodeType code, size_t distance) {
+std::string AdaptiveQECController::get_model_path(QECCodeType code, size_t distance) {
     std::string code_name;
     switch (code) {
-        case StabilizerCodeType::REPETITION:
+        case QECCodeType::REPETITION:
             code_name = "repetition";
             break;
-        case StabilizerCodeType::SURFACE:
+        case QECCodeType::SURFACE:
         default:
             code_name = "surface";
             break;
@@ -1057,7 +1075,7 @@ std::vector<TrainingSample> generate_training_data(
 }
 
 double evaluate_decoder_accuracy(
-    Decoder& decoder,
+    QECDecoder& decoder,
     const std::vector<TrainingSample>& test_data
 ) {
     size_t correct = 0;
@@ -1097,8 +1115,8 @@ double evaluate_decoder_accuracy(
 }
 
 std::pair<double, double> compare_decoders(
-    Decoder& decoder1,
-    Decoder& decoder2,
+    QECDecoder& decoder1,
+    QECDecoder& decoder2,
     const std::vector<TrainingSample>& test_data
 ) {
     double acc1 = evaluate_decoder_accuracy(decoder1, test_data);

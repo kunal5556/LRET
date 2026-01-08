@@ -22,7 +22,9 @@ enum class QECCodeType {
     REPETITION,      ///< Simple repetition code (1D)
     SURFACE,         ///< 2D surface code (rotated)
     STEANE,          ///< [[7,1,3]] Steane code
-    SHOR             ///< [[9,1,3]] Shor code
+    SHOR,            ///< [[9,1,3]] Shor code
+    COLOR,           ///< Color code
+    CONCATENATED     ///< Concatenated code
 };
 
 /**
@@ -39,6 +41,8 @@ public:
         return num_data_qubits() + num_ancilla_qubits();
     }
     virtual size_t code_distance() const = 0;
+    /// Alias for code_distance() - commonly used name
+    size_t distance() const { return code_distance(); }
     virtual size_t num_logical_qubits() const = 0;
     virtual QECCodeType code_type() const = 0;
 

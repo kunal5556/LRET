@@ -211,8 +211,11 @@ public:
 
     ParallelMWPMDecoder(const StabilizerCode& code,
                         const PartitionMap& partition,
+                        const DistributedQECConfig& qec_config);
+    ParallelMWPMDecoder(const StabilizerCode& code,
+                        const PartitionMap& partition,
                         const DistributedQECConfig& qec_config,
-                        Config decoder_config = {});
+                        Config decoder_config);
 
     /**
      * @brief Decode local subgraph

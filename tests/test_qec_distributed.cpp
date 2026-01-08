@@ -20,7 +20,7 @@ using namespace qlret;
 
 #define ASSERT_TRUE(x) do { if (!(x)) { std::cerr << "\nAssertion failed: " #x << std::endl; assert(false); } } while(0)
 #define ASSERT_FALSE(x) ASSERT_TRUE(!(x))
-#define ASSERT_EQ(a, b) do { if ((a) != (b)) { std::cerr << "\nExpected: " << (b) << ", got: " << (a) << std::endl; assert(false); } } while(0)
+#define ASSERT_EQ(a, b) do { if ((a) != (b)) { std::cerr << "\nAssertion failed: " #a " == " #b << std::endl; assert(false); } } while(0)
 #define ASSERT_NE(a, b) ASSERT_TRUE((a) != (b))
 #define ASSERT_GT(a, b) ASSERT_TRUE((a) > (b))
 #define ASSERT_GE(a, b) ASSERT_TRUE((a) >= (b))
@@ -37,7 +37,7 @@ TEST(test_default_config) {
     
     ASSERT_EQ(config.world_size, 1);
     ASSERT_EQ(config.rank, 0);
-    ASSERT_EQ(config.code_type, StabilizerCodeType::SURFACE);
+    ASSERT_EQ(config.code_type, QECCodeType::SURFACE);
     ASSERT_EQ(config.code_distance, 3);
     ASSERT_EQ(config.partition, PartitionStrategy::ROW_WISE);
     ASSERT_NEAR(config.physical_error_rate, 0.001, 1e-9);
@@ -48,7 +48,7 @@ TEST(test_config_custom) {
     DistributedQECConfig config;
     config.world_size = 4;
     config.rank = 2;
-    config.code_type = StabilizerCodeType::REPETITION;
+    config.code_type = QECCodeType::REPETITION;
     config.code_distance = 5;
     config.partition = PartitionStrategy::BLOCK_2D;
     config.physical_error_rate = 0.01;
@@ -56,7 +56,7 @@ TEST(test_config_custom) {
     
     ASSERT_EQ(config.world_size, 4);
     ASSERT_EQ(config.rank, 2);
-    ASSERT_EQ(config.code_type, StabilizerCodeType::REPETITION);
+    ASSERT_EQ(config.code_type, QECCodeType::REPETITION);
     ASSERT_EQ(config.code_distance, 5);
     ASSERT_EQ(config.partition, PartitionStrategy::BLOCK_2D);
     ASSERT_NEAR(config.physical_error_rate, 0.01, 1e-9);
@@ -458,7 +458,7 @@ TEST(test_decoder_stats) {
 
 TEST(test_distributed_logical_qubit_init) {
     DistributedQECConfig config;
-    config.code_type = StabilizerCodeType::SURFACE;
+    config.code_type = QECCodeType::SURFACE;
     config.code_distance = 3;
     
     DistributedLogicalQubit qubit(config);
@@ -469,7 +469,7 @@ TEST(test_distributed_logical_qubit_init) {
 
 TEST(test_distributed_logical_qubit_qec_round) {
     DistributedQECConfig config;
-    config.code_type = StabilizerCodeType::SURFACE;
+    config.code_type = QECCodeType::SURFACE;
     config.code_distance = 3;
     config.world_size = 1;
     config.parallel_decode = false;
@@ -485,7 +485,7 @@ TEST(test_distributed_logical_qubit_qec_round) {
 
 TEST(test_distributed_logical_qubit_inject_error) {
     DistributedQECConfig config;
-    config.code_type = StabilizerCodeType::SURFACE;
+    config.code_type = QECCodeType::SURFACE;
     config.code_distance = 3;
     config.world_size = 1;
     
@@ -506,7 +506,7 @@ TEST(test_distributed_logical_qubit_inject_error) {
 
 TEST(test_distributed_logical_qubit_multiple_ranks) {
     DistributedQECConfig config;
-    config.code_type = StabilizerCodeType::SURFACE;
+    config.code_type = QECCodeType::SURFACE;
     config.code_distance = 3;
     config.world_size = 2;
     config.rank = 0;
@@ -523,7 +523,7 @@ TEST(test_distributed_logical_qubit_multiple_ranks) {
 
 TEST(test_distributed_logical_qubit_logical_ops) {
     DistributedQECConfig config;
-    config.code_type = StabilizerCodeType::SURFACE;
+    config.code_type = QECCodeType::SURFACE;
     config.code_distance = 3;
     
     DistributedLogicalQubit qubit(config);
@@ -540,7 +540,7 @@ TEST(test_distributed_logical_qubit_logical_ops) {
 
 TEST(test_distributed_logical_qubit_qec_rounds) {
     DistributedQECConfig config;
-    config.code_type = StabilizerCodeType::SURFACE;
+    config.code_type = QECCodeType::SURFACE;
     config.code_distance = 3;
     config.physical_error_rate = 0.001;
     
@@ -555,7 +555,7 @@ TEST(test_distributed_logical_qubit_qec_rounds) {
 
 TEST(test_distributed_logical_qubit_stats) {
     DistributedQECConfig config;
-    config.code_type = StabilizerCodeType::SURFACE;
+    config.code_type = QECCodeType::SURFACE;
     config.code_distance = 3;
     
     DistributedLogicalQubit qubit(config);
@@ -575,7 +575,7 @@ TEST(test_distributed_logical_qubit_stats) {
 
 TEST(test_ft_runner_basic) {
     FaultTolerantQECRunner::Config config;
-    config.qec_config.code_type = StabilizerCodeType::SURFACE;
+    config.qec_config.code_type = QECCodeType::SURFACE;
     config.qec_config.code_distance = 3;
     config.qec_config.physical_error_rate = 0.001;
     config.enable_recovery = false;
@@ -588,7 +588,7 @@ TEST(test_ft_runner_basic) {
 
 TEST(test_ft_runner_with_gates) {
     FaultTolerantQECRunner::Config config;
-    config.qec_config.code_type = StabilizerCodeType::SURFACE;
+    config.qec_config.code_type = QECCodeType::SURFACE;
     config.qec_config.code_distance = 3;
     config.enable_recovery = false;
     
@@ -605,7 +605,7 @@ TEST(test_ft_runner_with_gates) {
 
 TEST(test_ft_runner_checkpoint) {
     FaultTolerantQECRunner::Config config;
-    config.qec_config.code_type = StabilizerCodeType::SURFACE;
+    config.qec_config.code_type = QECCodeType::SURFACE;
     config.qec_config.code_distance = 3;
     config.enable_recovery = true;
     config.checkpoint_dir = ".";
@@ -623,7 +623,7 @@ TEST(test_ft_runner_checkpoint) {
 
 TEST(test_ft_runner_syndrome_history) {
     FaultTolerantQECRunner::Config config;
-    config.qec_config.code_type = StabilizerCodeType::SURFACE;
+    config.qec_config.code_type = QECCodeType::SURFACE;
     config.qec_config.code_distance = 3;
     config.log_syndrome_history = true;
     
@@ -640,7 +640,7 @@ TEST(test_ft_runner_syndrome_history) {
 
 TEST(test_simulator_basic) {
     DistributedQECSimulator::SimConfig config;
-    config.qec_config.code_type = StabilizerCodeType::SURFACE;
+    config.qec_config.code_type = QECCodeType::SURFACE;
     config.qec_config.code_distance = 3;
     config.qec_config.physical_error_rate = 0.001;
     config.num_trials = 10;
@@ -657,7 +657,7 @@ TEST(test_simulator_basic) {
 
 TEST(test_simulator_high_error_rate) {
     DistributedQECSimulator::SimConfig config;
-    config.qec_config.code_type = StabilizerCodeType::SURFACE;
+    config.qec_config.code_type = QECCodeType::SURFACE;
     config.qec_config.code_distance = 3;
     config.qec_config.physical_error_rate = 0.1; // High error rate
     config.num_trials = 5;
@@ -672,7 +672,7 @@ TEST(test_simulator_high_error_rate) {
 
 TEST(test_simulator_compare_distributed_serial) {
     DistributedQECSimulator::SimConfig config;
-    config.qec_config.code_type = StabilizerCodeType::SURFACE;
+    config.qec_config.code_type = QECCodeType::SURFACE;
     config.qec_config.code_distance = 3;
     config.qec_config.world_size = 2;
     config.qec_config.parallel_decode = true;
@@ -689,7 +689,7 @@ TEST(test_simulator_compare_distributed_serial) {
 
 TEST(test_simulator_timing) {
     DistributedQECSimulator::SimConfig config;
-    config.qec_config.code_type = StabilizerCodeType::SURFACE;
+    config.qec_config.code_type = QECCodeType::SURFACE;
     config.qec_config.code_distance = 3;
     config.num_trials = 10;
     config.qec_rounds_per_trial = 5;
@@ -708,7 +708,7 @@ TEST(test_simulator_timing) {
 
 TEST(test_full_qec_pipeline_single_rank) {
     DistributedQECConfig config;
-    config.code_type = StabilizerCodeType::SURFACE;
+    config.code_type = QECCodeType::SURFACE;
     config.code_distance = 3;
     config.world_size = 1;
     config.rank = 0;
@@ -731,7 +731,7 @@ TEST(test_full_qec_pipeline_single_rank) {
 
 TEST(test_full_qec_pipeline_multi_rank) {
     DistributedQECConfig config;
-    config.code_type = StabilizerCodeType::SURFACE;
+    config.code_type = QECCodeType::SURFACE;
     config.code_distance = 5;
     config.world_size = 4;
     config.rank = 0;
@@ -783,7 +783,7 @@ TEST(test_partition_strategies) {
 
 TEST(test_repetition_code_distributed) {
     DistributedQECConfig config;
-    config.code_type = StabilizerCodeType::REPETITION;
+    config.code_type = QECCodeType::REPETITION;
     config.code_distance = 5;
     config.world_size = 2;
     config.parallel_decode = true;
@@ -798,7 +798,7 @@ TEST(test_repetition_code_distributed) {
 
 TEST(test_surface_code_distributed) {
     DistributedQECConfig config;
-    config.code_type = StabilizerCodeType::SURFACE;
+    config.code_type = QECCodeType::SURFACE;
     config.code_distance = 5;
     config.world_size = 4;
     config.partition = PartitionStrategy::BLOCK_2D;

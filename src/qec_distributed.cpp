@@ -464,6 +464,12 @@ void DistributedSyndromeExtractor::resolve_boundary_stabilizers(
 ParallelMWPMDecoder::ParallelMWPMDecoder(
     const StabilizerCode& code,
     const PartitionMap& partition,
+    const DistributedQECConfig& qec_config)
+    : ParallelMWPMDecoder(code, partition, qec_config, Config{}) {}
+
+ParallelMWPMDecoder::ParallelMWPMDecoder(
+    const StabilizerCode& code,
+    const PartitionMap& partition,
     const DistributedQECConfig& qec_config,
     Config decoder_config)
     : code_(code), partition_(partition), 

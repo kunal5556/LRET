@@ -29,6 +29,9 @@ void QECDecoder::record_decode(double time_ms, bool failed) {
 // MWPMDecoder Implementation
 //==============================================================================
 
+MWPMDecoder::MWPMDecoder(const StabilizerCode& code)
+    : MWPMDecoder(code, Config{}) {}
+
 MWPMDecoder::MWPMDecoder(const StabilizerCode& code, Config config)
     : code_(code), config_(config) {}
 
@@ -328,6 +331,9 @@ double MWPMDecoder::compute_distance(int r1, int c1, int r2, int c2) const {
 // UnionFindDecoder Implementation
 //==============================================================================
 
+UnionFindDecoder::UnionFindDecoder(const StabilizerCode& code)
+    : UnionFindDecoder(code, Config{}) {}
+
 UnionFindDecoder::UnionFindDecoder(const StabilizerCode& code, Config config)
     : code_(code), config_(config) {}
 
@@ -335,8 +341,11 @@ Correction UnionFindDecoder::decode(const Syndrome& syndrome) {
     auto start = std::chrono::high_resolution_clock::now();
 
     Correction corr;
-    corr.x_correction = grow_clusters(syndrome, false);  // Z-syndrome -> X-correction
-    corr.z_correction = grow_clusters(syndrome, true);   // X-syndrome -> Z-correction
+    // grow_clusters returns a Correction; extract the appropriate PauliString field
+    Correction x_result = grow_clusters(syndrome, false);  // Z-syndrome -> X-correction
+    Correction z_result = grow_clusters(syndrome, true);   // X-syndrome -> Z-correction
+    corr.x_correction = x_result.x_correction;
+    corr.z_correction = z_result.z_correction;
 
     auto end = std::chrono::high_resolution_clock::now();
     double time_ms = std::chrono::duration<double, std::milli>(end - start).count();

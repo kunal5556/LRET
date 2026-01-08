@@ -9,6 +9,9 @@ namespace qlret {
 // SyndromeExtractor Implementation
 //==============================================================================
 
+SyndromeExtractor::SyndromeExtractor(const StabilizerCode& code, unsigned seed)
+    : SyndromeExtractor(code, NoiseParams{}, seed) {}
+
 SyndromeExtractor::SyndromeExtractor(const StabilizerCode& code, 
                                      NoiseParams noise,
                                      unsigned seed)

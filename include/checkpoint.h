@@ -50,7 +50,7 @@ bool load_checkpoint(const std::string& path, MatrixXcd& L, CheckpointMeta& meta
  */
 class AsyncCheckpointWriter {
 public:
-    AsyncCheckpointWriter() = default;
+    AsyncCheckpointWriter();
     ~AsyncCheckpointWriter();
 
     AsyncCheckpointWriter(const AsyncCheckpointWriter&) = delete;
