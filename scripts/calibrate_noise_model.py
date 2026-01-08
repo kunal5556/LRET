@@ -16,16 +16,16 @@ This produces a minimal Qiskit-style noise JSON compatible with LRET import.
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from fit_depolarizing import estimate_depolarizing, load_fidelities
 from fit_t1_t2 import _fit_exponential, load_columns
 
 
 def build_noise_model(
-    depol_p: float | None,
-    T1: float | None,
-    T2: float | None,
+    depol_p: Optional[float],
+    T1: Optional[float],
+    T2: Optional[float],
     gate_time: float,
 ) -> Dict[str, Any]:
     errors: List[Dict[str, Any]] = []

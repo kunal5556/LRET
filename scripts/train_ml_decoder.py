@@ -216,14 +216,14 @@ def create_train_state(
     )
 
 
-def compute_loss(params, model, batch, rng, train: bool = True):
+def compute_loss(params, apply_fn, batch, rng, train: bool = True):
     """Compute cross-entropy loss."""
     syndromes, errors = batch
 
     if train:
-        logits = model.apply(params, syndromes, train=True, rngs={"dropout": rng})
+        logits = apply_fn(params, syndromes, train=True, rngs={"dropout": rng})
     else:
-        logits = model.apply(params, syndromes, train=False)
+        logits = apply_fn(params, syndromes, train=False)
 
     # One-hot encode errors
     labels = jax.nn.one_hot(errors, 4)
@@ -235,19 +235,19 @@ def compute_loss(params, model, batch, rng, train: bool = True):
     return loss
 
 
-def compute_accuracy(logits: jnp.ndarray, errors: jnp.ndarray) -> float:
+def compute_accuracy(logits: jnp.ndarray, errors: jnp.ndarray) -> jnp.ndarray:
     """Compute per-qubit accuracy."""
     predictions = jnp.argmax(logits, axis=-1)
     accuracy = jnp.mean(predictions == errors)
-    return float(accuracy)
+    return accuracy
 
 
-def compute_logical_accuracy(logits: jnp.ndarray, errors: jnp.ndarray) -> float:
+def compute_logical_accuracy(logits: jnp.ndarray, errors: jnp.ndarray) -> jnp.ndarray:
     """Compute accuracy of recovering the full error pattern."""
     predictions = jnp.argmax(logits, axis=-1)
     # Check if entire error pattern is correct
     sample_correct = jnp.all(predictions == errors, axis=-1)
-    return float(jnp.mean(sample_correct))
+    return jnp.mean(sample_correct)
 
 
 @jax.jit

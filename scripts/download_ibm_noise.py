@@ -30,8 +30,16 @@ from typing import Dict, Any
 
 try:
     from qiskit_ibm_runtime import QiskitRuntimeService
-    from qiskit.providers.fake_provider import FakeProvider
+    from qiskit_ibm_runtime.fake_provider import FakeManilaV2, FakeAthensV2, FakeYorktownV2
     from qiskit_aer.noise import NoiseModel
+    FAKE_BACKENDS = {
+        'FakeManila': FakeManilaV2,
+        'FakeManilaV2': FakeManilaV2,
+        'FakeAthens': FakeAthensV2, 
+        'FakeAthensV2': FakeAthensV2,
+        'FakeYorktown': FakeYorktownV2,
+        'FakeYorktownV2': FakeYorktownV2,
+    }
 except ImportError as e:
     print(f"Error: {e}", file=sys.stderr)
     print("\nPlease install required packages:", file=sys.stderr)
@@ -118,34 +126,35 @@ def get_fake_noise_model(fake_backend_name: str, verbose: bool = False) -> Noise
     Get noise model from Qiskit fake backend (for testing without IBM account).
     
     Args:
-        fake_backend_name: Name of fake backend (e.g., 'FakeQuito', 'FakeKolkata')
+        fake_backend_name: Name of fake backend (e.g., 'FakeManila', 'FakeAthens')
         verbose: Enable detailed logging
         
     Returns:
         NoiseModel object
     """
     try:
-        fake_provider = FakeProvider()
-        
-        # Get fake backend by name
-        fake_backend_cls = getattr(fake_provider, fake_backend_name, None)
+        # Look up fake backend in our registry
+        fake_backend_cls = FAKE_BACKENDS.get(fake_backend_name)
         if fake_backend_cls is None:
-            # Try with underscore
-            fake_backend_cls = getattr(fake_provider, fake_backend_name.replace('-', '_'), None)
+            # Try common variations
+            for name in [fake_backend_name, fake_backend_name + 'V2', 
+                        fake_backend_name.replace('Fake', 'Fake') + 'V2']:
+                if name in FAKE_BACKENDS:
+                    fake_backend_cls = FAKE_BACKENDS[name]
+                    break
         
         if fake_backend_cls is None:
             print(f"Error: Fake backend '{fake_backend_name}' not found", file=sys.stderr)
             print("\nAvailable fake backends:", file=sys.stderr)
-            for attr in dir(fake_provider):
-                if attr.startswith('Fake') and attr != 'FakeBackend':
-                    print(f"  {attr}", file=sys.stderr)
+            for name in sorted(FAKE_BACKENDS.keys()):
+                print(f"  {name}", file=sys.stderr)
             sys.exit(1)
         
         backend = fake_backend_cls()
         
         if verbose:
-            print(f"Using fake backend: {backend.name()}")
-            print(f"Qubits: {backend.configuration().n_qubits}")
+            print(f"Using fake backend: {backend.name}")
+            print(f"Qubits: {backend.num_qubits}")
         
         noise_model = NoiseModel.from_backend(backend)
         return noise_model
@@ -169,13 +178,21 @@ def noise_model_to_lret_json(noise_model: NoiseModel, backend_name: str = "unkno
     # Get Qiskit's native JSON representation
     qiskit_dict = noise_model.to_dict()
     
+    # Determine num_qubits from noise instructions
+    num_qubits = 0
+    for error in qiskit_dict.get("errors", []):
+        gate_qubits = error.get("gate_qubits", [])
+        for qubits in gate_qubits:
+            if qubits:
+                num_qubits = max(num_qubits, max(qubits) + 1)
+    
     # Add LRET-specific metadata
     lret_dict = {
         "device_name": backend_name,
         "noise_model_version": "1.0",
         "format": "qiskit_aer",
-        "basis_gates": noise_model.basis_gates,
-        "num_qubits": noise_model.num_qubits,
+        "basis_gates": list(noise_model.basis_gates),
+        "num_qubits": num_qubits,
         "errors": qiskit_dict.get("errors", []),
     }
     
@@ -222,8 +239,8 @@ def download_and_save_noise_model(
     # Print summary
     print(f"\nSummary:")
     print(f"  Device: {backend_name}")
-    print(f"  Qubits: {noise_model.num_qubits}")
-    print(f"  Basis gates: {', '.join(noise_model.basis_gates[:5])}" + 
+    print(f"  Qubits: {lret_json['num_qubits']}")
+    print(f"  Basis gates: {', '.join(list(noise_model.basis_gates)[:5])}" + 
           (f", ..." if len(noise_model.basis_gates) > 5 else ""))
     print(f"  Total errors: {len(lret_json['errors'])}")
     
