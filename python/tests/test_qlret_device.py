@@ -26,8 +26,8 @@ try:
 except ImportError:
     HAS_NATIVE = False
 
-# Path to sample JSON
-SAMPLES_DIR = Path(__file__).parent.parent / "samples" / "json"
+# Path to sample JSON (project root / samples / json)
+SAMPLES_DIR = Path(__file__).parent.parent.parent / "samples" / "json"
 
 
 # ---------------------------------------------------------------------------
@@ -228,7 +228,6 @@ class TestGradients:
     
     def test_gradient_single_param(self):
         """Test gradient for single parameter."""
-        pytest.skip("Gradient computation requires parameter-shift implementation")
         dev = QLRETDevice(wires=2, shots=None)
         
         @qml.qnode(dev, diff_method="parameter-shift")
@@ -238,11 +237,12 @@ class TestGradients:
         
         try:
             # d<Z>/dtheta for RX = -sin(theta)
-            theta = 0.5
+            # Use qml.numpy with requires_grad=True for PennyLane autodiff
+            theta = qml.numpy.array(0.5, requires_grad=True)
             grad = qml.grad(circuit)(theta)
-            expected = -np.sin(theta)
+            expected = -np.sin(0.5)
             
-            assert abs(grad - expected) < 0.1
+            assert abs(float(grad) - expected) < 0.1
         except (QLRETDeviceError, Exception) as e:
             if "not found" in str(e) or "Simulation failed" in str(e):
                 pytest.skip("Backend not available")
@@ -250,7 +250,6 @@ class TestGradients:
     
     def test_gradient_multi_param(self):
         """Test gradient for multiple parameters."""
-        pytest.skip("Gradient computation requires parameter-shift implementation")
         dev = QLRETDevice(wires=2, shots=None)
         
         @qml.qnode(dev, diff_method="parameter-shift")
@@ -260,7 +259,9 @@ class TestGradients:
             return qml.expval(qml.PauliZ(0))
         
         try:
-            theta, phi = 0.3, 0.7
+            # Use qml.numpy with requires_grad=True for PennyLane autodiff
+            theta = qml.numpy.array(0.3, requires_grad=True)
+            phi = qml.numpy.array(0.7, requires_grad=True)
             grads = qml.grad(circuit)(theta, phi)
             
             # Both gradients should be non-zero
