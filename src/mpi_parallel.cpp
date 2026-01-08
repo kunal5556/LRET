@@ -392,9 +392,9 @@ public:
     }
 
     void apply_noise(const NoiseOp& noise, const SimConfig& config) {
-        auto kraus_ops = get_kraus_operators(noise.type, noise.probability);
-        if (!kraus_ops.empty()) {
-            apply_single_local(noise.qubit, kraus_ops[0]);
+        auto kraus_ops = get_noise_kraus_operators(noise.type, noise.probability, noise.params);
+        if (!kraus_ops.empty() && !noise.qubits.empty()) {
+            apply_single_local(noise.qubits[0], kraus_ops[0]);
         }
         if (config.do_truncation) {
             truncate(config.truncation_threshold);
