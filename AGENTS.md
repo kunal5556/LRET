@@ -101,3 +101,5 @@ cd build && make -j$(sysctl -n hw.ncpu) && ctest
 
 For detailed agent instructions and capabilities: @agent.md
 For beginner-friendly guide: @AGENT_GUIDE.md
+For manual circuit execution workflows: @MANUAL_CIRCUIT_EXECUTION_GUIDE.md
+For Cirq FDM comparison setup: @CIRQ_COMPARISON_GUIDE.md

@@ -37,3 +37,37 @@ demo_batch
 # OS files
 .DS_Store
 Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.venv/
+venv/
+ENV/
+
+# OpenCode
+.opencode/
+.cache/
+
+# Cirq/Python packages (installed via pip, not committed)
+# Note: Don't commit installed packages, only requirements.txt
+
+# Generated comparison results
+cirq_comparison/results/*.csv
+cirq_comparison/results/*.txt
+cirq_comparison/results/*.tex
+cirq_comparison/plots/*.png
+cirq_comparison/plots/*.pdf
+gpu_test_logs/
+
+# Checkpoint files (can be large)
+*.ckpt
+*.npz
