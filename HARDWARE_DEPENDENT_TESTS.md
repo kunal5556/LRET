@@ -42,8 +42,12 @@ This document catalogs all tests that require specific hardware or software conf
 | MPI Tests | 2 | MPI Installation |
 | Multi-GPU Tests | 4 | Multiple NVIDIA GPUs + MPI + NCCL |
 | OpenMP Tests | 1 | OpenMP Runtime |
-| IBM Noise Download | 1 | Qiskit IBM Runtime Account |
-| ML Decoder Training | 1 | JAX/Flax Installation |
+| IBM Real Backend | 1 | IBM Quantum Account + Token |
+
+**Note:** The following tests were originally listed but have been fixed and now work:
+- ✅ `download_ibm_noise.py` - Fixed for new Qiskit API, works with fake backends (no IBM account needed)
+- ✅ `train_ml_decoder.py` - Fixed JAX JIT compatibility, Flax installed
+- ✅ `calibrate_noise_model.py` - Fixed Python 3.9 `Optional[float]` syntax
 
 ---
 
@@ -387,8 +391,12 @@ python3 -c "import qiskit; print('Qiskit:', qiskit.__version__)"
 | GPU Multi-Node | 4 | 2+ NVIDIA GPUs + MPI + NCCL |
 | MPI Distributed | 1 | MPI Installation |
 | OpenMP Parallel | 1 | OpenMP Runtime |
-| IBM Noise Download | 1 | Qiskit + IBM Account |
-| ML Decoder | 1 | JAX + Flax |
-| **Total** | **11** | Various |
+| IBM Real Backend | 1 | IBM Quantum Account |
+| **Total** | **10** | Various |
+
+**Recently Fixed (Now Working):**
+- ✅ `download_ibm_noise.py` with fake backends
+- ✅ `train_ml_decoder.py` with Flax
+- ✅ `calibrate_noise_model.py` with Python 3.9
 
 All other tests (75+) have been successfully executed and pass on the current macOS system.
