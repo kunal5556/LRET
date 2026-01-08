@@ -255,9 +255,21 @@ public:
         }
 
 #ifdef USE_NCCL
+        // NCCL operates on device memory, so we need to copy to/from device
+        double* d_local = nullptr;
+        double* d_result = nullptr;
+        CUDA_CHECK(cudaMalloc(&d_local, sizeof(double)));
+        CUDA_CHECK(cudaMalloc(&d_result, sizeof(double)));
+        CUDA_CHECK(cudaMemcpyAsync(d_local, &local_exp, sizeof(double), cudaMemcpyHostToDevice, compute_stream_));
+        
+        NCCL_CHECK(ncclAllReduce(d_local, d_result, 1, ncclDouble, ncclSum, nccl_comm_, compute_stream_));
+        
         double result = 0.0;
-        NCCL_CHECK(ncclAllReduce(&local_exp, &result, 1, ncclDouble, ncclSum, nccl_comm_, compute_stream_));
+        CUDA_CHECK(cudaMemcpyAsync(&result, d_result, sizeof(double), cudaMemcpyDeviceToHost, compute_stream_));
         CUDA_CHECK(cudaStreamSynchronize(compute_stream_));
+        
+        cudaFree(d_local);
+        cudaFree(d_result);
         return result;
 #elif defined(USE_MPI)
         double result = 0.0;

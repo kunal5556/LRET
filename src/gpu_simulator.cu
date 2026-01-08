@@ -26,6 +26,7 @@
 #include <thrust/device_vector.h>
 #include <thrust/complex.h>
 #include <iostream>
+#include <iomanip>
 #include <stdexcept>
 
 #ifdef USE_CUQUANTUM
@@ -732,8 +733,18 @@ public:
         
         // Apply to each column of L separately
         // cuQuantum operates on state vectors, we have L columns
+        // NOTE: cuQuantum expects contiguous state vectors. For L matrix:
+        //   - Column-major: column c starts at d_L_ + c * dim_ (columns are contiguous)
+        //   - Row-major: elements of column c are at d_L_[row * rank_ + c] (NOT contiguous!)
+        // cuQuantum can only be used efficiently with column-major layout.
+        if (!config_.use_column_major) {
+            // Fall back to custom kernel for row-major layout
+            apply_single_qubit_custom(qubit, gate);
+            return;
+        }
+        
         for (size_t c = 0; c < rank_; ++c) {
-            cuDoubleComplex* column = d_L_ + c;  // Stride by rank_
+            cuDoubleComplex* column = d_L_ + c * dim_;  // Column-major: column c starts at c*dim
             
             CUSTATEVEC_CHECK(custatevecApplyMatrix(
                 custatevec_handle_,
@@ -907,10 +918,20 @@ void GPUSimulator::apply_noise(const NoiseOp& noise) {
     // For LRET noise: Apply Kraus operators with proper rank expansion
     // L_new = [K_0 ⊗ I * L | K_1 ⊗ I * L | ... | K_k ⊗ I * L]
     // Rank increases by factor of num_kraus_operators
-    auto kraus = get_kraus_operators(noise.type, noise.probability);
-    if (!kraus.empty()) {
-        size_t target = noise.qubits.empty() ? 0 : noise.qubits[0];
-        apply_kraus(target, kraus);
+    auto kraus_full = get_noise_kraus_operators(noise.type, noise.probability, noise.params);
+    if (!kraus_full.empty()) {
+        // Convert MatrixXcd to Matrix2cd for single-qubit Kraus operators
+        std::vector<Matrix2cd> kraus;
+        kraus.reserve(kraus_full.size());
+        for (const auto& K : kraus_full) {
+            if (K.rows() == 2 && K.cols() == 2) {
+                kraus.push_back(K);
+            }
+        }
+        if (!kraus.empty()) {
+            size_t target = noise.qubits.empty() ? 0 : noise.qubits[0];
+            apply_kraus(target, kraus);
+        }
     }
 }
 

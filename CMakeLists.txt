@@ -184,8 +184,8 @@ set(LIB_SOURCES
     # Phase 8: Fault tolerance
     src/checkpoint.cpp
     src/distributed_perf.cpp
-    # src/distributed_autodiff.cpp  # Temporarily disabled - requires GPU infrastructure
-    # src/fault_tolerance.cpp  # Temporarily disabled - requires complete distributed infrastructure
+    # Note: src/distributed_autodiff.cpp is added conditionally when USE_GPU=ON (see GPU section)
+    # Note: src/fault_tolerance.cpp temporarily disabled - requires complete distributed infrastructure
     # Phase 9: QEC
     src/qec_types.cpp
     src/qec_stabilizer.cpp
@@ -230,6 +230,10 @@ if(USE_GPU)
         src/gpu_simulator.cu
         src/distributed_gpu.cu
     )
+    
+    # Add distributed_autodiff.cpp when USE_GPU is enabled
+    # This file contains CPU code but depends on GPU infrastructure
+    list(APPEND LIB_SOURCES src/distributed_autodiff.cpp)
     
     # Create GPU library
     add_library(qlret_gpu STATIC ${GPU_SOURCES})
