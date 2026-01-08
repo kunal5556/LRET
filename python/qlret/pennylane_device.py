@@ -34,6 +34,11 @@ try:
         ProbabilityMP,
     )
     from pennylane.operation import Observable, Tensor
+    # Import Prod for newer PennyLane versions (tensor product via @)
+    try:
+        from pennylane.ops.op_math import Prod
+    except ImportError:
+        Prod = None  # Not available in older PennyLane
     _HAS_PENNYLANE = True
 except ImportError as exc:
     _HAS_PENNYLANE = False
@@ -124,11 +129,16 @@ def _op_to_json(op: Any) -> Dict[str, Any]:
 
 def _obs_to_json(obs: Any, coeff: float = 1.0) -> Dict[str, Any]:
     """Convert a PennyLane observable to JSON dict."""
-    # Handle Tensor products (e.g., Z @ Z)
-    if isinstance(obs, Tensor):
+    # Handle Tensor products (e.g., Z @ Z) - both old Tensor and new Prod types
+    is_tensor = isinstance(obs, Tensor)
+    is_prod = Prod is not None and isinstance(obs, Prod)
+    
+    if is_tensor or is_prod:
         operators: List[str] = []
         wires: List[int] = []
-        for o in obs.obs:
+        # Get operands - use obs.obs for Tensor, obs.operands for Prod
+        operands = obs.obs if is_tensor else obs.operands
+        for o in operands:
             pauli = OBS_MAP.get(o.name)
             if pauli is None:
                 raise QLRETDeviceError(f"Unsupported observable in tensor: {o.name}")
@@ -141,13 +151,18 @@ def _obs_to_json(obs: Any, coeff: float = 1.0) -> Dict[str, Any]:
             "coefficient": coeff,
         }
     
-    # Handle Hamiltonian
-    if hasattr(obs, "coeffs") and hasattr(obs, "ops"):
-        # Hamiltonian is a sum; we'd need multiple observables
-        # For now, only single-term observables supported
-        raise QLRETDeviceError(
-            "Hamiltonian observables not yet supported. Use individual terms."
-        )
+    # Handle Hamiltonian (Sum type, has multiple terms with different wires)
+    # Check for Hamiltonian by looking for 'terms' method (newer) or checking if it's a Sum
+    if hasattr(obs, "terms") and callable(obs.terms):
+        try:
+            coeffs, ops = obs.terms()
+            # If there's more than one term with different structure, it's a Hamiltonian
+            if len(coeffs) > 1:
+                raise QLRETDeviceError(
+                    "Hamiltonian observables not yet supported. Use individual terms."
+                )
+        except Exception:
+            pass  # Not a Hamiltonian, continue to single observable handling
     
     # Single Pauli observable
     pauli = OBS_MAP.get(obs.name)

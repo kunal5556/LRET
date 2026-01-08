@@ -12,6 +12,7 @@
 
 #include "types.h"
 #include <string>
+#include <memory>
 #include <optional>
 #include <functional>
 

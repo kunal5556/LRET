@@ -90,19 +90,21 @@ class TestGradients:
 
     def test_parameter_shift_single_param(self, ensure_backend):
         dev = QLRETDevice(wires=1, shots=None)
+        pnp = qml.numpy  # PennyLane's numpy with requires_grad support
 
         @qml.qnode(dev, diff_method="parameter-shift")
         def circuit(theta):
             qml.RX(theta, wires=0)
             return qml.expval(qml.PauliZ(0))
 
-        theta = 0.5
+        theta = pnp.array(0.5, requires_grad=True)
         grad = qml.grad(circuit)(theta)
-        expected = -np.sin(theta)
+        expected = -np.sin(0.5)
         assert abs(grad - expected) < 0.1
 
     def test_multi_param_gradients(self, ensure_backend):
         dev = QLRETDevice(wires=2, shots=None)
+        pnp = qml.numpy
 
         @qml.qnode(dev, diff_method="parameter-shift")
         def circuit(params):
@@ -111,7 +113,7 @@ class TestGradients:
             qml.CNOT(wires=[0, 1])
             return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
 
-        params = np.array([0.3, 0.7])
+        params = pnp.array([0.3, 0.7], requires_grad=True)
         grads = qml.grad(circuit)(params)
         assert len(grads) == 2
         assert all(isinstance(g, (float, np.floating)) for g in grads)

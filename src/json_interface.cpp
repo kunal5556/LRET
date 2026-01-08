@@ -107,8 +107,11 @@ MatrixXcd build_observable_matrix(const JsonObservable& obs, size_t num_qubits) 
         per_qubit[wire] = pauli_from_char(p);
     }
 
-    MatrixXcd result = per_qubit[0];
-    for (size_t q = 1; q < num_qubits; ++q) {
+    // Build tensor product with qubit 0 as LSB convention:
+    // Observable matrix is per_qubit[n-1] ⊗ ... ⊗ per_qubit[1] ⊗ per_qubit[0]
+    // This matches state vector ordering where index = sum(bit_q * 2^q)
+    MatrixXcd result = per_qubit[num_qubits - 1];
+    for (int q = static_cast<int>(num_qubits) - 2; q >= 0; --q) {
         result = kron(result, per_qubit[q]);
     }
     return obs.coefficient * result;

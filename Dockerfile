@@ -134,7 +134,10 @@ COPY --from=cpp-builder /app/build/quantum_sim /usr/local/bin/quantum_sim
 COPY --from=cpp-builder /app/build/test_* /usr/local/bin/
 COPY --from=cpp-builder /app/python/qlret/_qlret_native*.so /tmp/
 COPY --from=python-builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=python-builder /usr/local/bin /usr/local/bin
+# Note: Copy python-builder /usr/local/bin EXCEPT we need to preserve quantum_sim
+RUN mkdir -p /app/tmp_bin
+COPY --from=python-builder /usr/local/bin /app/tmp_bin
+RUN cp -rn /app/tmp_bin/* /usr/local/bin/ 2>/dev/null || true && rm -rf /app/tmp_bin
 
 # Place native module with installed package
 RUN python - <<"PY"

@@ -28,10 +28,12 @@ Note: This wrapper requires `_qlret_native` to be built with USE_PYTHON=ON.
 from __future__ import annotations
 
 from typing import Any, Dict, List
+from functools import partial
 
 try:
     import jax
     import jax.numpy as jnp
+    from jax import ShapeDtypeStruct
 except ImportError as exc:  # pragma: no cover - optional dependency
     raise ImportError(
         "jax_interface requires JAX. Install with `pip install jax jaxlib`."
@@ -59,45 +61,94 @@ def _to_py(obj: Any) -> Any:
     return obj
 
 
+def _call_expectation_pure(params_list: List[float], circuit_spec: Dict[str, Any], observable: Dict[str, Any]) -> float:
+    """Pure Python function to call native expectation (no JAX types)."""
+    value = _qlret_native.autodiff_expectation(
+        circuit_spec["num_qubits"], circuit_spec["operations"], list(params_list), observable
+    )
+    return float(value)
+
+
+def _call_gradients_pure(params_list: List[float], circuit_spec: Dict[str, Any], observable: Dict[str, Any]) -> List[float]:
+    """Pure Python function to call native gradients (no JAX types)."""
+    grads = _qlret_native.autodiff_gradients(
+        circuit_spec["num_qubits"], circuit_spec["operations"], list(params_list), observable
+    )
+    return list(grads)
+
+
 def _call_expectation(params: jnp.ndarray, circuit_spec: Dict[str, Any], observable: Dict[str, Any]) -> jnp.ndarray:
     params_list = _to_py(params)
-    value = _qlret_native.autodiff_expectation(
-        circuit_spec["num_qubits"], circuit_spec["operations"], params_list, observable
-    )
+    value = _call_expectation_pure(params_list, circuit_spec, observable)
     return jnp.asarray(value, dtype=params.dtype)
 
 
 def _call_gradients(params: jnp.ndarray, circuit_spec: Dict[str, Any], observable: Dict[str, Any]) -> jnp.ndarray:
     params_list = _to_py(params)
-    grads = _qlret_native.autodiff_gradients(
-        circuit_spec["num_qubits"], circuit_spec["operations"], params_list, observable
-    )
+    grads = _call_gradients_pure(params_list, circuit_spec, observable)
     return jnp.asarray(grads, dtype=params.dtype)
 
 
 # ---------------------------------------------------------------------------
-# Public API: custom_vjp for JAX
+# Public API: custom_vjp for JAX with pure_callback for external calls
 # ---------------------------------------------------------------------------
 
 
-@jax.custom_vjp
+def _make_lret_expectation(circuit_spec: Dict[str, Any], observable: Dict[str, Any]):
+    """Factory that creates a JAX-differentiable expectation function for a specific circuit."""
+    
+    def expectation_callback(params_array):
+        """Pure callback for forward pass."""
+        return jnp.array(_call_expectation_pure(params_array.tolist(), circuit_spec, observable))
+    
+    def gradients_callback(params_array):
+        """Pure callback for gradient computation."""
+        return jnp.array(_call_gradients_pure(params_array.tolist(), circuit_spec, observable))
+    
+    @jax.custom_vjp
+    def expectation(params):
+        # Use pure_callback to call external code
+        return jax.pure_callback(
+            expectation_callback,
+            jax.ShapeDtypeStruct((), params.dtype),
+            params
+        )
+    
+    def expectation_fwd(params):
+        value = jax.pure_callback(
+            expectation_callback,
+            jax.ShapeDtypeStruct((), params.dtype),
+            params
+        )
+        return value, params
+    
+    def expectation_bwd(params, g):
+        grads = jax.pure_callback(
+            gradients_callback,
+            jax.ShapeDtypeStruct(params.shape, params.dtype),
+            params
+        )
+        return (g * grads,)
+    
+    expectation.defvjp(expectation_fwd, expectation_bwd)
+    return expectation
+
+
 def lret_expectation(params: jnp.ndarray, circuit_spec: Dict[str, Any], observable: Dict[str, Any]):
-    """Compute expectation value using QLRET autodiff with JAX support."""
-    return _call_expectation(params, circuit_spec, observable)
-
-
-def _lret_fwd(params: jnp.ndarray, circuit_spec: Dict[str, Any], observable: Dict[str, Any]):
-    value = _call_expectation(params, circuit_spec, observable)
-    return value, (params, circuit_spec, observable)
-
-
-def _lret_bwd(res, g):
-    params, circuit_spec, observable = res
-    grads = _call_gradients(params, circuit_spec, observable)
-    return (g * grads, None, None)
-
-
-lret_expectation.defvjp(_lret_fwd, _lret_bwd)
+    """Compute expectation value using QLRET autodiff with JAX support.
+    
+    This function supports jax.grad for automatic differentiation.
+    
+    Args:
+        params: JAX array of circuit parameters
+        circuit_spec: Circuit specification dict with 'num_qubits' and 'operations'
+        observable: Observable specification dict
+        
+    Returns:
+        Expectation value as a JAX scalar
+    """
+    fn = _make_lret_expectation(circuit_spec, observable)
+    return fn(params)
 
 
 __all__ = ["lret_expectation"]
