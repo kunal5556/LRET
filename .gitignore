@@ -1,6 +1,10 @@
 # Build directory
 build/
+build_test/
 cmake-build-*/
+
+# Cache and temporary
+.cache/
 
 # IDE
 .vscode/
