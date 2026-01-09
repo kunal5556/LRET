@@ -23,11 +23,13 @@ Phase 2: Implement Benchmarks (10 days)
     ├─ Application Benchmarks (Tier 1 algorithms)
     └─ Cross-Simulator Comparison
     ↓
-Phase 3: Execute & Collect Data (5-7 days)
-    ├─ Run benchmarks multiple times (3-5 trials each)
-    ├─ Store results in standardized format
+Phase 3: Execute & Collect Data (7-10 CONTINUOUS DAYS)
+    ├─ Run breaking point tests (hours per configuration)
+    ├─ Run 5 complete trials across all configurations
+    ├─ Store raw data in standardized JSON format
     ├─ Monitor for anomalies/failures
-    └─ Validate data consistency
+    ├─ Expected machine time: 150-200+ hours total
+    └─ Wall clock time: 7-10 days (run continuously or overnight)
     ↓
 Phase 4: Analysis & Visualization (4-5 days)
     ├─ Statistical analysis (mean, std, outlier detection)
@@ -41,7 +43,8 @@ Phase 5: Documentation & Publication (3-4 days)
     ├─ Package for arXiv submission
     └─ GitHub release with benchmarks
     ↓
-TOTAL: 5 weeks (25-30 days)
+TOTAL: 5-6 weeks (30-38 days)
+    Note: Execution phase (Phase 3) can run continuously in background
 ```
 
 ---
@@ -604,7 +607,31 @@ def benchmark_cross_simulator_comparison():
 
 ---
 
-### **PHASE 3: Execute & Collect Data** (5-7 days)
+### **PHASE 3: Execute & Collect Data** (7-10 CONTINUOUS DAYS)
+
+**⚠️ IMPORTANT: This phase involves LONG EXECUTION TIMES**
+
+**Expected Timing:**
+- Single trial of all benchmarks: 30-40 hours (breaking point testing for 14-24 qubits)
+- 5 complete trials (required for statistical significance): 150-200 hours total
+- Wall clock time: 7-10 continuous days (run overnight/background, or 1 week of daytime execution)
+- Memory benchmarks: 2-4 hours each trial
+- Speed benchmarks (breaking points): 50-100+ hours per trial (20+ qubits test slowly)
+- Application benchmarks: 20-30 hours per trial
+
+**Why Long Times Are Expected & Necessary:**
+- Testing to breaking points requires pushing each device to its limits
+- LRET at 20-24 qubits: 100-1000+ seconds per circuit
+- default.mixed times out before 14 qubits (timeouts are important data!)
+- 5 trials required for statistical validity (not just 1 trial)
+- This is standard for publication-grade benchmarking
+
+**Recommended Approach:**
+1. Run benchmarks on dedicated machine with minimal background processes
+2. Use background execution (`nohup`, `screen`, or `tmux`)
+3. Log all execution with timestamps for analysis
+4. Can be started Friday evening → finish by Wednesday morning
+5. Or run sequentially on a development machine
 
 #### Step 3.1: Create Master Benchmark Runner
 
@@ -675,22 +702,67 @@ if __name__ == "__main__":
 - Log all benchmark parameters
 - Save timestamped results
 
-#### Step 3.2: Run Benchmarks with Multiple Trials
+#### Step 3.2: Run Benchmarks with Multiple Trials & Breaking Points
+
+**Important: Breaking Point Search Strategy**
+
+For each device and qubit count, benchmarks can take hours:
+- 14 qubits: 4-10 seconds
+- 16 qubits: 20-60 seconds  
+- 18 qubits: 100-300 seconds
+- 20 qubits: 500-2000 seconds (5-30 minutes per circuit!)
+- 22+ qubits: 1000-3600+ seconds (30 minutes to 1+ hour per circuit!)
+
+With noise and 5 trials, times multiply significantly.
 
 ```bash
-# Run benchmark suite 3-5 times
+#!/bin/bash
+# Run benchmark suite with all trials (expected: 7-10 continuous days)
+
+echo "Starting benchmarking suite - Long execution time expected"
+echo "Estimated duration: 150-200+ hours"
+echo "Wall clock: 7-10 days continuous execution"
+
 for trial in {1..5}; do
-    echo "Trial $trial of 5..."
-    python benchmarks/run_all.py --trial $trial --output results/trial_$trial.json
-    sleep 60  # Cool down between trials
+    echo ""
+    echo "========================================"
+    echo "Trial $trial of 5 - Starting $(date)"
+    echo "Estimated duration: 30-40 hours"
+    echo "========================================"
+    
+    python benchmarks/run_all.py \
+        --trial $trial \
+        --output results/trial_$trial.json \
+        --verbose
+    
+    if [ $trial -lt 5 ]; then
+        echo "Trial $trial complete. Cooling down..."
+        sleep 300  # 5 minute cool down between trials
+    fi
 done
+
+echo ""
+echo "========================================"
+echo "All benchmarks complete! $(date)"
+echo "Results saved to results/trial_*.json"
+echo "========================================"
 ```
 
 **Recommendation**:
 - Run on dedicated machine (minimize other processes)
-- Warm up CPU/GPU first
+- Warm up CPU/GPU first with small circuits
 - Collect 5 trials minimum for statistical significance
-- Monitor system temperatures
+- Monitor system temperatures (set thermal limits)
+- Use `nohup` or `screen` to run in background:
+  ```bash
+  nohup ./benchmark_runner.sh > benchmark.log 2>&1 &
+  # or
+  screen -S benchmark
+  ./benchmark_runner.sh
+  # Detach with Ctrl+A then D
+  ```
+- Expected total machine time: 150-200+ hours
+- Wall clock time: 7-10 days (or 1-2 weeks of overnight runs)
 
 ---
 

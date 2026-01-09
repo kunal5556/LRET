@@ -413,6 +413,39 @@ Application Tests (VQE, QAOA, etc.):
 
 ## 6. Implementation Checklist
 
+### Critical: Long Execution Times Are Expected & Necessary
+
+**⚠️ IMPORTANT - This Is Standard for Publication-Grade Benchmarking**
+
+```
+Expected Execution Timeline for Complete Breaking Point Testing:
+┌─────────────────────────────────────────────────────────────┐
+│ Single trial of all benchmarks:  30-40 continuous hours      │
+│ 5 complete trials (required):    150-200+ hours total       │
+│ Wall clock time:                 7-10 continuous days       │
+│ (or 1-2 weeks of overnight runs)                            │
+└─────────────────────────────────────────────────────────────┘
+
+Time Breakdown by Qubit Count (per trial):
+- 2-10 qubits:   1-2 hours    (memory, speed baselines)
+- 12-14 qubits:  5-10 hours   (entering high-memory regime)
+- 16-18 qubits:  30-50 hours  (pushing default.mixed to limits)
+- 20-24 qubits:  80-150 hours (deep into LRET advantage zone)
+
+Why Times Are So Long:
+- LRET at 20 qubits: 100-300 seconds PER CIRCUIT
+- LRET at 22 qubits: 300-1000 seconds PER CIRCUIT
+- With 5 trials × 3 noise levels × 3 circuit depths = 45 runs
+- 45 runs × 5 minutes average = 3-4 hours just for that configuration
+- Across 8 categories and multiple qubits = hundreds of hours
+
+This Is Normal & Necessary:
+✅ Publication-grade benchmarking REQUIRES breaking point testing
+✅ Testing to limits takes longer than simple averaging
+✅ 5 trials needed for statistical significance
+✅ Long times demonstrate computational advantages clearly
+```
+
 ### Before Starting Benchmarking
 
 **Preparation Phase:**

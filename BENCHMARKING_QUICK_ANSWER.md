@@ -15,8 +15,9 @@
 2️⃣ IMPLEMENT (10 days)
    └─ Write 8 benchmark categories (20+ algorithms)
    
-3️⃣ EXECUTE (5-7 days)
-   └─ Run benchmarks 5 times each, collect data
+3️⃣ EXECUTE (7-10 CONTINUOUS DAYS)
+   └─ Run breaking point tests (150-200+ hours total)
+   └─ Wall clock: 7-10 days continuous, or 1-2 weeks overnight
    
 4️⃣ ANALYZE (4-5 days)
    └─ Process data, create tables & plots
@@ -24,7 +25,8 @@
 5️⃣ PUBLISH (3-4 days)
    └─ Write results, create reproducibility guide, submit
 
-TOTAL: 5 weeks
+TOTAL: 5-6 weeks (30-38 days)
+NOTE: Phase 3 can run continuously in background
 ```
 
 ---
@@ -111,16 +113,51 @@ Days 8-9: Applications (VQE, QAOA, QNN)
 Day 10:   Framework Integration & Cross-Simulator
 ```
 
-### Phase 3: Data Collection Execution
+### Phase 3: Data Collection Execution (7-10 Continuous Days)
+
+**⚠️ CRITICAL: This Phase Takes MUCH Longer Than Initially Estimated**
+
+| Task | Details | Timeline |
+|------|---------|----------|
+| **Expected Duration** | 150-200+ continuous hours | 7-10 days (or 1-2 weeks overnight) |
+| **Per Trial** | 30-40 hours (all categories, all qubits) | ~4 full days |
+| **Number of Trials** | 5 complete trials (required for statistical validity) | Total: 5 × 30-40 = 150-200 hours |
+| **Longest Tests** | LRET at 20-24 qubits (breaking point testing) | 100-1000 seconds PER circuit |
+| **Machine Setup** | Dedicated machine, minimized background processes | Critical for fair comparison |
+| **Background Execution** | Use `nohup`, `screen`, or `tmux` | Run overnight or continuous |
+
+**Why This Is Normal:**
+- Testing to breaking points requires extreme patience
+- LRET at 22 qubits: 300+ seconds just to run one circuit
+- With 3 noise levels × 3 depths × 5 trials = 45 runs per configuration
+- Across all qubit counts and categories = hundreds of hours total
+
+**Recommended Execution:**
+```bash
+# Start Friday evening, finish Wednesday morning
+nohup ./benchmark_runner.sh > benchmark.log 2>&1 &
+
+# Or use screen for monitoring
+screen -S benchmark
+./benchmark_runner.sh
+# Detach: Ctrl+A, then D
+```
+
+**Expected Breakdown by Qubit Count:**
+- 2-10 qubits:  1-2 hours
+- 12-14 qubits: 5-10 hours  
+- 16-18 qubits: 30-50 hours
+- 20-24 qubits: 80-150+ hours ← These take the longest!
 
 | Task | Recommended Model |
 |------|------------------|
-| **Master Runner** | Single Python script (`run_all.py`) with logging |
-| **Trial Management** | Run 5 complete benchmark sets (account for noise) |
-| **Cool-down** | 60-90 seconds between trials |
-| **Logging** | File-based logs with timestamps |
+| **Master Runner** | Single Python script (`run_all.py`) with detailed logging |
+| **Trial Management** | Run 5 complete benchmark sets with breaking point search |
+| **Cool-down** | 5-10 minutes between trials (thermal cooling) |
+| **Logging** | Detailed file-based logs with timestamps |
 | **Data Format** | JSON (raw) → CSV (processed) |
-| **Machine Setup** | Dedicated machine, minimized background processes |
+| **Machine Setup** | Dedicated machine, minimized background processes, thermal monitoring |
+| **Parallel Work** | You can work on Phase 4 analysis while Phase 3 runs in background |
 
 **Command:**
 ```bash
@@ -192,13 +229,15 @@ done
 |-------|----------|-----------|
 | **Phase 1: Setup** | 3-4 days | Infrastructure ready |
 | **Phase 2: Implementation** | 10 days | All 8 categories coded |
-| **Phase 3: Execution** | 5-7 days | Complete raw data |
+| **Phase 3: Execution** | 7-10 days | Complete raw data (150-200+ hours machine time) |
 | **Phase 4: Analysis** | 4-5 days | Tables, plots, statistics |
 | **Phase 5: Publication** | 3-4 days | Paper, reproducibility guide |
-| **TOTAL** | **25-30 days** | **Publication-ready** |
+| **TOTAL** | **30-38 days** | **Publication-ready** |
 
 **Parallel opportunities:**
-- Write results section while Phase 3 runs
+- Write results section while Phase 3 runs (overlapping work)
+- Phase 3 can run in background (overnight/continuous)
+- Use multiple machines if available for parallel trials
 - Create plot templates while Phase 2 finishes
 - Draft introduction/methods during Phase 4
 
