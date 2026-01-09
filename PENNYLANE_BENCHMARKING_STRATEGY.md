@@ -586,6 +586,20 @@ depths = [10, 25, 50, 100, 150, 200]
 
 **Test Suite**: `benchmarks/06_applications/`
 
+> **📖 Complete Algorithm Reference**: See [PENNYLANE_ALGORITHM_CATALOG.md](PENNYLANE_ALGORITHM_CATALOG.md) for detailed implementations, mathematical formulations, and code for all 20 algorithms tested in this category.
+>
+> **Algorithm Coverage**:
+> - **Tier 1** (7 algorithms): VQE, QAOA, QNN, QFT, QPE, Grover, Quantum Metrology
+> - **Tier 2** (7 algorithms): UCCSD-VQE, Portfolio Optimization, QSVM, QAE, VQD, qGAN, Extended Optimization
+> - **Tier 3** (6 algorithms): VQT, Quantum Walk, Kernel Methods, Ansatz Variants, Adaptive Methods
+>
+> Each algorithm includes:
+> - Mathematical formulation
+> - Complete PennyLane implementation
+> - Complexity analysis
+> - Benchmarking metrics
+> - Noise sensitivity characteristics
+
 #### Test 6.1: VQE Performance
 
 ```python
@@ -608,6 +622,10 @@ molecules = {
 
 #### Test 6.2: QAOA Performance
 
+**Algorithms Tested**:
+- MaxCut (graph optimization)
+- Portfolio Optimization (financial applications)
+
 ```python
 # File: benchmarks/06_applications/qaoa_benchmark.py
 
@@ -618,11 +636,22 @@ qaoa_layers = [1, 2, 3]
 
 # Measure:
 # - Optimization time
-# - Solution quality
+# - Solution quality (approximation ratio)
 # - Iterations to convergence
+# - Gradient computation efficiency
+
+# Also test Portfolio Optimization:
+# - Different asset counts (4-10)
+# - Risk-return tradeoff quality
+# - Comparison with classical optimization
 ```
 
 #### Test 6.3: Quantum Machine Learning
+
+**Algorithms Tested**:
+- Quantum Neural Networks (QNN) - classifiers
+- Quantum Support Vector Machines (QSVM)
+- Quantum Generative Adversarial Networks (qGAN)
 
 ```python
 # File: benchmarks/06_applications/qml_benchmark.py
@@ -634,11 +663,152 @@ datasets = {
     "wine": {"features": 4, "classes": 3},
 }
 
-# Measure:
+# QNN Classifier
 # - Training time per epoch
 # - Total training time
 # - Final accuracy
-# - Number of quantum circuit evaluations
+# - Gradient computation time
+
+# QSVM
+# - Kernel computation time
+# - Training speedup vs classical SVM
+# - Classification accuracy
+
+# qGAN (optional, Tier 3)
+# - Training stability
+# - Distribution matching quality
+# - Convergence characteristics
+```
+
+#### Test 6.4: Quantum Simulation Algorithms
+
+**NEW**: Extended algorithm coverage
+
+**Algorithms Tested**:
+- Quantum Fourier Transform (QFT)
+- Quantum Phase Estimation (QPE)
+- Grover's Search Algorithm (with noise)
+
+```python
+# File: benchmarks/06_applications/quantum_simulation_benchmark.py
+
+"""Quantum simulation algorithm benchmarks."""
+
+# QFT
+qft_qubit_range = [4, 6, 8, 10, 12]
+# Measure:
+# - Execution time vs qubit count
+# - Output fidelity
+# - Circuit depth impact
+# - Noise resilience (depolarizing, dephasing)
+
+# QPE
+qpe_precision_bits = [4, 6, 8]
+# Measure:
+# - Phase estimation accuracy
+# - Execution time
+# - Precision vs qubit overhead
+# - Noise sensitivity
+
+# Grover's Algorithm
+grover_search_space = [16, 64, 256, 1024]  # 4-10 qubits
+# Measure:
+# - Success probability vs iterations
+# - Optimal iteration count
+# - Noise impact on search efficiency
+# - Memory usage for noisy simulation
+```
+
+#### Test 6.5: Advanced Quantum Chemistry
+
+**NEW**: Additional chemistry algorithms
+
+**Algorithms Tested**:
+- UCCSD-VQE (Unitary Coupled Cluster)
+- VQD (Variational Quantum Deflation) - excited states
+- Adaptive VQE
+
+```python
+# File: benchmarks/06_applications/advanced_chemistry_benchmark.py
+
+"""Advanced quantum chemistry algorithm benchmarks."""
+
+# UCCSD-VQE for LiH, BeH2
+molecules = [
+    {"name": "LiH", "qubits": 4, "basis": "sto-3g"},
+    {"name": "BeH2", "qubits": 6, "basis": "sto-3g"},
+]
+
+# Measure:
+# - Chemical accuracy (<1.6 mHa or 1 kcal/mol)
+# - Convergence speed
+# - Parameter count vs accuracy
+# - Gradient computation efficiency
+
+# VQD for excited states
+# - First 2-3 excited states
+# - Orthogonality maintenance
+# - Deflation penalty optimization
+
+# ADAPT-VQE (if time permits)
+# - Adaptive operator pool selection
+# - Parameter efficiency
+```
+
+#### Test 6.6: Quantum Optimization Extended
+
+**NEW**: Additional optimization problems
+
+**Algorithms Tested**:
+- Number Partitioning
+- Traveling Salesman (small instances)
+- Constraint Satisfaction Problems
+
+```python
+# File: benchmarks/06_applications/extended_optimization_benchmark.py
+
+"""Extended optimization algorithm benchmarks."""
+
+# Number Partitioning with QAOA
+partition_sizes = [4, 6, 8]
+# Measure:
+# - Solution quality
+# - QAOA vs VQE performance
+
+# TSP (small instances)
+tsp_cities = [3, 4, 5]
+# Measure:
+# - Tour quality
+# - Optimization time
+```
+
+#### Test 6.7: Quantum Metrology
+
+**NEW**: Parameter estimation algorithms
+
+**Algorithms Tested**:
+- Quantum Parameter Estimation
+- Quantum Amplitude Estimation (QAE)
+
+```python
+# File: benchmarks/06_applications/quantum_metrology_benchmark.py
+
+"""Quantum metrology and estimation benchmarks."""
+
+# Quantum Parameter Estimation
+n_qubits_range = [2, 4, 6, 8]
+# Measure:
+# - Estimation precision
+# - Quantum Fisher Information
+# - Heisenberg limit verification
+# - Noise impact on precision
+
+# Quantum Amplitude Estimation
+precision_qubits = [4, 6, 8]
+# Measure:
+# - Amplitude estimation accuracy
+# - Quadratic speedup verification
+# - Comparison with Monte Carlo
 ```
 
 ---
