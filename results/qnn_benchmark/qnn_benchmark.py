@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Automated QNN Classifier Benchmark - LRET vs PennyLane default.mixed
-Tests: 8 and 10 qubits
-Duration: 2-6 hours total
+Tests: 8 and 10 qubits, 100 epochs, 10 samples
+Duration: 15-30 minutes (realistic ML training)
 """
 
 import pennylane as qml
@@ -18,15 +18,15 @@ def measure_memory():
     """Get current memory usage in MB"""
     return psutil.Process().memory_info().rss / (1024**2)
 
-def run_qnn_training(n_qubits, device_name, num_epochs=10, batch_size=5):
+def run_qnn_training(n_qubits, device_name, num_epochs=100, batch_size=10):
     """
     Run QNN classifier training
     
     Args:
         n_qubits: Number of qubits (8 or 10)
         device_name: "lret" or "default.mixed"
-        num_epochs: Training epochs
-        batch_size: Number of training samples
+        num_epochs: Training epochs (default 100 for realistic ML)
+        batch_size: Number of training samples (default 10)
     
     Returns:
         Dict with metrics
@@ -397,10 +397,10 @@ if __name__ == "__main__":
     
     all_results = []
     
-    # Test configurations
+    # Test configurations (100 epochs for realistic ML training)
     test_configs = [
-        {"n_qubits": 8, "num_epochs": 10, "batch_size": 5},
-        {"n_qubits": 10, "num_epochs": 10, "batch_size": 5},
+        {"n_qubits": 8, "num_epochs": 100, "batch_size": 10},
+        {"n_qubits": 10, "num_epochs": 100, "batch_size": 10},
     ]
     
     for config in test_configs:

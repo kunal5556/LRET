@@ -1,6 +1,6 @@
 # PennyLane QNN Classifier Benchmark Report
 
-**Generated**: 2026-01-10 00:35:30
+**Generated**: 2026-01-10 01:38:52
 
 ## Executive Summary
 
@@ -10,61 +10,61 @@ This benchmark compares LRET PennyLane plugin against PennyLane's default.mixed 
 
 | Qubits | Epochs | Batch Size | Layers | Parameters |
 |--------|--------|------------|--------|------------|
-| 8 | 10 | 5 | 2 | 32 |
-| 8 | 10 | 5 | 2 | 32 |
-| 10 | 10 | 5 | 2 | 40 |
-| 10 | 10 | 5 | 2 | 40 |
+| 8 | 100 | 10 | 2 | 32 |
+| 8 | 100 | 10 | 2 | 32 |
+| 10 | 100 | 10 | 2 | 40 |
+| 10 | 100 | 10 | 2 | 40 |
 
 ## Performance Results
 
 | Qubits | Device | Time (s) | Memory (MB) | Accuracy | Status |
 |--------|--------|----------|-------------|----------|--------|
-| 8 | lret | 1.43 | 11.62 | 100.0% | success |
-| 8 | default.mixed | 4.39 | 63.08 | 100.0% | success |
-| 10 | lret | 6.78 | 32.81 | 60.0% | success |
-| 10 | default.mixed | 79.95 | 1025.80 | 60.0% | success |
+| 8 | lret | 25.35 | 13.91 | 70.0% | success |
+| 8 | default.mixed | 86.94 | 79.34 | 70.0% | success |
+| 10 | lret | 129.85 | 29.95 | 70.0% | success |
+| 10 | default.mixed | 1405.33 | 908.91 | 70.0% | success |
 
 ## Comparison Analysis
 
 ### 8 Qubits
 
 **Performance:**
-- LRET: 1.43s
-- default.mixed: 4.39s
-- **Speedup: 3.07x** ✓ (LRET faster)
+- LRET: 25.35s
+- default.mixed: 86.94s
+- **Speedup: 3.43x** ✓ (LRET faster)
 
 **Memory:**
-- LRET: 11.62 MB
-- default.mixed: 63.08 MB
-- **Memory Ratio: 5.43x** ✓ (LRET uses less)
+- LRET: 13.91 MB
+- default.mixed: 79.34 MB
+- **Memory Ratio: 5.71x** ✓ (LRET uses less)
 
 **Accuracy:**
-- LRET: 100.0%
-- default.mixed: 100.0%
+- LRET: 70.0%
+- default.mixed: 70.0%
 - Difference: 0.0%
 
 ### 10 Qubits
 
 **Performance:**
-- LRET: 6.78s
-- default.mixed: 79.95s
-- **Speedup: 11.80x** ✓ (LRET faster)
+- LRET: 129.85s
+- default.mixed: 1405.33s
+- **Speedup: 10.82x** ✓ (LRET faster)
 
 **Memory:**
-- LRET: 32.81 MB
-- default.mixed: 1025.80 MB
-- **Memory Ratio: 31.26x** ✓ (LRET uses less)
+- LRET: 29.95 MB
+- default.mixed: 908.91 MB
+- **Memory Ratio: 30.34x** ✓ (LRET uses less)
 
 **Accuracy:**
-- LRET: 60.0%
-- default.mixed: 60.0%
+- LRET: 70.0%
+- default.mixed: 70.0%
 - Difference: 0.0%
 
 ## Conclusion
 
 **Overall Performance:**
-- Average Speedup: 10.28x
-- Average Memory Reduction: 24.50x
+- Average Speedup: 9.61x
+- Average Memory Reduction: 22.53x
 
 ✓✓ **LRET demonstrates clear advantages in both speed and memory efficiency.**
 
