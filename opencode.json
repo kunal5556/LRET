@@ -1,0 +1,40 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode/gpt-5-nano",
+  "instructions": [
+    "AGENTS.md",
+    "agent.md",
+    "AGENT_GUIDE.md",
+    "README.md"
+  ],
+  "agent": {
+    "build": {
+      "mode": "primary",
+      "description": "Full development agent with all tools enabled for LRET quantum simulator",
+      "tools": {
+        "write": true,
+        "edit": true,
+        "bash": true
+      }
+    },
+    "plan": {
+      "mode": "primary",
+      "description": "Read-only analysis agent for exploring LRET codebase",
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": false
+      }
+    },
+    "quantum": {
+      "mode": "subagent",
+      "description": "Specialized agent for quantum computing tasks, circuit design, and QEC analysis",
+      "prompt": "You are a quantum computing expert working with the LRET simulator. Focus on quantum circuits, error correction, noise models, and simulation optimization. Use the build directory for running tests and quantum_sim for simulations."
+    },
+    "test": {
+      "mode": "subagent",
+      "description": "Agent for running and analyzing tests",
+      "prompt": "You are a testing specialist for the LRET quantum simulator. Run tests from the build/ directory, analyze failures, and suggest fixes. Key test binaries: test_simple, test_fidelity, test_autodiff, test_checkpoint, test_qec_*"
+    }
+  }
+}
