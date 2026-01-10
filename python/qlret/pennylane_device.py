@@ -25,7 +25,15 @@ from .api import simulate_json, QLRETError
 
 try:
     import pennylane as qml
-    from pennylane import Device
+    # PennyLane 0.43+ moved Device to pennylane.devices
+    try:
+        from pennylane.devices import Device, DeviceCapabilities
+        _HAS_DEVICE_CAPABILITIES = True
+    except ImportError:
+        # Fallback for older PennyLane versions
+        from pennylane import Device
+        DeviceCapabilities = None
+        _HAS_DEVICE_CAPABILITIES = False
     from pennylane.tape import QuantumTape
     from pennylane.measurements import (
         ExpectationMP,
@@ -33,8 +41,12 @@ try:
         VarianceMP,
         ProbabilityMP,
     )
-    from pennylane.operation import Observable, Tensor
-    # Import Prod for newer PennyLane versions (tensor product via @)
+    # PennyLane 0.43+ uses Prod instead of Tensor
+    # Also Observable was removed
+    try:
+        from pennylane.operation import Tensor
+    except ImportError:
+        Tensor = None  # Use Prod instead
     try:
         from pennylane.ops.op_math import Prod
     except ImportError:
@@ -44,7 +56,11 @@ except ImportError as exc:
     _HAS_PENNYLANE = False
     _PENNYLANE_ERROR = exc
     Device = object  # type: ignore
+    DeviceCapabilities = None
+    _HAS_DEVICE_CAPABILITIES = False
     QuantumTape = Any  # type: ignore
+    Tensor = None
+    Prod = None
 
 
 __all__ = ["QLRETDevice", "QLRETDeviceError"]
@@ -130,7 +146,7 @@ def _op_to_json(op: Any) -> Dict[str, Any]:
 def _obs_to_json(obs: Any, coeff: float = 1.0) -> Dict[str, Any]:
     """Convert a PennyLane observable to JSON dict."""
     # Handle Tensor products (e.g., Z @ Z) - both old Tensor and new Prod types
-    is_tensor = isinstance(obs, Tensor)
+    is_tensor = Tensor is not None and isinstance(obs, Tensor)
     is_prod = Prod is not None and isinstance(obs, Prod)
     
     if is_tensor or is_prod:
@@ -191,6 +207,11 @@ def _obs_to_json(obs: Any, coeff: float = 1.0) -> Dict[str, Any]:
 # QLRET Device
 # ---------------------------------------------------------------------------
 
+import os
+
+# Path to the device configuration file
+_CONFIG_FILEPATH = os.path.join(os.path.dirname(__file__), "device_config.toml")
+
 
 class QLRETDevice(Device):
     """PennyLane device using QLRET low-rank density matrix simulation.
@@ -203,15 +224,30 @@ class QLRETDevice(Device):
         Number of measurement shots. None for analytic expectation values.
     epsilon : float
         Truncation threshold for low-rank compression (default: 1e-4).
+    
+    Example
+    -------
+    >>> import pennylane as qml
+    >>> from qlret import QLRETDevice
+    >>> dev = QLRETDevice(wires=4, shots=1000)
+    >>> @qml.qnode(dev)
+    ... def circuit(x):
+    ...     qml.RX(x, wires=0)
+    ...     qml.CNOT(wires=[0, 1])
+    ...     return qml.expval(qml.PauliZ(0))
+    >>> circuit(0.5)
     """
 
     name = "QLRET Simulator"
-    short_name = "qlret"
+    short_name = "qlret.mixed"
     pennylane_requires = ">=0.30"
     version = "1.0.0"
     author = "QLRET Team"
+    
+    # Point to the TOML config file for PennyLane 0.43+
+    config_filepath = _CONFIG_FILEPATH
 
-    # Supported operations
+    # Supported operations (for backwards compatibility)
     operations = set(OP_MAP.keys())
     observables = {"PauliX", "PauliY", "PauliZ", "Identity", "Hermitian"}
 
@@ -223,45 +259,77 @@ class QLRETDevice(Device):
         **kwargs: Any,
     ) -> None:
         _require_pennylane()
+        # PennyLane 0.43+ has different Device initialization
         super().__init__(wires=wires, shots=shots)
         self.epsilon = epsilon
         self._kwargs = kwargs
+        self._num_wires = len(self.wires) if hasattr(self.wires, '__len__') else self.wires
 
-    # num_wires is set by parent Device.__init__, no need to override
+    @property
+    def num_wires(self) -> int:
+        """Return number of wires."""
+        return self._num_wires
+
+    def supports_derivatives(
+        self,
+        execution_config: Any = None,
+        circuit: Optional[QuantumTape] = None,
+    ) -> bool:
+        """Return False to indicate this device does not compute gradients natively.
+        
+        This tells PennyLane to use parameter-shift or finite-difference
+        gradient transforms instead of asking the device for gradients.
+        """
+        return False
+
+    def setup_execution_config(
+        self,
+        config: Any = None,
+        circuit: Optional[QuantumTape] = None,
+    ) -> Any:
+        """Configure execution settings.
+        
+        This tells PennyLane to use parameter-shift gradients since
+        we don't provide device-level derivatives.
+        """
+        # Import ExecutionConfig dynamically to handle different PennyLane versions
+        try:
+            from pennylane.devices import ExecutionConfig
+        except ImportError:
+            # Older PennyLane - just return config as-is
+            return config
+        
+        if config is None:
+            config = ExecutionConfig()
+        
+        # Use parameter-shift differentiation (handled by PennyLane workflow)
+        # We don't set gradient_method or use_device_gradient to let PennyLane
+        # handle gradients through its standard parameter-shift transform
+        return config
 
     # ------------------------------------------------------------------
-    # Execution
+    # Execution (PennyLane 0.43+ API)
     # ------------------------------------------------------------------
 
     def execute(
         self,
-        circuits: Union[QuantumTape, List[QuantumTape], List[Any]],
+        circuits: Union[QuantumTape, List[QuantumTape]],
         execution_config: Any = None,
-        **kwargs: Any,
-    ) -> Union[np.ndarray, List[np.ndarray]]:
+    ) -> Union[np.ndarray, Tuple[np.ndarray, ...]]:
         """Execute quantum circuits and return results.
         
-        Supports both modern API (QuantumTape) and legacy API (operations, measurements).
+        Parameters
+        ----------
+        circuits : QuantumTape or List[QuantumTape]
+            The quantum circuits to execute.
+        execution_config : ExecutionConfig, optional
+            Configuration for execution (ignored, for API compatibility).
+            
+        Returns
+        -------
+        Results for each circuit.
         """
-        # Handle legacy API call: execute(operations, measurements)
-        if not isinstance(circuits, (list, QuantumTape)) or (
-            isinstance(circuits, list) and circuits and not isinstance(circuits[0], QuantumTape)
-        ):
-            # Legacy: circuits is actually operations, second arg is measurements
-            operations = circuits
-            measurements = execution_config  # Actually measurements in legacy mode
-            
-            # Build a tape from operations and measurements
-            with qml.tape.QuantumTape() as tape:
-                for op in operations:
-                    qml.apply(op)
-                if measurements:
-                    for m in measurements:
-                        qml.apply(m)
-            
-            return self._execute_tape(tape)
-        
-        # Modern API: circuits is QuantumTape or list of tapes
+        # Modern API: circuits is QuantumTape (QuantumScript) or list of tapes
         is_single = isinstance(circuits, QuantumTape)
         if is_single:
             circuits = [circuits]
@@ -271,30 +339,10 @@ class QLRETDevice(Device):
             result = self._execute_tape(tape)
             results.append(result)
 
-        return results[0] if is_single else results
+        return results[0] if is_single else tuple(results)
 
     # ------------------------------------------------------------------
-    # Legacy API Support (for PennyLane < 0.30 compatibility)
-    # ------------------------------------------------------------------
-
-    def apply(self, operations, **kwargs):
-        """Apply operations (legacy API - not used in modern PennyLane)."""
-        raise NotImplementedError(
-            "Legacy apply() method not supported. Use @qml.qnode(device) decorator pattern."
-        )
-
-    def expval(self, observable, **kwargs):
-        """Return expectation value (legacy API - not used in modern PennyLane)."""
-        raise NotImplementedError(
-            "Legacy expval() method not supported. Use @qml.qnode(device) with qml.expval()."
-        )
-
-    def reset(self):
-        """Reset device (legacy API - not needed in modern PennyLane)."""
-        pass  # No-op for stateless device
-
-    # ------------------------------------------------------------------
-    # Execution (Modern API)
+    # Internal Execution
     # ------------------------------------------------------------------
 
     def _execute_tape(self, tape: QuantumTape) -> np.ndarray:
@@ -336,8 +384,16 @@ class QLRETDevice(Device):
             "export_state": False,
         }
         
-        if self.shots is not None:
-            config["shots"] = self.shots
+        # Handle shots - can be Shots object or int or None
+        tape_shots = tape.shots if hasattr(tape, 'shots') else self.shots
+        if tape_shots is not None:
+            # PennyLane 0.43+ uses Shots object, get total_shots
+            if hasattr(tape_shots, 'total_shots'):
+                shots_val = tape_shots.total_shots
+            else:
+                shots_val = int(tape_shots) if tape_shots else None
+            if shots_val is not None and shots_val > 0:
+                config["shots"] = shots_val
 
         return {
             "circuit": {
@@ -401,9 +457,24 @@ class QLRETDevice(Device):
     # Gradient Support (Parameter-Shift)
     # ------------------------------------------------------------------
 
-    @classmethod
-    def capabilities(cls) -> Dict[str, Any]:
-        """Return device capabilities."""
+    @property
+    def capabilities(self) -> Any:
+        """Return device capabilities for PennyLane 0.43+.
+        
+        Returns a DeviceCapabilities object that tells PennyLane what
+        this device supports.
+        """
+        if not _HAS_DEVICE_CAPABILITIES or DeviceCapabilities is None:
+            return None
+        
+        # Build capabilities with the required fields for PennyLane 0.43+
+        return DeviceCapabilities(
+            supported_mcm_methods=[],  # No mid-circuit measurements
+        )
+
+    @staticmethod
+    def _get_capabilities_dict() -> Dict[str, Any]:
+        """Return device capabilities as a dictionary (legacy)."""
         return {
             "model": "qubit",
             "supports_broadcasting": False,
@@ -416,112 +487,10 @@ class QLRETDevice(Device):
             "supports_analytic_computation": True,
         }
 
-    def supports_derivatives(
-        self,
-        execution_config: Any = None,
-        circuit: Optional[QuantumTape] = None,
-    ) -> bool:
-        """QLRET supports parameter-shift differentiation."""
-        return True
-
-    def compute_derivatives(
-        self,
-        circuits: Union[QuantumTape, List[QuantumTape]],
-        execution_config: Any = None,
-    ) -> Union[np.ndarray, List[np.ndarray]]:
-        """Compute gradients using parameter-shift rule.
-
-        For a parameter θ in gate G(θ), the gradient is:
-            ∂<O>/∂θ = (1/2) * [<O>|θ+π/2 - <O>|θ-π/2]
-        """
-        is_single = isinstance(circuits, QuantumTape)
-        if is_single:
-            circuits = [circuits]
-
-        all_grads = []
-        for tape in circuits:
-            grads = self._compute_tape_gradients(tape)
-            all_grads.append(grads)
-
-        return all_grads[0] if is_single else all_grads
-
-    def _compute_tape_gradients(self, tape: QuantumTape) -> np.ndarray:
-        """Compute parameter-shift gradients for a single tape."""
-        trainable_params = tape.trainable_params
-        n_params = len(trainable_params)
-        
-        if n_params == 0:
-            return np.array([])
-
-        # Get base circuit operations
-        ops = list(tape.operations)
-        measurements = tape.measurements
-        
-        # Number of expectation values
-        n_outputs = sum(
-            1 for m in measurements if isinstance(m, (ExpectationMP, VarianceMP))
-        )
-        
-        gradients = np.zeros((n_outputs, n_params))
-        shift = np.pi / 2
-
-        for param_idx, trainable_idx in enumerate(trainable_params):
-            # Find which operation and which parameter
-            op_idx, local_param_idx = self._find_param_location(tape, trainable_idx)
-            
-            # Shift up
-            shifted_up = self._shift_param(ops, op_idx, local_param_idx, +shift)
-            tape_up = QuantumTape(shifted_up, measurements)
-            result_up = self._execute_tape(tape_up)
-            
-            # Shift down
-            shifted_down = self._shift_param(ops, op_idx, local_param_idx, -shift)
-            tape_down = QuantumTape(shifted_down, measurements)
-            result_down = self._execute_tape(tape_down)
-            
-            # Parameter-shift formula
-            if isinstance(result_up, (int, float)):
-                result_up = np.array([result_up])
-            if isinstance(result_down, (int, float)):
-                result_down = np.array([result_down])
-            
-            grad = 0.5 * (np.asarray(result_up) - np.asarray(result_down))
-            gradients[:, param_idx] = grad.flatten()[:n_outputs]
-
-        return gradients
-
-    def _find_param_location(
-        self, tape: QuantumTape, trainable_idx: int
-    ) -> Tuple[int, int]:
-        """Find operation index and local parameter index for a trainable param."""
-        param_count = 0
-        for op_idx, op in enumerate(tape.operations):
-            n_params = op.num_params
-            if param_count + n_params > trainable_idx:
-                local_idx = trainable_idx - param_count
-                return op_idx, local_idx
-            param_count += n_params
-        raise ValueError(f"Trainable parameter index {trainable_idx} not found")
-
-    def _shift_param(
-        self,
-        ops: List[Any],
-        op_idx: int,
-        param_idx: int,
-        shift: float,
-    ) -> List[Any]:
-        """Create a copy of operations with one parameter shifted."""
-        new_ops = []
-        for i, op in enumerate(ops):
-            if i == op_idx:
-                # Shift this parameter
-                new_params = list(op.parameters)
-                new_params[param_idx] = float(new_params[param_idx]) + shift
-                new_op = type(op)(*new_params, wires=op.wires)
-                new_ops.append(new_op)
-            else:
-                new_ops.append(op)
-        return new_ops
+    # NOTE: We explicitly do NOT implement supports_derivatives, compute_derivatives,
+    # or compute_vjp. By not implementing these, PennyLane will automatically use
+    # its built-in parameter-shift gradient transform, which is more compatible
+    # with the modern PennyLane 0.43+ workflow system.
 
 
 # ---------------------------------------------------------------------------
@@ -529,9 +498,31 @@ class QLRETDevice(Device):
 # ---------------------------------------------------------------------------
 
 def register_device() -> None:
-    """Register QLRETDevice with PennyLane."""
+    """Register QLRETDevice with PennyLane.
+    
+    This allows using the device with qml.device("qlret.mixed", wires=n).
+    """
     _require_pennylane()
-    qml.plugin.register(QLRETDevice)
+    
+    # PennyLane 0.43+ uses a different registration mechanism
+    # Try the modern approach first, then fall back to legacy
+    try:
+        # Modern PennyLane: check if already registered
+        try:
+            qml.device("qlret.mixed", wires=1)
+            return  # Already registered
+        except qml.DeviceError:
+            pass
+        
+        # Try to add to device registry
+        if hasattr(qml, 'plugin') and hasattr(qml.plugin, 'register'):
+            qml.plugin.register(QLRETDevice)
+        elif hasattr(qml, 'register_device'):
+            qml.register_device("qlret.mixed", QLRETDevice)
+    except Exception:
+        # Registration may fail in some contexts, that's okay
+        # Users can still instantiate QLRETDevice directly
+        pass
 
 
 # Try to register on import

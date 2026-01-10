@@ -1,8 +1,9 @@
 """Python bridge API for QLRET.
 
-Provides two execution backends:
-1. Subprocess: Calls the quantum_sim CLI executable (always available)
-2. Native: Uses pybind11 bindings if compiled (faster, in-process)
+Provides three execution backends:
+1. Native: Uses pybind11 bindings if compiled (fastest, in-process)
+2. Subprocess: Calls the quantum_sim CLI executable
+3. Fallback: Pure-Python density matrix simulator (slowest, always available)
 
 Usage:
     from qlret import simulate_json, load_json_file
@@ -17,10 +18,11 @@ import os
 import shutil
 import subprocess
 import tempfile
+import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-__all__ = ["simulate_json", "load_json_file", "set_executable_path", "QLRETError"]
+__all__ = ["simulate_json", "load_json_file", "set_executable_path", "QLRETError", "set_use_fallback"]
 
 
 class QLRETError(RuntimeError):
@@ -33,12 +35,23 @@ class QLRETError(RuntimeError):
 
 _executable_path: Optional[str] = None
 _native_module: Optional[Any] = None
+_force_fallback: bool = False
+_fallback_warned: bool = False
 
 
 def set_executable_path(path: str) -> None:
     """Set explicit path to quantum_sim executable."""
     global _executable_path
     _executable_path = path
+
+
+def set_use_fallback(use_fallback: bool) -> None:
+    """Force use of the pure-Python fallback simulator.
+    
+    This is useful for testing or when you don't want to compile the native backend.
+    """
+    global _force_fallback
+    _force_fallback = use_fallback
 
 
 def _find_executable() -> Optional[str]:
@@ -134,13 +147,19 @@ def simulate_json(
         If simulation fails.
     """
     # Try native bindings first
-    if use_native:
+    if use_native and not _force_fallback:
         native = _get_native_module()
         if native is not None:
             return _simulate_native(native, circuit, export_state)
 
-    # Fall back to subprocess
-    return _simulate_subprocess(circuit, export_state)
+    # Try subprocess backend
+    if not _force_fallback:
+        exe = _find_executable()
+        if exe is not None:
+            return _simulate_subprocess(circuit, export_state)
+
+    # Fall back to pure-Python simulator
+    return _simulate_fallback(circuit, export_state)
 
 
 # ---------------------------------------------------------------------------
@@ -152,6 +171,7 @@ def _simulate_subprocess(circuit: Dict[str, Any], export_state: bool) -> Dict[st
     """Execute via CLI subprocess."""
     exe = _find_executable()
     if exe is None:
+        # This should not happen since we check in simulate_json
         raise QLRETError(
             "quantum_sim executable not found. "
             "Build the project or call set_executable_path()."
@@ -205,3 +225,37 @@ def _simulate_native(
     json_str = json.dumps(circuit)
     result_str = native.run_circuit_json(json_str, export_state)
     return json.loads(result_str)
+
+
+# ---------------------------------------------------------------------------
+# Fallback Backend (Pure Python)
+# ---------------------------------------------------------------------------
+
+
+def _simulate_fallback(circuit: Dict[str, Any], export_state: bool) -> Dict[str, Any]:
+    """Execute via pure-Python density matrix simulator.
+    
+    This is the slowest backend but always available. It uses full density
+    matrices instead of the low-rank representation.
+    """
+    global _fallback_warned
+    
+    if not _fallback_warned:
+        warnings.warn(
+            "Using pure-Python fallback simulator. This is slower than the "
+            "native C++ backend and uses full density matrices (not low-rank). "
+            "For production use, build the native module with: "
+            "cd build && cmake .. && make",
+            UserWarning,
+            stacklevel=3
+        )
+        _fallback_warned = True
+    
+    from .fallback_simulator import simulate_circuit
+    result = simulate_circuit(circuit)
+    
+    # Handle export_state (not fully supported in fallback)
+    if export_state:
+        result["state"] = {"warning": "Full state export not supported in fallback mode"}
+    
+    return result

@@ -1,6 +1,13 @@
 setup.py
+benchmarks/__init__.py
+benchmarks/circuits.py
+benchmarks/config.py
+benchmarks/metrics.py
+benchmarks/qnn_comparison.py
+benchmarks/run_benchmarks.py
 qlret/__init__.py
 qlret/api.py
+qlret/fallback_simulator.py
 qlret/jax_interface.py
 qlret/pennylane_device.py
 qlret/pytorch_interface.py

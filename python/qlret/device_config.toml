@@ -1,0 +1,79 @@
+# QLRET Device Configuration for PennyLane 0.43+
+# Low-Rank Exact Tensor Quantum Simulator
+
+schema = 3
+
+# Supported gates at the execute() interface
+[operators.gates]
+
+# Single qubit gates
+Hadamard = { properties = ["invertible"] }
+PauliX = { properties = ["controllable", "invertible"] }
+PauliY = { properties = ["controllable", "invertible"] }
+PauliZ = { properties = ["controllable", "invertible"] }
+S = { properties = ["invertible"] }
+T = { properties = ["invertible"] }
+SX = { properties = ["invertible"] }
+
+# Rotation gates
+RX = { properties = ["controllable", "invertible", "differentiable"] }
+RY = { properties = ["controllable", "invertible", "differentiable"] }
+RZ = { properties = ["controllable", "invertible", "differentiable"] }
+PhaseShift = { properties = ["invertible", "differentiable"] }
+Rot = { properties = ["invertible", "differentiable"] }
+
+# General single qubit unitaries
+U1 = { properties = ["invertible", "differentiable"] }
+U2 = { properties = ["invertible", "differentiable"] }
+U3 = { properties = ["invertible", "differentiable"] }
+
+# Two qubit gates
+CNOT = { properties = ["invertible"] }
+CZ = { properties = ["invertible"] }
+CY = { properties = ["invertible"] }
+SWAP = { properties = ["invertible"] }
+ISWAP = { properties = ["invertible"] }
+
+# Supported observables for measurements
+[operators.observables]
+
+PauliX = { }
+PauliY = { }
+PauliZ = { }
+Identity = { }
+Hadamard = { }
+Hermitian = { }
+Prod = { }
+SProd = { }
+
+# Supported measurement processes
+[measurement_processes]
+
+ExpectationMP = { }
+SampleMP = { conditions = ["finiteshots"] }
+VarianceMP = { }
+ProbabilityMP = { }
+
+# Compilation/execution configuration
+[compilation]
+
+# Not compatible with Catalyst qjit
+qjit_compatible = false
+
+# No runtime code generation needed
+runtime_code_generation = false
+
+# No dynamic qubit management
+dynamic_qubit_management = false
+
+# Overlapping observables supported
+overlapping_observables = true
+
+# Non-commuting observables not supported in single execution
+non_commuting_observables = false
+
+# No initial state preparation
+initial_state_prep = false
+
+# No mid-circuit measurement support
+supported_mcm_methods = []

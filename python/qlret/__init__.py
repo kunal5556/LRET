@@ -26,6 +26,7 @@ from .api import (
     simulate_json,
     load_json_file,
     set_executable_path,
+    set_use_fallback,
     QLRETError,
 )
 from .pennylane_device import QLRETDevice, QLRETDeviceError
@@ -35,6 +36,7 @@ __all__ = [
     "simulate_json",
     "load_json_file",
     "set_executable_path",
+    "set_use_fallback",
     "QLRETError",
     "QLRETDevice",
     "QLRETDeviceError",
