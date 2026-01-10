@@ -125,12 +125,17 @@ struct NoiseOp {
     std::vector<size_t> qubits;
     double probability;  // Noise probability/strength
     std::vector<double> params;  // Additional parameters
+    std::vector<MatrixXcd> custom_kraus;  // Custom Kraus operators (for CUSTOM type)
     
     NoiseOp(NoiseType t, std::vector<size_t> q, double prob, std::vector<double> p = {})
         : type(t), qubits(std::move(q)), probability(prob), params(std::move(p)) {}
     
     NoiseOp(NoiseType t, size_t q, double prob, std::vector<double> p = {})
         : type(t), qubits({q}), probability(prob), params(std::move(p)) {}
+    
+    // Constructor for custom Kraus operators
+    NoiseOp(std::vector<size_t> q, std::vector<MatrixXcd> kraus)
+        : type(NoiseType::CUSTOM), qubits(std::move(q)), probability(1.0), custom_kraus(std::move(kraus)) {}
 };
 
 // Union type for sequence elements (extended for Phase 4.5)

@@ -20,6 +20,8 @@ struct JsonOperation {
     std::string name;
     std::vector<size_t> wires;
     std::vector<double> params;
+    std::vector<MatrixXcd> kraus_matrices;  // For KRAUS channel operations
+    bool is_channel = false;  // True if this is a noise channel
 };
 
 struct JsonObservable {

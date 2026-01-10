@@ -120,6 +120,28 @@ def _op_to_json(op: Any) -> Dict[str, Any]:
     """Convert a PennyLane operation to JSON dict."""
     name = op.name
     
+    # Check if this is a noise channel (has kraus_matrices method)
+    # PennyLane's Channel class provides this
+    if hasattr(op, 'kraus_matrices') and callable(op.kraus_matrices):
+        try:
+            kraus_matrices = op.kraus_matrices()
+            if kraus_matrices is not None and len(kraus_matrices) > 0:
+                # Convert Kraus matrices to JSON format
+                kraus_json = []
+                for K in kraus_matrices:
+                    K = np.asarray(K)  # Ensure numpy array
+                    kraus_json.append({
+                        "real": K.real.tolist(),
+                        "imag": K.imag.tolist(),
+                    })
+                return {
+                    "name": "KRAUS",
+                    "wires": [int(w) for w in op.wires],
+                    "kraus_operators": kraus_json,
+                }
+        except Exception:
+            pass  # Fall through to regular operation handling
+    
     # Handle adjoint operations
     if name.startswith("Adjoint("):
         inner = name[8:-1]
@@ -130,7 +152,8 @@ def _op_to_json(op: Any) -> Dict[str, Any]:
         json_name = OP_MAP.get(name)
     
     if json_name is None:
-        raise QLRETDeviceError(f"Unsupported operation: {name}")
+        raise QLRETDeviceError(f"Operator {op} not supported with {QLRETDevice.name}. "
+                               f"Supported operations: {list(OP_MAP.keys())}")
     
     wires = [int(w) for w in op.wires]
     result: Dict[str, Any] = {"name": json_name, "wires": wires}
@@ -248,7 +271,20 @@ class QLRETDevice(Device):
     config_filepath = _CONFIG_FILEPATH
 
     # Supported operations (for backwards compatibility)
-    operations = set(OP_MAP.keys())
+    # Include both gates and noise channels
+    operations = set(OP_MAP.keys()) | {
+        # Noise channels - LRET supports any channel via Kraus operators
+        "DepolarizingChannel",
+        "AmplitudeDamping",
+        "PhaseDamping",
+        "BitFlip",
+        "PhaseFlip",
+        "ThermalRelaxationError",
+        "ResetError",
+        "GeneralizedAmplitudeDamping",
+        "PauliError",
+        "QubitChannel",  # Generic Kraus channel
+    }
     observables = {"PauliX", "PauliY", "PauliZ", "Identity", "Hermitian"}
 
     def __init__(
@@ -269,6 +305,65 @@ class QLRETDevice(Device):
     def num_wires(self) -> int:
         """Return number of wires."""
         return self._num_wires
+
+    def preprocess_transforms(self, execution_config: Any = None) -> Any:
+        """Return the preprocessing transforms for this device.
+        
+        This customizes the decomposition stopping condition to support
+        noise channels via Kraus operators.
+        """
+        try:
+            from pennylane.transforms.core import TransformProgram
+            from pennylane.devices.preprocess import (
+                decompose,
+                validate_device_wires,
+                validate_measurements,
+                validate_observables,
+            )
+        except ImportError:
+            # Older PennyLane - return default
+            return super().preprocess_transforms(execution_config)
+        
+        def stopping_condition(op) -> bool:
+            """Check if an operation is supported natively.
+            
+            Returns True if the operation should NOT be decomposed further.
+            This includes all gates in OP_MAP plus any noise channel with
+            kraus_matrices support.
+            """
+            # Check if it's a supported gate
+            if op.name in OP_MAP:
+                return True
+            # Check adjoint gates
+            if op.name.startswith("Adjoint(") and op.name[8:-1] in ("S", "T"):
+                return True
+            # Check if it's a noise channel (has kraus_matrices)
+            if hasattr(op, 'kraus_matrices') and callable(op.kraus_matrices):
+                try:
+                    km = op.kraus_matrices()
+                    if km is not None and len(km) > 0:
+                        return True
+                except Exception:
+                    pass
+            return False
+        
+        def observable_stopping_condition(obs) -> bool:
+            """Check if an observable is supported."""
+            return obs.name in self.observables
+        
+        program = TransformProgram()
+        program.add_transform(decompose, stopping_condition=stopping_condition, name=self.name)
+        program.add_transform(validate_device_wires, self.wires, name=self.name)
+        # Add minimal measurement validation
+        program.add_transform(
+            validate_measurements,
+            analytic_measurements=lambda m: isinstance(m, (ExpectationMP, VarianceMP, ProbabilityMP)),
+            sample_measurements=lambda m: isinstance(m, SampleMP),
+            name=self.name,
+        )
+        program.add_transform(validate_observables, stopping_condition=observable_stopping_condition, name=self.name)
+        
+        return program
 
     def supports_derivatives(
         self,

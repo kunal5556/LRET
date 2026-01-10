@@ -210,6 +210,27 @@ JsonCircuitSpec parse_circuit_json(const nlohmann::json& j) {
             if (op_json.contains("params")) {
                 op.params = op_json.at("params").get<std::vector<double>>();
             }
+            
+            // Handle KRAUS channel operations (custom noise channels from PennyLane)
+            if (to_upper_copy(op.name) == "KRAUS" && op_json.contains("kraus_operators")) {
+                op.is_channel = true;
+                const auto& kraus_arr = op_json.at("kraus_operators");
+                for (const auto& k_json : kraus_arr) {
+                    auto real_data = k_json.at("real").get<std::vector<std::vector<double>>>();
+                    auto imag_data = k_json.at("imag").get<std::vector<std::vector<double>>>();
+                    size_t rows = real_data.size();
+                    size_t cols = rows > 0 ? real_data[0].size() : 0;
+                    MatrixXcd K(rows, cols);
+                    for (size_t r = 0; r < rows; ++r) {
+                        for (size_t c = 0; c < cols; ++c) {
+                            K(static_cast<Eigen::Index>(r), static_cast<Eigen::Index>(c)) = 
+                                Complex(real_data[r][c], imag_data[r][c]);
+                        }
+                    }
+                    op.kraus_matrices.push_back(K);
+                }
+            }
+            
             spec.operations.push_back(std::move(op));
         }
     }
@@ -281,10 +302,18 @@ QuantumSequence build_sequence(const JsonCircuitSpec& spec) {
     seq.depth = spec.operations.size();
 
     for (const auto& op : spec.operations) {
-        GateType gtype = gate_type_from_string(op.name);
         if (op.wires.empty()) {
             throw std::invalid_argument("Operation missing wires: " + op.name);
         }
+        
+        // Handle KRAUS channel operations
+        if (op.is_channel && !op.kraus_matrices.empty()) {
+            NoiseOp noise_op(op.wires, op.kraus_matrices);
+            seq.add_noise(noise_op);
+            continue;
+        }
+        
+        GateType gtype = gate_type_from_string(op.name);
         if (gtype == GateType::CNOT || gtype == GateType::CZ || gtype == GateType::CY || gtype == GateType::SWAP || gtype == GateType::ISWAP) {
             if (op.wires.size() != 2) {
                 throw std::invalid_argument("Two-qubit gate requires two wires: " + op.name);

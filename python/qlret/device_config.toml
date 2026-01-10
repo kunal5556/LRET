@@ -34,6 +34,19 @@ CY = { properties = ["invertible"] }
 SWAP = { properties = ["invertible"] }
 ISWAP = { properties = ["invertible"] }
 
+# Noise channels (Kraus operator support)
+[operators.channels]
+
+DepolarizingChannel = { }
+AmplitudeDamping = { }
+PhaseDamping = { }
+BitFlip = { }
+PhaseFlip = { }
+ThermalRelaxationError = { }
+ResetError = { }
+GeneralizedAmplitudeDamping = { }
+PauliError = { }
+
 # Supported observables for measurements
 [operators.observables]
 

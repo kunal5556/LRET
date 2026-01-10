@@ -724,17 +724,47 @@ MatrixXcd apply_noise_to_L(const MatrixXcd& L, const NoiseOp& noise_op, size_t n
         return apply_correlated_pauli_channel(L, noise_op.qubits[0], noise_op.qubits[1], noise_op.params, num_qubits);
     }
 
-    auto kraus_ops = get_noise_kraus_operators(noise_op.type, noise_op.probability, noise_op.params);
+    // For custom Kraus operators (e.g., from PennyLane channels), use the provided matrices
+    std::vector<MatrixXcd> kraus_ops;
+    if (noise_op.type == NoiseType::CUSTOM && !noise_op.custom_kraus.empty()) {
+        kraus_ops = noise_op.custom_kraus;
+    } else {
+        kraus_ops = get_noise_kraus_operators(noise_op.type, noise_op.probability, noise_op.params);
+    }
+    
     size_t dim = L.rows();
     size_t rank = L.cols();
     size_t num_kraus = kraus_ops.size();
+    
+    if (num_kraus == 0) {
+        return L;  // Identity channel
+    }
+    
+    // Determine if this is a single or two-qubit channel
+    size_t kraus_dim = kraus_ops[0].rows();
+    bool is_two_qubit = (kraus_dim == 4);
     
     // New L will have rank = old_rank * num_kraus
     MatrixXcd L_new(dim, rank * num_kraus);
     
     for (size_t k = 0; k < num_kraus; ++k) {
-        // Use optimized direct application instead of full expansion
-        MatrixXcd L_k = apply_single_gate_direct(L, kraus_ops[k], noise_op.qubits[0], num_qubits);
+        MatrixXcd L_k;
+        if (is_two_qubit) {
+            if (noise_op.qubits.size() != 2) {
+                throw std::invalid_argument("Two-qubit Kraus operators require two qubits");
+            }
+            // Convert dynamic matrix to fixed-size Matrix4cd
+            Matrix4cd K4;
+            K4 << kraus_ops[k](0,0), kraus_ops[k](0,1), kraus_ops[k](0,2), kraus_ops[k](0,3),
+                  kraus_ops[k](1,0), kraus_ops[k](1,1), kraus_ops[k](1,2), kraus_ops[k](1,3),
+                  kraus_ops[k](2,0), kraus_ops[k](2,1), kraus_ops[k](2,2), kraus_ops[k](2,3),
+                  kraus_ops[k](3,0), kraus_ops[k](3,1), kraus_ops[k](3,2), kraus_ops[k](3,3);
+            L_k = apply_two_qubit_gate_direct(L, K4, 
+                                               noise_op.qubits[0], noise_op.qubits[1], num_qubits);
+        } else {
+            // Use optimized direct application for single-qubit
+            L_k = apply_single_gate_direct(L, kraus_ops[k], noise_op.qubits[0], num_qubits);
+        }
         L_new.block(0, k * rank, dim, rank) = L_k;
     }
     

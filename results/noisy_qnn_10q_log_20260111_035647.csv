@@ -1,0 +1,2 @@
+timestamp,device,epoch,loss,accuracy,epoch_time,eta_hours
+2026-01-11T04:01:40.845166,default.mixed,0,1.0023913353088605,0.5,293.2468445301056,8.064288309812547
