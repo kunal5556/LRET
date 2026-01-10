@@ -296,7 +296,7 @@ LRETResourceEstimate estimate_lret_resources(
     // Rough heuristic: rank can grow up to O(depth * noise_channels)
     // but truncation keeps it bounded
     size_t noise_ops_per_depth = static_cast<size_t>(num_qubits * noise_prob * 8);  // ~8 ops per layer
-    size_t estimated_max_rank = std::min(
+    size_t estimated_max_rank = (std::min)(
         initial_rank + depth * noise_ops_per_depth / 4,  // Growth estimate
         dim  // Can't exceed dimension
     );
@@ -318,7 +318,7 @@ LRETResourceEstimate estimate_lret_resources(
 void update_lret_estimate(LRETResourceEstimate& estimate, size_t current_rank, size_t num_qubits) {
     size_t dim = 1ULL << num_qubits;
     
-    estimate.max_observed_rank = std::max(estimate.max_observed_rank, current_rank);
+    estimate.max_observed_rank = (std::max)(estimate.max_observed_rank, current_rank);
     estimate.current_memory_mb = (dim * current_rank * 16) / (1024 * 1024);
     
     // Warn if rank is getting very high

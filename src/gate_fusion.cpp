@@ -321,9 +321,10 @@ MatrixXcd apply_fused_gate(
     // but with pre-composed matrix
     
     #ifdef USE_OPENMP
+    int64_t idim_half = static_cast<int64_t>(dim / 2);
     #pragma omp parallel for if(dim > 256)
     #endif
-    for (size_t i = 0; i < dim / 2; ++i) {
+    for (int64_t i = 0; i < static_cast<int64_t>(dim / 2); ++i) {
         // Calculate the two indices that differ in the target qubit
         size_t i0 = (i & ~(mask - 1)) << 1 | (i & (mask - 1));  // target qubit = 0
         size_t i1 = i0 | mask;  // target qubit = 1

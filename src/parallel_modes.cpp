@@ -263,10 +263,11 @@ MatrixXcd apply_two_qubit_gate_parallel(const MatrixXcd& L, const MatrixXcd& U,
     
     // Direct iteration - no vector allocation needed
     // Only parallelize for large problems with meaningful rank
+    int64_t idim = static_cast<int64_t>(dim);
 #ifdef _OPENMP
     #pragma omp parallel for schedule(static) if(dim > 4096 && rank > 2)
 #endif
-    for (size_t base = 0; base < dim; ++base) {
+    for (int64_t base = 0; base < idim; ++base) {
         // Skip if either qubit bit is set
         if ((base & step_min) != 0 || (base & step_max) != 0) continue;
         
@@ -354,10 +355,11 @@ MatrixXcd apply_gate_column_parallel(const MatrixXcd& L, const GateOp& gate, siz
         size_t target = gate.qubits[0];
         size_t step = 1ULL << target;
         
+    int64_t irank = static_cast<int64_t>(rank);
 #ifdef _OPENMP
         #pragma omp parallel for schedule(static)
 #endif
-        for (size_t r = 0; r < rank; ++r) {
+        for (int64_t r = 0; r < irank; ++r) {
             VectorXcd col = L.col(r);
             VectorXcd new_col = col;
             
@@ -391,10 +393,11 @@ MatrixXcd apply_gate_column_parallel(const MatrixXcd& L, const GateOp& gate, siz
         size_t step_min = 1ULL << qmin;
         size_t step_max = 1ULL << qmax;
         
+    int64_t irank2 = static_cast<int64_t>(rank);
 #ifdef _OPENMP
         #pragma omp parallel for schedule(static)
 #endif
-        for (size_t r = 0; r < rank; ++r) {
+        for (int64_t r = 0; r < irank2; ++r) {
             VectorXcd col = L.col(r);
             VectorXcd new_col = col;
             

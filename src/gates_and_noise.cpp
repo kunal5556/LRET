@@ -237,8 +237,10 @@ MatrixXcd apply_single_gate_direct(const MatrixXcd& L, const MatrixXcd& gate, si
     // Process pairs of rows that differ only in the target qubit
     // Use static scheduling: gate application has uniform workload per iteration
     // This avoids dynamic scheduling overhead which can cause apparent "hanging"
+    int64_t idim = static_cast<int64_t>(dim);
+    int64_t istep = static_cast<int64_t>(step);
     #pragma omp parallel for schedule(static) if(dim > 256 && rank > 2)
-    for (size_t block = 0; block < dim; block += 2 * step) {
+    for (int64_t block = 0; block < idim; block += 2 * istep) {
         for (size_t i = block; i < block + step && i < dim; ++i) {
             size_t i0 = i;           // target qubit = 0
             size_t i1 = i + step;    // target qubit = 1

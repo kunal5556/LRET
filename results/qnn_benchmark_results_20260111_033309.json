@@ -1,0 +1,26 @@
+[
+  {
+    "device": "LRET (Native C++)",
+    "n_qubits": 8,
+    "n_layers": 3,
+    "epochs": 100,
+    "dataset_size": 50,
+    "timestamp": "2026-01-11T03:33:08.129052",
+    "status": "failed",
+    "error": "operands could not be broadcast together with shapes (3,8,2) (0,) ",
+    "device_create_time": 0.0003731250762939453,
+    "traceback": "Traceback (most recent call last):\n  File \"D:\\LRET\\benchmarks\\qnn_benchmark_native.py\", line 198, in run_benchmark\n    trained_params, history, total_time = train_qnn(\n                                          ~~~~~~~~~^\n        circuit, params, X, y, epochs, LEARNING_RATE, device_name, log_file\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"D:\\LRET\\benchmarks\\qnn_benchmark_native.py\", line 124, in train_qnn\n    params = params - lr * grads\n             ~~~~~~~^~~~~~~~~~~~\nValueError: operands could not be broadcast together with shapes (3,8,2) (0,) \n"
+  },
+  {
+    "device": "lightning.qubit",
+    "n_qubits": 8,
+    "n_layers": 3,
+    "epochs": 100,
+    "dataset_size": 50,
+    "timestamp": "2026-01-11T03:33:09.365751",
+    "status": "failed",
+    "error": "operands could not be broadcast together with shapes (3,8,2) (0,) ",
+    "device_create_time": 0.13540315628051758,
+    "traceback": "Traceback (most recent call last):\n  File \"D:\\LRET\\benchmarks\\qnn_benchmark_native.py\", line 198, in run_benchmark\n    trained_params, history, total_time = train_qnn(\n                                          ~~~~~~~~~^\n        circuit, params, X, y, epochs, LEARNING_RATE, device_name, log_file\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"D:\\LRET\\benchmarks\\qnn_benchmark_native.py\", line 124, in train_qnn\n    params = params - lr * grads\n             ~~~~~~~^~~~~~~~~~~~\nValueError: operands could not be broadcast together with shapes (3,8,2) (0,) \n"
+  }
+]

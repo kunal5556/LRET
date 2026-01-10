@@ -99,9 +99,11 @@ MatrixXcd apply_single_qubit_core(
     size_t step = 1ULL << target;
 
 #ifdef _OPENMP
+    int64_t idim = static_cast<int64_t>(dim);
+    int64_t istep = static_cast<int64_t>(step);
     #pragma omp parallel for schedule(static) if(dim > 4096 && rank > 2)
 #endif
-    for (size_t block = 0; block < dim; block += 2 * step) {
+    for (int64_t block = 0; block < idim; block += 2 * istep) {
         for (size_t i = block; i < block + step && i < dim; ++i) {
             size_t i0 = i;
             size_t i1 = i + step;

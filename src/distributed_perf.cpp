@@ -2,6 +2,10 @@
 #include <cstdlib>
 #include <cstring>
 
+#ifdef _WIN32
+#include <malloc.h>  // For _aligned_malloc/_aligned_free on Windows
+#endif
+
 #ifdef USE_GPU
 #include <cuda_runtime.h>
 #endif
@@ -16,7 +20,11 @@ void* alloc_pinned(size_t bytes) {
     return ptr;
 #else
     // Fallback: aligned malloc (no pinning without CUDA)
+#ifdef _WIN32
+    return _aligned_malloc(bytes, 64);
+#else
     return std::aligned_alloc(64, bytes);
+#endif
 #endif
 }
 
@@ -25,7 +33,11 @@ void free_pinned(void* ptr) {
 #ifdef USE_GPU
     cudaFreeHost(ptr);
 #else
+#ifdef _WIN32
+    _aligned_free(ptr);
+#else
     std::free(ptr);
+#endif
 #endif
 }
 
