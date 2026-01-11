@@ -1,0 +1,12 @@
+{
+  "run_id": "20260111_154640",
+  "config": {
+    "n_qubits": 8,
+    "n_epochs": 50,
+    "n_samples": 30,
+    "noise_rate": 0.05
+  },
+  "status": "running_lret",
+  "lret": {},
+  "baseline": {}
+}

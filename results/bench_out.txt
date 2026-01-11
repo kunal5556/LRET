@@ -1,0 +1,41 @@
+[15:52:36] ============================================================
+[15:52:36] Fair Noisy QNN Benchmark (Simple)
+[15:52:36] ============================================================
+[15:52:36] Run ID: 20260111_155236
+[15:52:36] PennyLane: 0.43.2
+[15:52:36] Config: 8q, 10 epochs, 10 samples, 5% noise
+[15:52:36] 
+[15:52:36] Creating LRET device...
+[15:52:36] --- LRET Training ---
+Traceback (most recent call last):
+  File "D:\LRET\benchmarks\fair_benchmark_simple.py", line 116, in <module>
+    results["lret"] = train("LRET", circuit_lret, init_params.copy())
+                      ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\LRET\benchmarks\fair_benchmark_simple.py", line 97, in train
+    grad[idx] = (circuit(p_plus, x) - circuit(p_minus, x)) / 0.2
+                 ~~~~~~~^^^^^^^^^^^
+  File "C:\Users\DELL\AppData\Roaming\Python\Python313\site-packages\pennylane\workflow\qnode.py", line 895, in __call__
+    return self._impl_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\DELL\AppData\Roaming\Python\Python313\site-packages\pennylane\workflow\qnode.py", line 868, in _impl_call
+    res = execute(
+        (tape,),
+    ...<5 lines>...
+        **self.execute_kwargs,
+    )
+  File "C:\Users\DELL\AppData\Roaming\Python\Python313\site-packages\pennylane\workflow\execution.py", line 238, in execute
+    results = run(tapes, device, config, inner_transform)
+  File "C:\Users\DELL\AppData\Roaming\Python\Python313\site-packages\pennylane\workflow\run.py", line 298, in run
+    results = inner_execute(tapes)
+  File "C:\Users\DELL\AppData\Roaming\Python\Python313\site-packages\pennylane\workflow\run.py", line 263, in inner_execute
+    results = device.execute(transformed_tapes, execution_config=execution_config)
+  File "D:\LRET\python\qlret\pennylane_device.py", line 434, in execute
+    result = self._execute_tape(tape)
+  File "D:\LRET\python\qlret\pennylane_device.py", line 450, in _execute_tape
+    result = simulate_json(circuit_json, export_state=False)
+  File "D:\LRET\python\qlret\api.py", line 140, in simulate_json
+    return _simulate_native(native, circuit, export_state)
+  File "D:\LRET\python\qlret\api.py", line 216, in _simulate_native
+    result_str = native.run_circuit_json(json_str, export_state)
+KeyboardInterrupt
+^C

@@ -57,7 +57,7 @@ setup(
     ],
     entry_points={
         "pennylane.plugins": [
-            "qlret = qlret.pennylane_device:QLRETDevice",
+            "qlret.mixed = qlret.pennylane_device:QLRETDevice",
         ],
     },
 )

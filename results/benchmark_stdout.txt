@@ -1,0 +1,19 @@
+[15:46:40] ======================================================================
+[15:46:40] Fair Noisy QNN Benchmark v2: LRET vs default.mixed
+[15:46:40] ======================================================================
+[15:46:40] Run ID: 20260111_154640
+[15:46:40] Log directory: D:/LRET/results/run_20260111_154640
+[15:46:40] PennyLane version: 0.43.2
+[15:46:40] 
+[15:46:40] Configuration:
+[15:46:40]   Qubits: 8
+[15:46:40]   Epochs: 50
+[15:46:40]   Samples: 30
+[15:46:40]   Noise rate: 5.0%
+[15:46:40] 
+[15:46:40] Creating devices...
+[15:46:40]   LRET device: QLRET Simulator [OK]
+[15:46:40]   Baseline device: default.mixed [OK]
+[15:46:40] 
+[15:46:40] ----------------------------------------------------------------------
+[15:46:40] Starting LRET training...
