@@ -33,12 +33,14 @@ setup(
     ],
     extras_require={
         "pennylane": ["pennylane>=0.30"],
+        "qiskit": ["qiskit>=1.0"],
         "jax": ["jax", "jaxlib"],
         "torch": ["torch"],
         "ml": ["jax", "jaxlib", "torch"],
         "dev": [
             "pytest>=7.0",
             "pennylane>=0.30",
+            "qiskit>=1.0",
             "jax",
             "jaxlib",
             "torch",
