@@ -1,5 +1,6 @@
 #include "gates_and_noise.h"
 #include "advanced_noise.h"
+#include "simulator.h"
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
@@ -714,7 +715,7 @@ std::vector<MatrixXcd> get_noise_kraus_operators(NoiseType type, double p,
 // Noise Application to Low-Rank Factor
 //==============================================================================
 
-MatrixXcd apply_noise_to_L(const MatrixXcd& L, const NoiseOp& noise_op, size_t num_qubits) {
+MatrixXcd apply_noise_to_L(const MatrixXcd& L, const NoiseOp& noise_op, size_t num_qubits, size_t max_rank) {
     if (noise_op.type == NoiseType::CORRELATED_PAULI) {
         if (noise_op.qubits.size() != 2) {
             throw std::invalid_argument("Correlated Pauli noise requires exactly 2 qubits");
@@ -727,13 +728,60 @@ MatrixXcd apply_noise_to_L(const MatrixXcd& L, const NoiseOp& noise_op, size_t n
     size_t rank = L.cols();
     size_t num_kraus = kraus_ops.size();
     
-    // New L will have rank = old_rank * num_kraus
-    MatrixXcd L_new(dim, rank * num_kraus);
+    // CRITICAL: For large dimensions, we must limit rank BEFORE any allocation
+    // Memory needed = dim * new_rank * 16 bytes (complex double)
+    MatrixXcd L_work = L;
     
-    for (size_t k = 0; k < num_kraus; ++k) {
-        // Use optimized direct application instead of full expansion
-        MatrixXcd L_k = apply_single_gate_direct(L, kraus_ops[k], noise_op.qubits[0], num_qubits);
-        L_new.block(0, k * rank, dim, rank) = L_k;
+    // Apply max_rank limit BEFORE computing new_rank
+    if (max_rank > 0 && rank > max_rank) {
+        L_work = truncate_L(L, 1e-10, max_rank);
+        rank = L_work.cols();
+    }
+    
+    size_t new_rank = rank * num_kraus;
+    
+    // Cap new_rank if it would exceed max_rank
+    if (max_rank > 0 && new_rank > max_rank) {
+        // Truncate input to target_rank so that target_rank * num_kraus <= max_rank
+        size_t target_rank = std::max<size_t>(1, max_rank / num_kraus);
+        if (rank > target_rank) {
+            L_work = truncate_L(L_work, 1e-10, target_rank);
+            rank = L_work.cols();
+        }
+        // Recalculate new_rank and cap it
+        new_rank = std::min(rank * num_kraus, max_rank);
+    }
+    
+    // Estimate memory needed (dim * new_rank * 16 bytes for complex double)
+    size_t mem_bytes = dim * new_rank * sizeof(std::complex<double>);
+    size_t mem_gb = mem_bytes / (1024ULL * 1024ULL * 1024ULL);
+    
+    // Hard limit: if single allocation would exceed 4GB, reduce further
+    if (mem_gb >= 4) {
+        size_t safe_rank = (4ULL * 1024ULL * 1024ULL * 1024ULL) / (dim * sizeof(std::complex<double>));
+        if (safe_rank < new_rank) {
+            new_rank = std::max<size_t>(1, safe_rank);
+            // Also need to truncate L_work to match
+            size_t l_target = new_rank / num_kraus;
+            if (l_target < rank && l_target > 0) {
+                L_work = truncate_L(L_work, 1e-10, l_target);
+                rank = L_work.cols();
+            }
+        }
+    }
+    
+    // New L will have rank = old_rank * num_kraus (bounded)
+    MatrixXcd L_new(dim, new_rank);
+    
+    // Calculate actual columns per Kraus op (may be less if we capped new_rank)
+    size_t cols_per_kraus = rank;
+    size_t total_cols = 0;
+    
+    for (size_t k = 0; k < num_kraus && total_cols < new_rank; ++k) {
+        size_t cols_this_k = std::min(cols_per_kraus, new_rank - total_cols);
+        MatrixXcd L_k = apply_single_gate_direct(L_work, kraus_ops[k], noise_op.qubits[0], num_qubits);
+        L_new.block(0, total_cols, dim, cols_this_k) = L_k.leftCols(cols_this_k);
+        total_cols += cols_this_k;
     }
     
     return L_new;

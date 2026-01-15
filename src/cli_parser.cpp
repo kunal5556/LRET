@@ -264,6 +264,10 @@ INITIAL STATE OPTIONS:
     --initial-rank N      Start with random mixed state of rank N (default: 1)
                           Rank=1 is pure state |0...0>.
                           Higher rank enables meaningful parallel benchmarking.
+    --max-rank N          Maximum allowed rank during simulation (default: 0=no limit)
+                          CRITICAL for large qubit counts! Without this, rank can
+                          explode exponentially with noise, causing memory exhaustion.
+                          Recommended: 256-1024 for large simulations (n>15).
     --seed N              Random seed for mixed state generation (0=time-based)
 
 FDM (FULL DENSITY MATRIX) OPTIONS:
@@ -503,6 +507,12 @@ CLIOptions parse_arguments(int argc, char* argv[]) {
         // Initial rank (for high-rank testing)
         if (arg == "--initial-rank" && i + 1 < argc) {
             opts.initial_rank = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // Maximum rank limit (prevents memory explosion)
+        if (arg == "--max-rank" && i + 1 < argc) {
+            opts.max_rank = std::stoul(argv[++i]);
             continue;
         }
         

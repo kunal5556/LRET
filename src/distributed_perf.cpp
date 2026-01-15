@@ -6,6 +6,16 @@
 #include <cuda_runtime.h>
 #endif
 
+// Windows/MinGW compatibility for aligned allocation
+#ifdef _WIN32
+    #include <malloc.h>
+    #define aligned_alloc_compat(alignment, size) _aligned_malloc(size, alignment)
+    #define aligned_free_compat(ptr) _aligned_free(ptr)
+#else
+    #define aligned_alloc_compat(alignment, size) aligned_alloc(alignment, size)
+    #define aligned_free_compat(ptr) free(ptr)
+#endif
+
 namespace qlret {
 
 void* alloc_pinned(size_t bytes) {
@@ -16,7 +26,7 @@ void* alloc_pinned(size_t bytes) {
     return ptr;
 #else
     // Fallback: aligned malloc (no pinning without CUDA)
-    return std::aligned_alloc(64, bytes);
+    return aligned_alloc_compat(64, bytes);
 #endif
 }
 
@@ -25,7 +35,7 @@ void free_pinned(void* ptr) {
 #ifdef USE_GPU
     cudaFreeHost(ptr);
 #else
-    std::free(ptr);
+    aligned_free_compat(ptr);
 #endif
 }
 

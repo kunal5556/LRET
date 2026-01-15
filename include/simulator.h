@@ -44,6 +44,7 @@ MatrixXcd orthonormalize_L(const MatrixXcd& L);
  * @param do_truncation Whether to perform eigenvalue-based truncation
  * @param verbose Print progress information
  * @param truncation_threshold Eigenvalue threshold for truncation
+ * @param max_rank Maximum allowed rank (0 = no limit)
  * @return Final low-rank factor L
  */
 MatrixXcd run_simulation_optimized(
@@ -53,7 +54,8 @@ MatrixXcd run_simulation_optimized(
     size_t batch_size = 64,
     bool do_truncation = true,
     bool verbose = false,
-    double truncation_threshold = 1e-4
+    double truncation_threshold = 1e-4,
+    size_t max_rank = 0
 );
 
 /**

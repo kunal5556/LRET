@@ -352,6 +352,7 @@ int main(int argc, char* argv[]) {
         config.truncation_threshold = opts.truncation_threshold;
         config.verbose = opts.verbose;
         config.do_truncation = true;
+        config.max_rank = opts.max_rank;  // Pass max_rank limit from CLI
         config.enable_distributed_gpu = opts.enable_distributed_gpu && opts.gpu_world_size > 1;
         config.gpu_world_size = opts.gpu_world_size;
         config.enable_nccl = opts.enable_nccl;
@@ -495,12 +496,16 @@ int main(int argc, char* argv[]) {
             }
             
             std::cout << "Running " << parallel_mode_to_string(mode) << " mode...\n";
+            if (config.max_rank > 0) {
+                std::cout << "Max rank limit: " << config.max_rank << "\n";
+            }
             
             auto result = run_with_mode(L_init, sequence, opts.num_qubits, 
                                         mode, config, batch_size);
             
             // If not sequential, run a quick sequential baseline for speedup comparison
-            if (mode != ParallelMode::SEQUENTIAL) {
+            // Skip when max_rank is set (baseline would be meaningless) or for large simulations
+            if (mode != ParallelMode::SEQUENTIAL && opts.num_qubits <= 16 && config.max_rank == 0) {
                 std::cout << "Running sequential baseline for speedup comparison...\n";
                 auto seq_result = run_with_mode(L_init, sequence, opts.num_qubits, 
                                                 ParallelMode::SEQUENTIAL, config, batch_size);
@@ -511,21 +516,43 @@ int main(int argc, char* argv[]) {
                 if (seq_norm > 1e-15) {
                     result.distortion = (result.L_final - seq_result.L_final).norm() / seq_norm;
                 }
+            } else if (mode != ParallelMode::SEQUENTIAL) {
+                if (config.max_rank > 0) {
+                    std::cout << "Skipping sequential baseline (max_rank mode)\n";
+                } else {
+                    std::cout << "Skipping sequential baseline for large simulation\n";
+                }
+                result.speedup = 0.0;  // Unknown
+                result.distortion = 0.0;
             }
             
+            // For large simulations (n > 16), skip metrics that require full density matrix
+            // Full density matrix at n=16 is 65536x65536 = ~68GB, too expensive
+            const bool skip_full_rho_metrics = (opts.num_qubits > 16);
+            
             // Compute metrics vs initial state
-            MetricsResult metrics{
-                compute_fidelity(L_init, result.L_final),
-                compare_L_matrices_trace(L_init, result.L_final),
-                compute_frobenius_distance(L_init, result.L_final),
-                compute_variational_distance_L(L_init, result.L_final)
-            };
+            MetricsResult metrics;
+            if (skip_full_rho_metrics) {
+                // Use efficient metrics only
+                metrics.fidelity = compute_fidelity(L_init, result.L_final);  // Has efficient path for large dim
+                metrics.trace_distance = 0.0;  // Would need full rho
+                metrics.frobenius_distance = compute_frobenius_distance(L_init, result.L_final);  // Efficient
+                metrics.variational_distance = 0.0;  // Would need full rho
+                std::cout << "(Skipping expensive metrics for large simulation)\n";
+            } else {
+                metrics = MetricsResult{
+                    compute_fidelity(L_init, result.L_final),
+                    compare_L_matrices_trace(L_init, result.L_final),
+                    compute_frobenius_distance(L_init, result.L_final),
+                    compute_variational_distance_L(L_init, result.L_final)
+                };
+            }
             
             // Compute state metrics for final state
             StateMetrics state_metrics;
-            state_metrics.purity = compute_purity(result.L_final);
-            state_metrics.entropy = compute_entropy(result.L_final);
-            state_metrics.linear_entropy = compute_linear_entropy(result.L_final);
+            state_metrics.purity = compute_purity(result.L_final);  // Efficient
+            state_metrics.entropy = compute_entropy(result.L_final);  // Efficient
+            state_metrics.linear_entropy = compute_linear_entropy(result.L_final);  // Efficient
             state_metrics.rank = result.final_rank;
             
             // Concurrence only for 2-qubit systems
@@ -533,21 +560,28 @@ int main(int argc, char* argv[]) {
                 state_metrics.concurrence = compute_concurrence(result.L_final);
             }
             
-            // Negativity for bipartite split (half-half)
-            if (opts.num_qubits >= 2) {
+            // Negativity for bipartite split (half-half) - requires full rho
+            if (opts.num_qubits >= 2 && !skip_full_rho_metrics) {
                 size_t split = opts.num_qubits / 2;
                 state_metrics.negativity = compute_negativity(result.L_final, split, opts.num_qubits);
+            } else {
+                state_metrics.negativity = 0.0;
             }
             
-            // Compute FDM metrics if available
+            // Compute FDM metrics if available (FDM already has full rho)
             if (fdm_result && fdm_result->was_run) {
-                MatrixXcd rho_lret = L_to_density_matrix(result.L_final);
-                fdm_metrics = MetricsResult{
-                    compute_fidelity_rho(rho_lret, fdm_result->rho_final),
-                    compute_trace_distance_rho(rho_lret, fdm_result->rho_final),
-                    compute_frobenius_distance_rho(rho_lret, fdm_result->rho_final),
-                    compute_variational_distance(rho_lret, fdm_result->rho_final)
-                };
+                if (skip_full_rho_metrics) {
+                    // Skip - can't compare without full rho
+                    fdm_metrics = std::nullopt;
+                } else {
+                    MatrixXcd rho_lret = L_to_density_matrix(result.L_final);
+                    fdm_metrics = MetricsResult{
+                        compute_fidelity_rho(rho_lret, fdm_result->rho_final),
+                        compute_trace_distance_rho(rho_lret, fdm_result->rho_final),
+                        compute_frobenius_distance_rho(rho_lret, fdm_result->rho_final),
+                        compute_variational_distance(rho_lret, fdm_result->rho_final)
+                    };
+                }
             }
             
             print_standard_output(opts, result, metrics, noise_in_circuit, 

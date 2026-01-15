@@ -366,7 +366,7 @@ MatrixXcd apply_fused_sequence(
             
             case FusedSequenceElement::Type::NOISE_OP: {
                 // Apply noise normally
-                current_L = apply_noise_to_L(current_L, *elem.noise_op, num_qubits);
+                current_L = apply_noise_to_L(current_L, *elem.noise_op, num_qubits, sim_config.max_rank);
                 
                 // Truncate after noise if configured
                 if (sim_config.do_truncation && current_L.cols() > 1) {

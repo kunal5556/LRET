@@ -75,9 +75,10 @@ std::vector<MatrixXcd> get_noise_kraus_operators(NoiseType type, double probabil
  * @param L Current low-rank factor
  * @param noise_op Noise operation
  * @param num_qubits Total number of qubits
+ * @param max_rank Maximum allowed rank (0 = no limit, truncates before allocation if exceeded)
  * @return Updated low-rank factor (potentially with increased rank)
  */
-MatrixXcd apply_noise_to_L(const MatrixXcd& L, const NoiseOp& noise_op, size_t num_qubits);
+MatrixXcd apply_noise_to_L(const MatrixXcd& L, const NoiseOp& noise_op, size_t num_qubits, size_t max_rank = 0);
 
 /**
  * @brief Apply depolarizing noise channel

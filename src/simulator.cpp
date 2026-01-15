@@ -159,12 +159,13 @@ MatrixXcd run_simulation_optimized(
     size_t batch_size,
     bool do_truncation,
     bool verbose,
-    double truncation_threshold
+    double truncation_threshold,
+    size_t max_rank
 ) {
     MatrixXcd L = L_init;
     size_t step = 0;
     size_t truncation_count = 0;
-    size_t max_rank = L.cols();
+    size_t peak_rank = L.cols();
     auto start_time = std::chrono::steady_clock::now();
     
     // Collect gates for batched application
@@ -225,7 +226,7 @@ MatrixXcd run_simulation_optimized(
             const auto& noise = std::get<NoiseOp>(op);
             
             auto kraus_start = std::chrono::steady_clock::now();
-            L = apply_noise_to_L(L, noise, num_qubits);
+            L = apply_noise_to_L(L, noise, num_qubits, max_rank);
             auto kraus_time = std::chrono::duration<double>(
                 std::chrono::steady_clock::now() - kraus_start).count();
             
@@ -242,7 +243,7 @@ MatrixXcd run_simulation_optimized(
             if (do_truncation && L.cols() > 1) {
                 size_t old_rank = L.cols();
                 auto trunc_start = std::chrono::steady_clock::now();
-                L = truncate_L(L, truncation_threshold);
+                L = truncate_L(L, truncation_threshold, max_rank);
                 auto trunc_time = std::chrono::duration<double>(
                     std::chrono::steady_clock::now() - trunc_start).count();
                     
@@ -283,7 +284,7 @@ MatrixXcd run_simulation_optimized(
                 
                 // Truncate after measurement (rank doubles)
                 if (do_truncation && L.cols() > 1) {
-                    L = truncate_L(L, truncation_threshold);
+                    L = truncate_L(L, truncation_threshold, max_rank);
                 }
             }
             
@@ -386,7 +387,7 @@ MatrixXcd run_simulation_with_timing(
             const auto& noise = std::get<NoiseOp>(op);
             
             auto kraus_start = std::chrono::steady_clock::now();
-            L = apply_noise_to_L(L, noise, num_qubits);
+            L = apply_noise_to_L(L, noise, num_qubits, config.max_rank);
             noise_time_out += std::chrono::duration<double>(
                 std::chrono::steady_clock::now() - kraus_start).count();
             

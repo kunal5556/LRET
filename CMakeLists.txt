@@ -35,6 +35,13 @@ endif()
 
 find_package(OpenMP)
 
+# Ensure OpenMP links properly on MinGW
+if(OpenMP_CXX_FOUND AND MINGW)
+    # For MinGW, we need to explicitly add gomp to link flags
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fopenmp")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fopenmp")
+endif()
+
 #==============================================================================
 # nlohmann/json for Phase 4.1 (Noise Model Import)
 #==============================================================================
@@ -205,6 +212,11 @@ target_link_libraries(qlret_lib PUBLIC Eigen3::Eigen nlohmann_json::nlohmann_jso
 if(OpenMP_CXX_FOUND)
     target_link_libraries(qlret_lib PUBLIC OpenMP::OpenMP_CXX)
     target_compile_definitions(qlret_lib PUBLIC USE_OPENMP)
+    # For MinGW, ensure compile flags are applied
+    if(MINGW)
+        target_compile_options(qlret_lib PUBLIC -fopenmp)
+        target_link_options(qlret_lib PUBLIC -fopenmp)
+    endif()
 endif()
 
 #==============================================================================

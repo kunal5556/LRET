@@ -445,10 +445,10 @@ MatrixXcd run_sequential(
             L = parallel_ops::apply_gate_sequential(L, gate, num_qubits);
         } else if (std::holds_alternative<NoiseOp>(op)) {
             const auto& noise = std::get<NoiseOp>(op);
-            L = apply_noise_to_L(L, noise, num_qubits);
+            L = apply_noise_to_L(L, noise, num_qubits, config.max_rank);
             
             if (config.do_truncation && L.cols() > 1) {
-                L = truncate_L(L, config.truncation_threshold);
+                L = truncate_L(L, config.truncation_threshold, config.max_rank);
             }
         }
         // MeasurementOp and ConditionalOp handled in main simulation path
@@ -468,22 +468,52 @@ MatrixXcd run_row_parallel(
 ) {
     MatrixXcd L = L_init;
     
+    if (config.verbose) {
+        std::cout << "  [ROW] Starting with L: " << L.rows() << "x" << L.cols() 
+                  << " (" << (L.rows() * L.cols() * 16 / (1024*1024)) << " MB)" << std::endl;
+        std::cout << "  [ROW] Total operations: " << sequence.operations.size() << std::endl;
+        std::cout << std::flush;
+    }
+    
+    size_t op_count = 0;
     // For efficiency, just apply gates directly using the base functions
     // which are already OpenMP-optimized
     for (const auto& op : sequence.operations) {
+        op_count++;
         if (std::holds_alternative<GateOp>(op)) {
             const auto& gate = std::get<GateOp>(op);
+            if (config.verbose && op_count <= 5) {
+                std::cout << "  [ROW] Op " << op_count << ": Gate on qubit(s) ";
+                for (auto q : gate.qubits) std::cout << q << " ";
+                std::cout << std::flush;
+            }
             // Use apply_gate_to_L which is already optimized
             L = apply_gate_to_L(L, gate, num_qubits);
+            if (config.verbose && op_count <= 5) {
+                std::cout << "-> done (rank=" << L.cols() << ")" << std::endl;
+            }
         } else if (std::holds_alternative<NoiseOp>(op)) {
             const auto& noise = std::get<NoiseOp>(op);
-            L = apply_noise_to_L(L, noise, num_qubits);
+            if (config.verbose && op_count <= 5) {
+                std::cout << "  [ROW] Op " << op_count << ": Noise, max_rank=" << config.max_rank << std::flush;
+            }
+            L = apply_noise_to_L(L, noise, num_qubits, config.max_rank);
+            if (config.verbose && op_count <= 5) {
+                std::cout << " -> rank=" << L.cols() << std::endl;
+            }
             
             if (config.do_truncation && L.cols() > 1) {
-                L = truncate_L(L, config.truncation_threshold);
+                L = truncate_L(L, config.truncation_threshold, config.max_rank);
+                if (config.verbose && op_count <= 5) {
+                    std::cout << "  [ROW] After truncation: rank=" << L.cols() << std::endl;
+                }
             }
         }
         // MeasurementOp and ConditionalOp handled in main simulation path
+    }
+    
+    if (config.verbose) {
+        std::cout << "  [ROW] Completed all " << op_count << " operations" << std::endl;
     }
     
     return L;
@@ -503,10 +533,10 @@ MatrixXcd run_column_parallel(
             L = parallel_ops::apply_gate_column_parallel(L, gate, num_qubits);
         } else if (std::holds_alternative<NoiseOp>(op)) {
             const auto& noise = std::get<NoiseOp>(op);
-            L = apply_noise_to_L(L, noise, num_qubits);
+            L = apply_noise_to_L(L, noise, num_qubits, config.max_rank);
             
             if (config.do_truncation && L.cols() > 1) {
-                L = truncate_L(L, config.truncation_threshold);
+                L = truncate_L(L, config.truncation_threshold, config.max_rank);
             }
         }
         // MeasurementOp and ConditionalOp handled in main simulation path
@@ -525,7 +555,8 @@ MatrixXcd run_batch_parallel(
     return run_simulation_optimized(
         L_init, sequence, num_qubits,
         batch_size, config.do_truncation,
-        config.verbose, config.truncation_threshold
+        config.verbose, config.truncation_threshold,
+        config.max_rank
     );
 }
 
@@ -612,7 +643,7 @@ MatrixXcd run_hybrid(
         } else if (std::holds_alternative<NoiseOp>(op)) {
             // Noise operation - increases rank
             const auto& noise = std::get<NoiseOp>(op);
-            L = apply_noise_to_L(L, noise, num_qubits);
+            L = apply_noise_to_L(L, noise, num_qubits, config.max_rank);
             steps_since_truncation++;
             
             // Truncation: essential for bounding rank growth
@@ -620,7 +651,7 @@ MatrixXcd run_hybrid(
             if (config.do_truncation && L.cols() > 1) {
                 // More aggressive truncation for large problems
                 if (steps_since_truncation >= truncation_interval || L.cols() > 64) {
-                    L = truncate_L(L, config.truncation_threshold);
+                    L = truncate_L(L, config.truncation_threshold, config.max_rank);
                     steps_since_truncation = 0;
                 }
             }
@@ -637,7 +668,7 @@ MatrixXcd run_hybrid(
     
     // Final truncation if needed
     if (config.do_truncation && L.cols() > 1) {
-        L = truncate_L(L, config.truncation_threshold);
+        L = truncate_L(L, config.truncation_threshold, config.max_rank);
     }
     
     if (config.verbose) {
@@ -783,9 +814,9 @@ static ModeResult run_distributed_gpu(
                     sync_to_dist();
                     full_state = dist.gather_state();
                     if (rank == 0 && full_state.size() > 0) {
-                        full_state = apply_noise_to_L(full_state, noise, num_qubits);
+                        full_state = apply_noise_to_L(full_state, noise, num_qubits, config.max_rank);
                         if (config.do_truncation && full_state.cols() > 1) {
-                            full_state = truncate_L(full_state, config.truncation_threshold);
+                            full_state = truncate_L(full_state, config.truncation_threshold, config.max_rank);
                         }
                     }
                     broadcast_full(full_state);

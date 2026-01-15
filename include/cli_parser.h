@@ -79,6 +79,7 @@ struct CLIOptions {
     // When > 1, starts with a random mixed state of given rank instead of |0...0>
     // This enables meaningful parallelization testing since rank=1 has no parallel benefit
     size_t initial_rank = 1;
+    size_t max_rank = 0;  // 0 = no limit, otherwise truncate before exceeding this
     unsigned int random_seed = 0;  // 0 = time-based seed
     
     // Parallelization
