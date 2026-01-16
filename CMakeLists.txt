@@ -320,6 +320,30 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/test_fidelity.cpp")
     target_link_libraries(test_fidelity PRIVATE qlret_lib)
 endif()
 
+# Fidelity evolution educational test
+if(EXISTS "${CMAKE_SOURCE_DIR}/test_fidelity_evolution.cpp")
+    add_executable(test_fidelity_evolution test_fidelity_evolution.cpp)
+    target_link_libraries(test_fidelity_evolution PRIVATE qlret_lib)
+endif()
+
+# LRET vs FDM direct comparison test
+if(EXISTS "${CMAKE_SOURCE_DIR}/test_lret_fdm_comparison.cpp")
+    add_executable(test_lret_fdm_comparison test_lret_fdm_comparison.cpp)
+    target_link_libraries(test_lret_fdm_comparison PRIVATE qlret_lib)
+endif()
+
+# LRET vs FDM with noise test
+if(EXISTS "${CMAKE_SOURCE_DIR}/test_lret_fdm_with_noise.cpp")
+    add_executable(test_lret_fdm_with_noise test_lret_fdm_with_noise.cpp)
+    target_link_libraries(test_lret_fdm_with_noise PRIVATE qlret_lib)
+endif()
+
+# LRET vs FDM large scale test
+if(EXISTS "${CMAKE_SOURCE_DIR}/test_lret_fdm_large_scale.cpp")
+    add_executable(test_lret_fdm_large_scale test_lret_fdm_large_scale.cpp)
+    target_link_libraries(test_lret_fdm_large_scale PRIVATE qlret_lib)
+endif()
+
 # Minimal debug test
 if(EXISTS "${CMAKE_SOURCE_DIR}/test_minimal.cpp")
     add_executable(test_minimal test_minimal.cpp)
