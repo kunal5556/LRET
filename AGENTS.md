@@ -16,11 +16,13 @@ This is an LRET (Low-Rank Entanglement Tracking) quantum simulator project. A hi
 ## Key Components
 
 ### Quantum Simulation
+
 - **FDM Simulator** (`src/fdm_simulator.cpp`) - Finite difference method for open quantum systems
 - **SIMD Kernels** (`src/simd_kernels.cpp`) - Optimized vector operations
 - **GPU Simulator** (`src/gpu_simulator.cu`) - CUDA-accelerated simulation
 
 ### Quantum Error Correction (QEC)
+
 - `src/qec_adaptive.cpp` - Adaptive QEC with ML-driven decoding
 - `src/qec_decoder.cpp` - MWPM and union-find decoders
 - `src/qec_syndrome.cpp` - Syndrome extraction
@@ -29,12 +31,14 @@ This is an LRET (Low-Rank Entanglement Tracking) quantum simulator project. A hi
 - `src/qec_distributed.cpp` - Distributed QEC across MPI nodes
 
 ### Infrastructure
+
 - `src/checkpoint.cpp` - State checkpointing with serialization
 - `src/autodiff.cpp` - Automatic differentiation for variational circuits
 - `src/mpi_parallel.cpp` - MPI parallelization
 - `src/resource_monitor.cpp` - Resource monitoring
 
 ### Python Interface
+
 - `python/qlret/pennylane_device.py` - PennyLane quantum device
 - `python/qlret/jax_interface.py` - JAX integration for autodiff
 - `python/qlret/cirq_compare.py` - Cirq comparison utilities
@@ -50,6 +54,7 @@ make -j$(nproc)  # or make -j$(sysctl -n hw.ncpu) on macOS
 ## Test Binaries
 
 After building, run tests from the `build/` directory:
+
 - `./test_simple` - Basic functionality
 - `./test_fidelity` - Fidelity calculations
 - `./test_autodiff` - Automatic differentiation
@@ -75,16 +80,19 @@ After building, run tests from the `build/` directory:
 ## Common Tasks
 
 ### Run a quantum simulation
+
 ```bash
 ./build/quantum_sim samples/basic_gates.json
 ```
 
 ### Run Python tests
+
 ```bash
 cd python && pytest tests/
 ```
 
 ### Build and run all C++ tests
+
 ```bash
 cd build && make -j$(sysctl -n hw.ncpu) && ctest
 ```
@@ -94,12 +102,25 @@ cd build && make -j$(sysctl -n hw.ncpu) && ctest
 - `CMakeLists.txt` - Build configuration
 - `Dockerfile` - Docker container setup
 - `README.md` - Project overview
-- `agent.md` - Detailed AI agent guide (18,500+ lines)
+- `agent1.md` - Quick Reference & Getting Started
+- `agent2.md` - Core Implementation (Phases 1-4)
+- `agent3.md` - Backend & Execution Systems (Phases 5-10)
+- `agent4.md` - Session, Batch & API (Phases 11-13)
+- `agent5.md` - Visualization, Cloud & ML (Phases 14-16)
+- `agent6.md` - Collaboration & User Guide (Phase 17)
 - `AGENT_GUIDE.md` - User-friendly agent guide
 
 ## External Documentation
 
-For detailed agent instructions and capabilities: @agent.md
+For detailed agent instructions and capabilities:
+
+- @agent1.md - Quick Reference & Getting Started
+- @agent2.md - Core Implementation (Phases 1-4)
+- @agent3.md - Backend & Execution Systems (Phases 5-10)
+- @agent4.md - Session, Batch & API (Phases 11-13)
+- @agent5.md - Visualization, Cloud & ML (Phases 14-16)
+- @agent6.md - Collaboration & User Guide (Phase 17)
+
 For beginner-friendly guide: @AGENT_GUIDE.md
 For manual circuit execution workflows: @MANUAL_CIRCUIT_EXECUTION_GUIDE.md
 For Cirq FDM comparison setup: @CIRQ_COMPARISON_GUIDE.md

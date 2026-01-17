@@ -14,11 +14,18 @@ fi
 echo "✅ On agent-MD branch"
 
 # Verify agent files exist
-if [ ! -f "agent.md" ]; then
-    echo "❌ Error: agent.md not found"
+if [ ! -f "agent1.md" ]; then
+    echo "❌ Error: agent1.md not found"
     exit 1
 fi
-echo "✅ agent.md found ($(wc -l < agent.md) lines)"
+TOTAL_LINES=0
+for i in 1 2 3 4 5 6; do
+    if [ -f "agent${i}.md" ]; then
+        LINES=$(wc -l < "agent${i}.md")
+        TOTAL_LINES=$((TOTAL_LINES + LINES))
+    fi
+done
+echo "✅ Agent files found (agent1.md - agent6.md, total $TOTAL_LINES lines)"
 
 if [ ! -f "AGENT_GUIDE.md" ]; then
     echo "⚠️  Warning: AGENT_GUIDE.md not found"
@@ -87,18 +94,18 @@ echo "✅ All prerequisites met!"
 echo
 echo "📋 Test Summary:"
 echo "  • Branch: $BRANCH"
-echo "  • Agent file: agent.md ($(wc -l < agent.md) lines)"
+echo "  • Agent files: agent1.md - agent6.md ($TOTAL_LINES total lines)"
 echo "  • Build status: ✅ Success"
 echo "  • Test binaries: $TEST_COUNT"
 echo "  • OpenCode: $OPENCODE_VERSION"
 echo
 echo "🚀 Next steps:"
 echo "1. Run: opencode"
-echo "2. In OpenCode terminal, try: @agent.md What is LRET?"
+echo "2. In OpenCode terminal, try: @agent1.md What is LRET?"
 echo "3. Follow the testing phases in OPENCODE_TESTING_GUIDE.md"
 echo
 echo "📖 Documentation:"
 echo "  • Testing guide: OPENCODE_TESTING_GUIDE.md"
-echo "  • Agent config: agent.md"
+echo "  • Agent files: agent1.md - agent6.md"
 echo "  • User guide: AGENT_GUIDE.md"
 echo

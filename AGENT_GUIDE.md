@@ -33,18 +33,21 @@ Think of it as a translator - you can describe what you want in plain English, a
 ## ✨ What Can It Do?
 
 ### For Complete Beginners:
+
 - Run simple quantum simulations by just describing what you want
 - Visualize quantum circuits (the "programs" for quantum computers)
 - Compare different simulation methods
 - Test quantum algorithms with realistic noise
 
 ### For Intermediate Users:
+
 - Benchmark performance of different approaches
 - Optimize quantum circuits
 - Run batch simulations with different parameters
 - Export results in various formats (CSV, JSON, plots)
 
 ### For Advanced Users:
+
 - Custom noise models
 - Multi-GPU acceleration
 - Integration with existing quantum workflows
@@ -66,6 +69,7 @@ Think of it as a translator - you can describe what you want in plain English, a
    - Make sure to check "Add Python to PATH" during installation
 
 ### Optional But Helpful
+
 - **Git**: For downloading examples and updates
 - **VS Code**: A friendly code editor
 - **Basic terminal knowledge**: Don't worry, we'll guide you!
@@ -77,9 +81,11 @@ Think of it as a translator - you can describe what you want in plain English, a
 ### Option 1: Using Docker (Easiest!)
 
 #### Step 1: Install Docker
+
 Download and install Docker Desktop for your operating system.
 
 #### Step 2: Pull the LRET Image
+
 Open your terminal (PowerShell on Windows, Terminal on Mac/Linux) and run:
 
 ```bash
@@ -89,6 +95,7 @@ docker pull ghcr.io/kunal5556/lret:latest
 This downloads the quantum simulation environment (may take 5-10 minutes).
 
 #### Step 3: Verify Installation
+
 ```bash
 docker run ghcr.io/kunal5556/lret:latest quantum_sim --help
 ```
@@ -98,11 +105,13 @@ If you see a help message, you're ready to go! 🎉
 ### Option 2: Using Python (More Control)
 
 #### Step 1: Install Python Packages
+
 ```bash
 pip install cirq cirq-google qsimcirq numpy matplotlib scipy
 ```
 
 #### Step 2: Clone LRET Repository
+
 ```bash
 git clone https://github.com/kunal5556/LRET.git
 cd LRET
@@ -110,6 +119,7 @@ pip install -e .
 ```
 
 #### Step 3: Test Installation
+
 ```bash
 quantum_sim --version
 ```
@@ -129,12 +139,14 @@ quantum_sim --version
 ```
 
 **What the agent does:**
+
 1. Creates a 3-qubit quantum circuit
 2. Applies Hadamard gates (creates quantum superposition)
 3. Runs the simulation
 4. Shows you the results
 
 **Expected output:**
+
 ```
 Simulation Results:
 - Number of qubits: 3
@@ -154,12 +166,14 @@ Simulation Results:
 ```
 
 **What the agent does:**
+
 1. Creates identical 5-qubit circuits
 2. Runs on both LRET and Cirq
 3. Compares speed, accuracy, and memory usage
 4. Shows you a comparison report
 
 **Expected output:**
+
 ```
 Performance Comparison:
 ┌──────────────┬──────────┬──────────┐
@@ -183,11 +197,13 @@ LRET is 33% faster!
 ```
 
 **What the agent does:**
+
 1. Creates a GHZ state (maximally entangled state)
 2. Adds noise to mimic real quantum hardware
 3. Shows how noise affects the results
 
 **Expected output:**
+
 ```
 GHZ State with Noise:
 - Ideal fidelity: 1.00 (perfect)
@@ -208,11 +224,13 @@ Recommendation: This circuit is robust to noise!
 ```
 
 **What the agent does:**
+
 1. Generates the circuit
 2. Creates a visual diagram
 3. Saves it as an image file
 
 **Expected output:**
+
 ```
 Circuit created: quantum_fourier_transform.png
 
@@ -232,20 +250,24 @@ File saved to: ./quantum_fourier_transform.png
 ### Key Terms in Results
 
 **State Vector**
+
 - The complete quantum state description
 - Complex numbers representing probability amplitudes
 - Example: `[0.71+0j, 0+0.71j]` means 71% chance for each state
 
 **Fidelity**
+
 - How close your result is to the ideal (perfect) result
 - Range: 0.0 (terrible) to 1.0 (perfect)
 - Above 0.95 is usually considered good
 
 **Circuit Depth**
+
 - How many "layers" of gates in your circuit
 - Lower is usually better (less error accumulation)
 
 **Execution Time**
+
 - How long the simulation took
 - Depends on number of qubits and circuit complexity
 
@@ -262,6 +284,7 @@ File saved to: ./quantum_fourier_transform.png
 ```
 
 **What happens:**
+
 - Runs 6 simulations automatically
 - Creates a comparison chart
 - Shows optimal noise threshold
@@ -275,6 +298,7 @@ File saved to: ./quantum_fourier_transform.png
 ```
 
 **What happens:**
+
 - Automatically detects your GPU
 - Offloads computation to GPU
 - Can be 10-100x faster than CPU!
@@ -288,6 +312,7 @@ File saved to: ./quantum_fourier_transform.png
 ```
 
 **What happens:**
+
 - Reads your QASM file
 - Converts to appropriate format
 - Runs with noise support (density matrix)
@@ -301,6 +326,7 @@ File saved to: ./quantum_fourier_transform.png
 ```
 
 **What happens:**
+
 - Runs the VQE algorithm
 - Saves numerical data to CSV
 - Creates publication-quality plots
@@ -313,6 +339,7 @@ File saved to: ./quantum_fourier_transform.png
 ### Problem: "Docker is not recognized"
 
 **Solution:**
+
 1. Make sure Docker Desktop is running
 2. Restart your terminal
 3. On Windows: Check if Docker is in your PATH
@@ -320,6 +347,7 @@ File saved to: ./quantum_fourier_transform.png
 ### Problem: "Module 'cirq' not found"
 
 **Solution:**
+
 ```bash
 pip install cirq --upgrade
 ```
@@ -327,6 +355,7 @@ pip install cirq --upgrade
 ### Problem: "Out of memory error"
 
 **Solution:**
+
 - Reduce number of qubits (try n-2 qubits)
 - Use LRET instead of Cirq (more memory efficient)
 - Add `--memory-limit 8GB` flag
@@ -335,6 +364,7 @@ pip install cirq --upgrade
 ### Problem: "Simulation is very slow"
 
 **Solution:**
+
 - Use LRET's `--mode batch` for parallelization
 - Enable GPU: `--gpu`
 - Reduce circuit depth
@@ -343,6 +373,7 @@ pip install cirq --upgrade
 ### Problem: "Results don't match expected"
 
 **Solution:**
+
 - Check if noise is enabled (might be unintentional)
 - Verify qubit ordering (Cirq uses different convention)
 - Compare with `--compare-fdm` flag
@@ -358,7 +389,8 @@ pip install cirq --upgrade
 
 ### Q: How many qubits can I simulate?
 
-**A:** 
+**A:**
+
 - **Laptop (8GB RAM)**: Up to 15 qubits comfortably
 - **Desktop (32GB RAM)**: Up to 20 qubits
 - **Server/GPU**: 25+ qubits possible with LRET
@@ -371,6 +403,7 @@ pip install cirq --upgrade
 ### Q: Can I use this for my research paper?
 
 **A:** Yes! Just cite both LRET and Cirq appropriately:
+
 - LRET: Check the GitHub repository for citation info
 - Cirq: https://quantumai.google/cirq/citing
 
@@ -394,6 +427,7 @@ pip install cirq --upgrade
 ### Q: Can I run this on a cloud service?
 
 **A:** Absolutely! Works on:
+
 - Google Cloud Platform
 - AWS
 - Azure
@@ -436,6 +470,7 @@ pip install cirq --upgrade
 ## 🎯 Quick Reference Commands
 
 ### Simple Simulations
+
 ```
 "Run a 5-qubit circuit with random gates"
 "Simulate a Bell state pair"
@@ -443,6 +478,7 @@ pip install cirq --upgrade
 ```
 
 ### With Noise
+
 ```
 "Add 2% depolarizing noise to a 4-qubit circuit"
 "Simulate IBM noise model for 6 qubits"
@@ -450,6 +486,7 @@ pip install cirq --upgrade
 ```
 
 ### Performance Testing
+
 ```
 "Benchmark LRET vs Cirq for 10 qubits"
 "Compare CPU and GPU execution for 12 qubits"
@@ -457,6 +494,7 @@ pip install cirq --upgrade
 ```
 
 ### Visualization
+
 ```
 "Show me the circuit diagram"
 "Plot the state vector as a bar chart"
@@ -464,6 +502,7 @@ pip install cirq --upgrade
 ```
 
 ### Export & Analysis
+
 ```
 "Export results as CSV"
 "Save the circuit as QASM"
@@ -478,7 +517,7 @@ pip install cirq --upgrade
 
 1. **LRET Documentation**: https://github.com/kunal5556/LRET
 2. **Cirq Documentation**: https://quantumai.google/cirq
-3. **Quantum Computing Basics**: 
+3. **Quantum Computing Basics**:
    - IBM Quantum Learning: https://learning.quantum.ibm.com/
    - Qiskit Textbook: https://qiskit.org/learn
 
@@ -504,6 +543,6 @@ Happy quantum computing! 🚀✨
 
 ---
 
-**Last Updated**: January 6, 2026  
-**Version**: 1.0  
-**Agent File**: agent.md
+**Last Updated**: January 17, 2026  
+**Version**: 1.1  
+**Agent Files**: agent1.md - agent6.md
