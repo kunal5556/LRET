@@ -279,8 +279,8 @@ if [ -z "$OUTPUT_DIR" ]; then
     OUTPUT_DIR="$PROJECT_ROOT/test_output_$(date +%Y%m%d_%H%M%S)"
 fi
 
-# Run the Python test script
-python3 scripts/run_hardware_dependent_tests.py \
+# Run the Python test script (now in GPU_Debugging_and_Testing folder)
+python3 "$SCRIPT_DIR/run_hardware_dependent_tests.py" \
     --skip-install \
     --project-root "$PROJECT_ROOT" \
     --output-dir "$OUTPUT_DIR"
