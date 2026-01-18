@@ -82,7 +82,7 @@ pip install pennylane>=0.30 torch numpy scipy psutil matplotlib pandas
 - `torch` - PyTorch for optimization
 - `numpy` - Numerical computing
 - `scipy` - Scientific computing
-- `psutil` - System monitoring (memory, CPU)
+- `psutil>=5.8` - **REQUIRED** System monitoring (memory, CPU) for benchmarks and monitor_cpu.py
 - `matplotlib` - Plotting (for results visualization)
 - `pandas` - Data analysis (optional, for CSV processing)
 

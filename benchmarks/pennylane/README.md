@@ -31,13 +31,15 @@ This directory contains a complete benchmarking suite for comparing LRET's perfo
 
 All benchmark scripts perform **actual QNN training** with numerical gradient computation, providing realistic performance comparisons.
 
-#### Standard Benchmarks (Original)
+#### Standard Benchmarks (Renamed with CSV Logging)
+
+All scripts now follow the naming convention: `pennylane_<params>_<mode>.py`
 
 | Script | Qubits | Epochs | Batch | Noise | Est. LRET Time | Est. Baseline Time |
 |--------|--------|--------|-------|-------|----------------|-------------------|
-| `4q_50e_25s_10n.py` | 4 | 50 | 25 | 10% | ~2-3 min | ~6-8 min |
-| `8q_100e_100s_12n.py` | 8 | 100 | 100 | 12% | ~15-30 min | ~45-90 min (may OOM) |
-| `8q_200e_200s_15n.py` | 8 | 200 | 200 | 15% | ~30-60 min | Likely OOM |
+| `pennylane_4q_50e_25s_10n.py` | 4 | 50 | 25 | 10% | ~2-3 min | ~6-8 min |
+| `pennylane_8q_100e_100s_12n.py` | 8 | 100 | 100 | 12% | ~15-30 min | ~45-90 min (may OOM) |
+| `pennylane_8q_200e_200s_15n.py` | 8 | 200 | 200 | 15% | ~30-60 min | Likely OOM |
 
 #### Parallelized Benchmarks (ROW Mode)
 
@@ -45,9 +47,9 @@ ROW mode parallelizes operations across matrix rows.
 
 | Script | Qubits | Epochs | Batch | Noise | Expected Speedup |
 |--------|--------|--------|-------|-------|------------------|
-| `benchmark_4q_50e_25s_10n_row.py` | 4 | 50 | 25 | 10% | ~2.5-3× |
-| `benchmark_8q_100e_100s_12n_row.py` | 8 | 100 | 100 | 12% | ~2.5-3× |
-| `benchmark_8q_200e_200s_15n_row.py` | 8 | 200 | 200 | 15% | ∞ (baseline OOM) |
+| `pennylane_4q_50e_25s_10n_row.py` | 4 | 50 | 25 | 10% | ~2.5-3× |
+| `pennylane_8q_100e_100s_12n_row.py` | 8 | 100 | 100 | 12% | ~2.5-3× |
+| `pennylane_8q_200e_200s_15n_row.py` | 8 | 200 | 200 | 15% | ∞ (baseline OOM) |
 
 #### Parallelized Benchmarks (HYBRID Mode - Recommended)
 
@@ -55,9 +57,20 @@ HYBRID mode combines row and batch parallelization - best overall performance.
 
 | Script | Qubits | Epochs | Batch | Noise | Expected Speedup |
 |--------|--------|--------|-------|-------|------------------|
-| `benchmark_4q_50e_25s_10n_hybrid.py` | 4 | 50 | 25 | 10% | ~2.5-3× |
-| `benchmark_8q_100e_100s_12n_hybrid.py` | 8 | 100 | 100 | 12% | ~2.5-3× |
-| `benchmark_8q_200e_200s_15n_hybrid.py` | 8 | 200 | 200 | 15% | ∞ (baseline OOM) |
+| `pennylane_4q_50e_25s_10n_hybrid.py` | 4 | 50 | 25 | 10% | ~2.5-3× |
+| `pennylane_8q_100e_100s_12n_hybrid.py` | 8 | 100 | 100 | 12% | ~2.5-3× |
+| `pennylane_8q_200e_200s_15n_hybrid.py` | 8 | 200 | 200 | 15% | ∞ (baseline OOM) |
+
+#### Comprehensive Comparison Scripts (NEW!)
+
+These scripts test ALL LRET parallelization modes against the baseline in one run:
+
+| Script | Tests | Output Files |
+|--------|-------|--------------|
+| `pennylane_4q_50e_25s_10n_compare_all.py` | 6 devices (5 LRET modes + baseline) | 6 CSV files + results.json |
+| `pennylane_8q_100e_100s_12n_compare_all.py` | 6 devices | 6 CSV files + results.json |
+| `pennylane_8q_200e_200s_15n_compare_all.py` | 6 devices | 6 CSV files + results.json |
+| `pennylane_parallel_modes_comparison.py` | 5 LRET modes only (no baseline) | 5 CSV files + results.json |
 
 #### What the Benchmarks Measure
 
@@ -113,28 +126,38 @@ dev = qml.device("qlret.mixed", wires=8, epsilon=1e-4,
 # 1. Clone/navigate to LRET repository
 cd /path/to/LRET
 
-# 2. Switch to pennylane branch
-git checkout pennylane
+# 2. Switch to pennylane-documentation-benchmarking branch
+git checkout pennylane-documentation-benchmarking
 
 # 3. Run automated setup
 python benchmarks/pennylane/setup_pennylane_env.py
 
 # 4. Run light benchmark to verify
-python benchmarks/pennylane/4q_50e_25s_10n.py
+python benchmarks/pennylane/pennylane_4q_50e_25s_10n.py
 ```
 
 ### For Running Benchmarks (if already set up)
 
 ```bash
-# Light test (~1-2 hours)
-python benchmarks/pennylane/4q_50e_25s_10n.py
+# Light test (~1-2 hours) - Standard benchmark
+python benchmarks/pennylane/pennylane_4q_50e_25s_10n.py
+
+# Light test - Comprehensive comparison (ALL modes)
+python benchmarks/pennylane/pennylane_4q_50e_25s_10n_compare_all.py
 
 # Medium test (~3-5 hours)
-python benchmarks/pennylane/8q_100e_100s_12n.py
+python benchmarks/pennylane/pennylane_8q_100e_100s_12n.py
 
 # Heavy test (~6-10 hours)
-python benchmarks/pennylane/8q_200e_200s_15n.py
+python benchmarks/pennylane/pennylane_8q_200e_200s_15n.py
+
+# Parallelization-only comparison (no baseline)
+python benchmarks/pennylane/pennylane_parallel_modes_comparison.py
 ```
+
+**Note:** All scripts now launch two PowerShell windows:
+1. Benchmark execution with live progress
+2. CPU monitoring (saves to `cpu_usage.csv`)
 
 ---
 
@@ -147,7 +170,43 @@ D:/LRET/results/benchmark_YYYYMMDD_HHMMSS/
 ├── benchmark.log           # Full execution log
 ├── progress.log            # Training progress only
 ├── results.json            # Summary statistics (JSON)
-├── lret_epochs.csv         # LRET training data per epoch
+├── epochs_lret.csv         # LRET training data per epoch (4q, 8q main scripts)
+├── epochs_default_mixed.csv # Baseline training data per epoch
+├── epochs_lret_*.csv       # Per-mode epoch data (compare_all scripts)
+└── cpu_usage.csv           # CPU monitoring data (NEW!)
+```
+
+### CSV Logging (NEW!)
+
+All benchmark scripts now save detailed epoch-by-epoch data to CSV files for analysis:
+
+**Epoch CSV Format** (`epochs_*.csv`):
+```csv
+epoch,loss,time_seconds,elapsed_seconds,eta_seconds
+1,2.456789,1.23,1.23,61.50
+2,2.234567,1.18,2.41,59.00
+...
+```
+
+**CPU Monitoring CSV Format** (`cpu_usage.csv`):
+```csv
+timestamp,overall_cpu,process_cpu,process_status,core_0,core_1,core_2,...
+2026-01-19 12:34:56,45.2,78.5,running,52.1,38.9,46.3,...
+```
+
+### CPU Monitoring (NEW!)
+
+The `monitor_cpu.py` script runs automatically in a separate window for all benchmarks:
+- Tracks overall CPU usage and per-core utilization
+- Monitors the benchmark process specifically
+- Saves data to `cpu_usage.csv` with 1-second granularity
+- Useful for analyzing parallelization efficiency
+
+**Manual usage:**
+```bash
+python monitor_cpu.py                    # Live monitoring only
+python monitor_cpu.py /path/to/log_dir   # Save to log_dir/cpu_usage.csv
+```
 └── baseline_epochs.csv     # default.mixed training data per epoch
 ```
 
@@ -208,7 +267,7 @@ pennylane>=0.30
 torch
 numpy
 scipy
-psutil
+psutil>=5.8     # Required for CPU monitoring (monitor_cpu.py)
 matplotlib
 pandas
 ```
@@ -275,6 +334,22 @@ error: Microsoft Visual C++ 14.0 or greater is required
 ```
 **Solution:** Install Visual Studio Build Tools with "Desktop development with C++"
 
+#### 5. psutil ImportError
+```
+ModuleNotFoundError: No module named 'psutil'
+```
+**Solution:**
+```bash
+pip install psutil>=5.8
+```
+Note: psutil is now required for CPU monitoring (monitor_cpu.py)
+
+#### 6. CSV Files Not Created
+If CSV files (`epochs_*.csv`, `cpu_usage.csv`) are not being created:
+- Ensure you're running scripts from the benchmarks/pennylane directory
+- Check that the results directory has write permissions
+- Verify log_dir is being created: look for "Results directory:" in launcher output
+
 ---
 
 ## 📝 Notes
@@ -302,8 +377,8 @@ error: Microsoft Visual C++ 14.0 or greater is required
 
 - **LRET Documentation:** `../../docs/`
 - **PennyLane Docs:** https://pennylane.ai/
-- **Full Benchmarking Strategy:** `../../PENNYLANE_BENCHMARKING_STRATEGY.md`
-- **Algorithm Catalog:** `../../PENNYLANE_ALGORITHM_CATALOG.md`
+- **Parallelization Analysis:** `PARALLELIZATION_ANALYSIS.md`
+- **CPU Monitoring Tool:** `monitor_cpu.py`
 
 ---
 
@@ -311,9 +386,10 @@ error: Microsoft Visual C++ 14.0 or greater is required
 
 For issues or questions:
 1. Check `REQUIREMENTS.md` for detailed troubleshooting
-2. Review logs in `D:/LRET/results/benchmark_*/benchmark.log`
+2. Review logs in `D:/LRET/results/{script_name}_{timestamp}/benchmark.log`
 3. Verify setup with: `python setup_pennylane_env.py --test-only`
+4. Check CPU usage: Review `cpu_usage.csv` in results directory
 
 ---
 
-*Last updated: January 16, 2026*
+*Last updated: January 19, 2026*

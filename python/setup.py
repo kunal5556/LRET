@@ -30,6 +30,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "numpy>=1.20",
+        "psutil>=5.8",  # For CPU monitoring in benchmarks
     ],
     extras_require={
         "pennylane": ["pennylane>=0.30"],

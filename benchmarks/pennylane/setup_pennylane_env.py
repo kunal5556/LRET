@@ -122,7 +122,7 @@ def main():
             "torch",
             "numpy",
             "scipy",
-            "psutil",
+            "psutil>=5.8",  # Required for CPU monitoring
             "matplotlib",
             "pandas"
         ]
