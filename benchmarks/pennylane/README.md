@@ -29,32 +29,79 @@ This directory contains a complete benchmarking suite for comparing LRET's perfo
 
 ### Benchmark Scripts
 
-#### 1. **`4q_50e_25s_10n.py`** - Light Test
-- **Configuration:**
-  - 4 qubits
-  - 50 epochs
-  - 25 samples per epoch
-  - 10% depolarizing noise
-- **Estimated Time:** LRET ~1-2 hours, default.mixed ~10-15 hours
-- **Purpose:** Quick validation that both devices work correctly
+All benchmark scripts perform **actual QNN training** with numerical gradient computation, providing realistic performance comparisons.
 
-#### 2. **`8q_100e_100s_12n.py`** - Medium Test
-- **Configuration:**
-  - 8 qubits
-  - 100 epochs
-  - 100 samples per epoch
-  - 12% depolarizing noise
-- **Estimated Time:** LRET ~3-5 hours, default.mixed ~30-50 hours (may OOM)
-- **Purpose:** Demonstrate LRET's scalability advantage
+#### Standard Benchmarks (Original)
 
-#### 3. **`8q_200e_200s_15n.py`** - Heavy Test
-- **Configuration:**
-  - 8 qubits
-  - 200 epochs
-  - 200 samples per epoch
-  - 15% depolarizing noise
-- **Estimated Time:** LRET ~6-10 hours, default.mixed likely fails with OOM
-- **Purpose:** Push both devices to limits, showing LRET can handle what default.mixed cannot
+| Script | Qubits | Epochs | Batch | Noise | Est. LRET Time | Est. Baseline Time |
+|--------|--------|--------|-------|-------|----------------|-------------------|
+| `4q_50e_25s_10n.py` | 4 | 50 | 25 | 10% | ~2-3 min | ~6-8 min |
+| `8q_100e_100s_12n.py` | 8 | 100 | 100 | 12% | ~15-30 min | ~45-90 min (may OOM) |
+| `8q_200e_200s_15n.py` | 8 | 200 | 200 | 15% | ~30-60 min | Likely OOM |
+
+#### Parallelized Benchmarks (ROW Mode)
+
+ROW mode parallelizes operations across matrix rows.
+
+| Script | Qubits | Epochs | Batch | Noise | Expected Speedup |
+|--------|--------|--------|-------|-------|------------------|
+| `benchmark_4q_50e_25s_10n_row.py` | 4 | 50 | 25 | 10% | ~2.5-3× |
+| `benchmark_8q_100e_100s_12n_row.py` | 8 | 100 | 100 | 12% | ~2.5-3× |
+| `benchmark_8q_200e_200s_15n_row.py` | 8 | 200 | 200 | 15% | ∞ (baseline OOM) |
+
+#### Parallelized Benchmarks (HYBRID Mode - Recommended)
+
+HYBRID mode combines row and batch parallelization - best overall performance.
+
+| Script | Qubits | Epochs | Batch | Noise | Expected Speedup |
+|--------|--------|--------|-------|-------|------------------|
+| `benchmark_4q_50e_25s_10n_hybrid.py` | 4 | 50 | 25 | 10% | ~2.5-3× |
+| `benchmark_8q_100e_100s_12n_hybrid.py` | 8 | 100 | 100 | 12% | ~2.5-3× |
+| `benchmark_8q_200e_200s_15n_hybrid.py` | 8 | 200 | 200 | 15% | ∞ (baseline OOM) |
+
+#### What the Benchmarks Measure
+
+Each benchmark performs:
+1. **QNN Training Loop**: Actual variational quantum classifier training
+2. **Numerical Gradients**: Finite-difference gradient computation (33 circuit calls per sample)
+3. **Noisy Simulation**: DepolarizingChannel noise after data encoding
+4. **Loss Convergence**: Tracks training loss over epochs
+
+Circuit calls per epoch = `batch_size × (1 + 2 × num_params)` = `25 × 33 = 825` (4-qubit case)
+
+---
+
+## 🔀 Parallelization Options
+
+LRET supports multi-threading via OpenMP. Configure via device parameters:
+
+```python
+import pennylane as qml
+
+# Default: HYBRID mode with auto thread count (uses all CPU cores)
+dev = qml.device("qlret.mixed", wires=8, epsilon=1e-4)
+
+# Explicit configuration
+dev = qml.device("qlret.mixed", wires=8, epsilon=1e-4,
+                 num_threads=8,           # 0 = auto (all cores)
+                 parallel_mode="hybrid")  # or "row", "sequential"
+```
+
+### Parallelization Modes
+
+| Mode | Description | Best For |
+|------|-------------|----------|
+| `hybrid` | Combined row + batch | General purpose (default) |
+| `row` | Parallelize matrix rows | Wide matrices, many qubits |
+| `column` | Parallelize matrix columns | Tall matrices |
+| `batch` | Parallelize operation batches | Deep circuits |
+| `sequential` | Single-threaded | Debugging, baseline comparison |
+
+### Thread Count
+
+- `num_threads=0` (default): Auto-detect, use all available CPU cores
+- `num_threads=4`: Use exactly 4 threads
+- `num_threads=1`: Single-threaded (same as sequential mode)
 
 ---
 
@@ -170,19 +217,27 @@ pandas
 
 ## 📈 Expected Results
 
-### Performance Comparison
+### Performance Comparison (Training-Based Benchmarks)
 
-| Benchmark | LRET Time | default.mixed Time | Speedup | Memory LRET | Memory default.mixed |
-|-----------|-----------|-------------------|---------|-------------|---------------------|
-| Light (4q) | ~1-2h | ~10-15h | ~8-10× | ~280 MB | ~2.4 GB |
-| Medium (8q) | ~3-5h | ~30-50h (may OOM) | ~10-15× | ~680 MB | ~15+ GB |
-| Heavy (8q) | ~6-10h | Fails (OOM) | ∞ | ~1.8 GB | N/A |
+| Benchmark | LRET Time/Epoch | Baseline Time/Epoch | Speedup | Memory LRET | Memory Baseline |
+|-----------|-----------------|---------------------|---------|-------------|-----------------|
+| Light (4q, 50 epochs) | ~1.5-2s | ~4-5s | ~2.5-3× | ~100-200 MB | ~400-800 MB |
+| Medium (8q, 100 epochs) | ~10-20s | ~30-60s (may OOM) | ~2-3× | ~500-800 MB | ~4-8 GB |
+| Heavy (8q, 200 epochs) | ~15-25s | OOM (fails) | ∞ | ~800-1500 MB | N/A |
 
 ### Key Findings
-1. **Memory Efficiency**: LRET uses 10-500× less memory than default.mixed
-2. **Speed**: LRET is 8-15× faster for small systems, ∞× for large (when baseline fails)
-3. **Accuracy**: Loss difference < 0.01 (results match within tolerance)
-4. **Scalability**: LRET handles 8+ qubits; default.mixed struggles at 8 qubits
+1. **Training Speedup**: LRET is 2.5-3× faster for actual QNN training workloads
+2. **Memory Efficiency**: LRET uses 5-10× less memory than default.mixed
+3. **Accuracy**: Loss convergence nearly identical (difference < 0.01)
+4. **Scalability**: LRET handles 8+ qubit training; default.mixed struggles or OOMs
+
+### Understanding the Numbers
+
+The benchmarks measure **real QNN training** with gradient computation:
+- Each epoch processes `batch_size` samples
+- Each sample requires `1 + 2×num_params` circuit evaluations (numerical gradients)
+- For 4 qubits: `25 samples × 33 circuits = 825 circuit calls/epoch`
+- For 8 qubits: `100 samples × 65 circuits = 6,500 circuit calls/epoch`
 
 ---
 

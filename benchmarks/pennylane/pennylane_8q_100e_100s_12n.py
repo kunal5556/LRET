@@ -1,24 +1,76 @@
 #!/usr/bin/env python3
 """
-LRET vs default.mixed Benchmark - Heavy Test
-=============================================
+LRET vs default.mixed Benchmark - Medium Test
+==============================================
 Configuration:
   - Qubits: 8
-  - Batch size: 200
-  - Epochs: 200
-  - Noise: 15% DepolarizingChannel
+  - Batch size: 100
+  - Epochs: 100
+  - Noise: 12% DepolarizingChannel
 
-Estimated time: LRET ~6-10 hours, default.mixed ~60-100 hours (likely OOM!)
-Run: python benchmarks/pennylane/8q_200e_200s_15n.py
+Estimated time: LRET ~3-5 hours, default.mixed ~30-50 hours (may OOM!)
+Run: python benchmarks/pennylane/8q_100e_100s_12n.py
 
-WARNING: This is a heavy benchmark demonstrating LRET's scalability.
-         default.mixed will likely run out of memory with 8 qubits.
+Now includes integrated CPU monitoring - launches in separate windows.
 """
 
 import time
 import sys
 import os
 import json
+import subprocess
+
+# =============================================================================
+# LAUNCHER MODE - Start benchmark and CPU monitor in separate windows
+# =============================================================================
+if len(sys.argv) <= 1 or sys.argv[1] != "--worker":
+    from datetime import datetime
+    
+    script_path = os.path.abspath(__file__)
+    script_dir = os.path.dirname(script_path)
+    script_name = os.path.splitext(os.path.basename(script_path))[0]
+    
+    # Create unique results directory for this run
+    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_dir = os.path.join(script_dir, '..', '..', 'results', f'{script_name}_{run_id}')
+    os.makedirs(log_dir, exist_ok=True)
+    
+    print("=" * 70)
+    print("LAUNCHING BENCHMARK WITH CPU MONITORING")
+    print("=" * 70)
+    print(f"Script: {os.path.basename(script_path)}")
+    print(f"Results directory: {log_dir}")
+    print("This will open TWO new PowerShell windows:")
+    print("  1. Benchmark execution window")
+    print("  2. CPU monitoring window")
+    print("⚠️  WARNING: 8-qubit benchmark - default.mixed may OOM!")
+    print("=" * 70)
+    
+    # Start benchmark in new window with log_dir argument
+    benchmark_cmd = f'cd "{script_dir}"; python "{script_path}" --worker "{log_dir}"'
+    subprocess.Popen(
+        ["powershell", "-NoExit", "-Command", benchmark_cmd],
+        creationflags=subprocess.CREATE_NEW_CONSOLE
+    )
+    
+    time.sleep(2)
+    
+    # Start CPU monitor in new window with log_dir argument
+    monitor_path = os.path.join(script_dir, "monitor_cpu.py")
+    monitor_cmd = f'cd "{script_dir}"; python "{monitor_path}" "{log_dir}"'
+    subprocess.Popen(
+        ["powershell", "-NoExit", "-Command", monitor_cmd],
+        creationflags=subprocess.CREATE_NEW_CONSOLE
+    )
+    
+    print("\n✓ Both windows launched. Check the new PowerShell windows.")
+    print(f"✓ Results will be saved to: {log_dir}")
+    sys.exit(0)
+
+# =============================================================================
+# WORKER MODE - Actual benchmark execution
+# =============================================================================
+import csv
 import numpy as np
 import pennylane as qml
 import psutil
@@ -29,24 +81,28 @@ from datetime import datetime
 # CONFIGURATION
 # =============================================================================
 N_QUBITS = 8
-N_EPOCHS = 200
-N_SAMPLES = 200       # batch size
-NOISE_RATE = 0.15    # 15% depolarizing noise
+N_EPOCHS = 100
+N_SAMPLES = 100       # batch size
+NOISE_RATE = 0.12    # 12% depolarizing noise
 LEARNING_RATE = 0.1
 RANDOM_SEED = 42
 
 # =============================================================================
 # SETUP LOGGING
 # =============================================================================
-RUN_ID = datetime.now().strftime("%Y%m%d_%H%M%S")
-LOG_DIR = f"D:/LRET/results/benchmark_{RUN_ID}"
-os.makedirs(LOG_DIR, exist_ok=True)
+# Get log directory from command line argument (passed from launcher)
+LOG_DIR = sys.argv[2] if len(sys.argv) > 2 else None
+if LOG_DIR is None:
+    script_name = os.path.splitext(os.path.basename(__file__))[0]
+    RUN_ID = datetime.now().strftime("%Y%m%d_%H%M%S")
+    LOG_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'results', f'{script_name}_{RUN_ID}')
+    os.makedirs(LOG_DIR, exist_ok=True)
+else:
+    RUN_ID = os.path.basename(LOG_DIR).split('_')[-2] + '_' + os.path.basename(LOG_DIR).split('_')[-1]
 
-LOG_FILE = f"{LOG_DIR}/benchmark.log"
-PROGRESS_FILE = f"{LOG_DIR}/progress.log"
-RESULTS_FILE = f"{LOG_DIR}/results.json"
-LRET_EPOCHS_FILE = f"{LOG_DIR}/lret_epochs.csv"
-BASELINE_EPOCHS_FILE = f"{LOG_DIR}/baseline_epochs.csv"
+LOG_FILE = os.path.join(LOG_DIR, "benchmark.log")
+PROGRESS_FILE = os.path.join(LOG_DIR, "progress.log")
+RESULTS_FILE = os.path.join(LOG_DIR, "results.json")
 
 def log(msg, progress=False):
     """Log with timestamp"""
@@ -64,20 +120,12 @@ def save_results(data):
     with open(RESULTS_FILE, 'w') as f:
         json.dump(data, f, indent=2, default=str)
 
-def save_epoch_data(filename, epoch, loss, time_s):
-    """Append epoch data to CSV"""
-    if not os.path.exists(filename):
-        with open(filename, 'w') as f:
-            f.write("epoch,loss,time_seconds\n")
-    with open(filename, 'a') as f:
-        f.write(f"{epoch},{loss:.6f},{time_s:.2f}\n")
-
 # =============================================================================
 # MAIN BENCHMARK
 # =============================================================================
 def main():
     log("=" * 70)
-    log("LRET vs default.mixed BENCHMARK - Heavy Test (8q 200e)")
+    log("LRET vs default.mixed BENCHMARK - Medium Test (8q 100e)")
     log("=" * 70)
     log(f"Run ID: {RUN_ID}")
     log(f"Log directory: {LOG_DIR}")
@@ -92,11 +140,8 @@ def main():
     log(f"  Learning:   {LEARNING_RATE}")
     log(f"  Seed:       {RANDOM_SEED}")
     log("")
-    log("⚠️  HEAVY BENCHMARK WARNING ⚠️")
-    log("This benchmark pushes both devices to their limits:")
-    log("  - LRET should complete in 6-10 hours")
-    log("  - default.mixed will likely fail with OOM (Out of Memory)")
-    log("  - This demonstrates LRET's scalability advantage")
+    log("WARNING: 8 qubits with default.mixed may consume significant memory!")
+    log("         If default.mixed fails with OOM, this demonstrates LRET's advantage.")
     log("")
     
     # Initialize results
@@ -173,10 +218,17 @@ def main():
     # =========================================================================
     # TRAINING FUNCTION
     # =========================================================================
-    def train(name, circuit, params, csv_file):
+    def train(name, circuit, params, mode_name):
         log(f"{'='*70}", progress=True)
         log(f"TRAINING: {name}", progress=True)
         log(f"{'='*70}", progress=True)
+        
+        # Create CSV file for this training run
+        safe_name = mode_name.lower().replace(' ', '_').replace('.', '_')
+        csv_path = os.path.join(LOG_DIR, f"epochs_{safe_name}.csv")
+        csv_file = open(csv_path, 'w', newline='')
+        csv_writer = csv.writer(csv_file)
+        csv_writer.writerow(['epoch', 'loss', 'time_seconds', 'elapsed_seconds', 'eta_seconds'])
         
         start_time = time.time()
         start_mem = psutil.Process().memory_info().rss / (1024**2)
@@ -212,12 +264,13 @@ def main():
             losses.append(float(avg_loss))
             epoch_times.append(epoch_time)
             
-            # Save epoch data
-            save_epoch_data(csv_file, epoch + 1, avg_loss, epoch_time)
-            
-            # Log progress
+            # Save epoch data to CSV
             elapsed = time.time() - start_time
             eta = (elapsed / (epoch + 1)) * (N_EPOCHS - epoch - 1)
+            csv_writer.writerow([epoch + 1, f"{avg_loss:.6f}", f"{epoch_time:.2f}", f"{elapsed:.2f}", f"{eta:.2f}"])
+            csv_file.flush()
+            
+            # Log progress
             log(f"  [{name}] Epoch {epoch+1:3d}/{N_EPOCHS}: loss={avg_loss:.6f}, "
                 f"time={epoch_time:.1f}s, elapsed={elapsed/60:.1f}min, ETA={eta/60:.1f}min", 
                 progress=True)
@@ -230,6 +283,9 @@ def main():
                 "elapsed_seconds": elapsed,
             }
             save_results(results)
+        
+        csv_file.close()
+        log(f"  ✓ Epoch data saved to: {csv_path}", progress=True)
         
         # Final statistics
         total_time = time.time() - start_time
@@ -245,6 +301,7 @@ def main():
             "final_loss": losses[-1],
             "losses": losses,
             "epoch_times": epoch_times,
+            "csv_file": csv_path,
         }
         
         log(f"  [{name}] COMPLETED: {total_time:.1f}s total, "
@@ -262,7 +319,7 @@ def main():
         
         try:
             circuit_lret = make_circuit(dev_lret)
-            lret_result, lret_params = train("LRET", circuit_lret, init_params.copy(), LRET_EPOCHS_FILE)
+            lret_result, lret_params = train("LRET", circuit_lret, init_params.copy(), "lret")
             results["lret"] = lret_result
         except Exception as e:
             log(f"LRET FAILED: {e}")
@@ -280,7 +337,7 @@ def main():
         
         try:
             circuit_baseline = make_circuit(dev_baseline)
-            baseline_result, baseline_params = train("default.mixed", circuit_baseline, init_params.copy(), BASELINE_EPOCHS_FILE)
+            baseline_result, baseline_params = train("default.mixed", circuit_baseline, init_params.copy(), "default_mixed")
             results["baseline"] = baseline_result
         except Exception as e:
             log(f"default.mixed FAILED: {e}")
@@ -332,16 +389,6 @@ def main():
             "lret_faster": speedup > 1,
             "results_match": loss_diff < 0.01,
         }
-    elif results["lret"].get("status") == "completed" and results["baseline"].get("status") == "failed":
-        log("")
-        log("🎯 RESULT: LRET completed successfully while default.mixed failed!")
-        log("   This demonstrates LRET's superior scalability for 8-qubit systems.")
-        log("")
-        results["summary"] = {
-            "lret_completed": True,
-            "baseline_failed": True,
-            "demonstrates_scalability": True,
-        }
     else:
         log("One or both benchmarks failed - see logs for details")
     
@@ -353,8 +400,7 @@ def main():
     log(f"  Main log:       {LOG_FILE}")
     log(f"  Progress log:   {PROGRESS_FILE}")
     log(f"  Results JSON:   {RESULTS_FILE}")
-    log(f"  LRET epochs:    {LRET_EPOCHS_FILE}")
-    log(f"  Baseline epochs:{BASELINE_EPOCHS_FILE}")
+    log(f"  Results dir:    {LOG_DIR}")
     log("=" * 70)
 
 if __name__ == "__main__":

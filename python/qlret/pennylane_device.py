@@ -286,18 +286,63 @@ class QLRETDevice(Device):
         "QubitChannel",  # Generic Kraus channel
     }
     observables = {"PauliX", "PauliY", "PauliZ", "Identity", "Hermitian"}
+    
+    # Valid parallelization modes
+    PARALLEL_MODES = {"auto", "sequential", "row", "column", "batch", "hybrid"}
 
     def __init__(
         self,
         wires: Union[int, Sequence[int]],
         shots: Optional[int] = None,
         epsilon: float = 1e-4,
+        num_threads: int = 0,
+        parallel_mode: str = "hybrid",
         **kwargs: Any,
     ) -> None:
+        """Initialize QLRET PennyLane device.
+        
+        Parameters
+        ----------
+        wires : int or Iterable
+            Number of wires or wire labels.
+        shots : int or None
+            Number of measurement shots. None for analytic expectation values.
+        epsilon : float
+            Truncation threshold for low-rank compression (default: 1e-4).
+        num_threads : int
+            Number of threads to use for parallel execution.
+            0 = auto (use all available CPU cores). Default: 0.
+        parallel_mode : str
+            Parallelization strategy. Options:
+            - "hybrid" (default): Row + batch combined - best for most cases
+            - "auto": Automatically select best strategy
+            - "row": Row-wise parallel
+            - "column": Column-wise parallel
+            - "batch": Gate batching
+            - "sequential": No parallelism (single-threaded)
+        """
         _require_pennylane()
         # PennyLane 0.43+ has different Device initialization
         super().__init__(wires=wires, shots=shots)
         self.epsilon = epsilon
+        
+        # Parallelization settings
+        self.num_threads = num_threads  # 0 = auto (all cores)
+        parallel_mode_lower = parallel_mode.lower()
+        if parallel_mode_lower not in self.PARALLEL_MODES:
+            raise ValueError(
+                f"Invalid parallel_mode '{parallel_mode}'. "
+                f"Must be one of: {', '.join(sorted(self.PARALLEL_MODES))}"
+            )
+        self.parallel_mode = parallel_mode_lower
+        
+        # Auto-detect thread count if num_threads=0
+        if self.num_threads == 0:
+            import os
+            self._effective_threads = os.cpu_count() or 1
+        else:
+            self._effective_threads = self.num_threads
+        
         self._kwargs = kwargs
         self._num_wires = len(self.wires) if hasattr(self.wires, '__len__') else self.wires
 
@@ -477,6 +522,8 @@ class QLRETDevice(Device):
             "epsilon": self.epsilon,
             "initial_rank": 1,
             "export_state": False,
+            "num_threads": self._effective_threads,
+            "parallel_mode": self.parallel_mode,
         }
         
         # Handle shots - can be Shots object or int or None

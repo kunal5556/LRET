@@ -40,6 +40,10 @@ struct JsonCircuitSpec {
     size_t initial_rank = 1;
     bool export_state = false;
     std::optional<size_t> shots;    // Optional sampling shots
+    
+    // Parallelization settings
+    int num_threads = 0;            // 0 = auto (use all available cores)
+    std::string parallel_mode = "hybrid";  // "sequential", "row", "column", "batch", "hybrid"
 };
 
 struct JsonRunResult {

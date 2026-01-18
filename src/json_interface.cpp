@@ -3,6 +3,10 @@
 #include "gates_and_noise.h"
 #include "utils.h"
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include <chrono>
 #include <cctype>
 #include <fstream>
@@ -288,6 +292,27 @@ JsonCircuitSpec parse_circuit_json(const nlohmann::json& j) {
         if (cfg.contains("shots") && !cfg["shots"].is_null()) {
             spec.shots = cfg.at("shots").get<size_t>();
         }
+        
+        // Parallelization parameters
+        spec.num_threads = cfg.value("num_threads", 0);
+        if (cfg.contains("parallel_mode")) {
+            std::string mode_str = cfg.at("parallel_mode").get<std::string>();
+            // Convert to uppercase for comparison
+            std::string mode_upper = to_upper_copy(mode_str);
+            if (mode_upper == "SEQUENTIAL") {
+                spec.parallel_mode = "sequential";
+            } else if (mode_upper == "ROW") {
+                spec.parallel_mode = "row";
+            } else if (mode_upper == "COLUMN") {
+                spec.parallel_mode = "column";
+            } else if (mode_upper == "BATCH") {
+                spec.parallel_mode = "batch";
+            } else if (mode_upper == "HYBRID") {
+                spec.parallel_mode = "hybrid";
+            } else {
+                spec.parallel_mode = "hybrid";  // Default to hybrid
+            }
+        }
     }
 
     return spec;
@@ -332,6 +357,13 @@ JsonRunResult run_json_circuit(const JsonCircuitSpec& spec) {
         throw std::invalid_argument("num_qubits must be > 0");
     }
 
+    // Set OpenMP thread count if specified
+    #ifdef _OPENMP
+    if (spec.num_threads > 0) {
+        omp_set_num_threads(spec.num_threads);
+    }
+    #endif
+
     QuantumSequence seq = build_sequence(spec);
 
     // Initial state
@@ -343,6 +375,13 @@ JsonRunResult run_json_circuit(const JsonCircuitSpec& spec) {
     }
 
     SimConfig cfg = spec.config;
+    
+    // Enable parallel mode based on config
+    if (spec.parallel_mode == "sequential") {
+        cfg.use_parallel = false;
+    } else {
+        cfg.use_parallel = true;
+    }
 
     auto start = std::chrono::high_resolution_clock::now();
     SimResult sim_res = run_simulation(L_init, seq, spec.num_qubits, cfg);
