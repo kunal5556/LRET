@@ -1,0 +1,208 @@
+✓ LRET Python package installed
+
+======================================================================
+Step 5/6: Verify PennyLane Device Registration
+======================================================================
+Testing LRET device creation...
+✗ Failed to create LRET device: No module named 'qlret'
+
+Troubleshooting:
+  1. Verify build artifacts exist:
+     ls python/qlret/build/*.so (Linux)
+     ls python/qlret/build/*.pyd (Windows)
+  2. Rebuild: cd python && pip install -e . --force-reinstall
+▶ Running benchmarks/pennylane/pennylane_4q_50e_25s_10n.py
+======================================================================
+LAUNCHING BENCHMARK WITH CPU MONITORING
+======================================================================
+Script: pennylane_4q_50e_25s_10n.py
+Results directory: /mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/../../results/pennylane_4q_50e_25s_10n_20260120_142551
+This will open TWO new PowerShell windows:
+  1. Benchmark execution window
+  2. CPU monitoring window
+======================================================================
+Traceback (most recent call last):
+  File "/mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/pennylane_4q_50e_25s_10n.py", line 52, in <module>
+    creationflags=subprocess.CREATE_NEW_CONSOLE
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'subprocess' has no attribute 'CREATE_NEW_CONSOLE'
+▶ Running benchmarks/pennylane/pennylane_8q_100e_100s_12n.py
+======================================================================
+LAUNCHING BENCHMARK WITH CPU MONITORING
+======================================================================
+Script: pennylane_8q_100e_100s_12n.py
+Results directory: /mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/../../results/pennylane_8q_100e_100s_12n_20260120_142552
+This will open TWO new PowerShell windows:
+  1. Benchmark execution window
+  2. CPU monitoring window
+⚠️  WARNING: 8-qubit benchmark - default.mixed may OOM!
+======================================================================
+Traceback (most recent call last):
+  File "/mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/pennylane_8q_100e_100s_12n.py", line 53, in <module>
+    creationflags=subprocess.CREATE_NEW_CONSOLE
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'subprocess' has no attribute 'CREATE_NEW_CONSOLE'
+▶ Running benchmarks/pennylane/pennylane_8q_200e_200s_15n.py
+======================================================================
+LAUNCHING BENCHMARK WITH CPU MONITORING
+======================================================================
+Script: pennylane_8q_200e_200s_15n.py
+Results directory: /mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/../../results/pennylane_8q_200e_200s_15n_20260120_142552
+This will open TWO new PowerShell windows:
+  1. Benchmark execution window
+  2. CPU monitoring window
+⚠️  WARNING: 8-qubit benchmark - default.mixed may OOM!
+======================================================================
+Traceback (most recent call last):
+  File "/mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/pennylane_8q_200e_200s_15n.py", line 56, in <module>
+    creationflags=subprocess.CREATE_NEW_CONSOLE
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'subprocess' has no attribute 'CREATE_NEW_CONSOLE'
+▶ Running benchmarks/pennylane/pennylane_4q_50e_25s_10n_row.py
+======================================================================
+LAUNCHING BENCHMARK WITH CPU MONITORING
+======================================================================
+Script: pennylane_4q_50e_25s_10n_row.py
+Mode: ROW parallelization
+Results directory: /mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/../../results/pennylane_4q_50e_25s_10n_row_20260120_142552
+This will open TWO new PowerShell windows:
+  1. Benchmark execution window
+  2. CPU monitoring window
+======================================================================
+Traceback (most recent call last):
+  File "/mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/pennylane_4q_50e_25s_10n_row.py", line 50, in <module>
+    creationflags=subprocess.CREATE_NEW_CONSOLE
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'subprocess' has no attribute 'CREATE_NEW_CONSOLE'
+▶ Running benchmarks/pennylane/pennylane_8q_100e_100s_12n_row.py
+======================================================================
+LAUNCHING BENCHMARK WITH CPU MONITORING
+======================================================================
+Script: pennylane_8q_100e_100s_12n_row.py
+Mode: ROW parallelization (8 qubits)
+Results directory: /mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/../../results/pennylane_8q_100e_100s_12n_row_20260120_142553
+⚠️  WARNING: default.mixed may OOM at 8 qubits!
+======================================================================
+Traceback (most recent call last):
+  File "/mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/pennylane_8q_100e_100s_12n_row.py", line 47, in <module>
+    subprocess.Popen(["powershell", "-NoExit", "-Command", benchmark_cmd], creationflags=subprocess.CREATE_NEW_CONSOLE)
+                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'subprocess' has no attribute 'CREATE_NEW_CONSOLE'
+▶ Running benchmarks/pennylane/pennylane_8q_200e_200s_15n_row.py
+======================================================================
+LAUNCHING BENCHMARK WITH CPU MONITORING
+======================================================================
+Script: pennylane_8q_200e_200s_15n_row.py
+Mode: ROW parallelization (8 qubits HEAVY)
+Results directory: /mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/../../results/pennylane_8q_200e_200s_15n_row_20260120_142553
+⚠️  WARNING: HEAVY benchmark - default.mixed WILL likely OOM!
+======================================================================
+Traceback (most recent call last):
+  File "/mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/pennylane_8q_200e_200s_15n_row.py", line 48, in <module>
+    subprocess.Popen(["powershell", "-NoExit", "-Command", benchmark_cmd], creationflags=subprocess.CREATE_NEW_CONSOLE)
+                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'subprocess' has no attribute 'CREATE_NEW_CONSOLE'
+▶ Running benchmarks/pennylane/pennylane_4q_50e_25s_10n_hybrid.py
+======================================================================
+LAUNCHING BENCHMARK WITH CPU MONITORING
+======================================================================
+Script: pennylane_4q_50e_25s_10n_hybrid.py
+Mode: HYBRID parallelization
+Results directory: /mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/../../results/pennylane_4q_50e_25s_10n_hybrid_20260120_142553
+This will open TWO new PowerShell windows.
+======================================================================
+Traceback (most recent call last):
+  File "/mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/pennylane_4q_50e_25s_10n_hybrid.py", line 46, in <module>
+    subprocess.Popen(["powershell", "-NoExit", "-Command", benchmark_cmd], creationflags=subprocess.CREATE_NEW_CONSOLE)
+                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'subprocess' has no attribute 'CREATE_NEW_CONSOLE'
+▶ Running benchmarks/pennylane/pennylane_8q_100e_100s_12n_hybrid.py
+======================================================================
+LAUNCHING BENCHMARK WITH CPU MONITORING
+======================================================================
+Script: pennylane_8q_100e_100s_12n_hybrid.py
+Mode: HYBRID parallelization (8 qubits)
+Results directory: /mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/../../results/pennylane_8q_100e_100s_12n_hybrid_20260120_142554
+⚠️  WARNING: default.mixed may OOM at 8 qubits!
+======================================================================
+Traceback (most recent call last):
+  File "/mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/pennylane_8q_100e_100s_12n_hybrid.py", line 47, in <module>
+    subprocess.Popen(["powershell", "-NoExit", "-Command", benchmark_cmd], creationflags=subprocess.CREATE_NEW_CONSOLE)
+                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'subprocess' has no attribute 'CREATE_NEW_CONSOLE'
+▶ Running benchmarks/pennylane/pennylane_8q_200e_200s_15n_hybrid.py
+======================================================================
+LAUNCHING BENCHMARK WITH CPU MONITORING
+======================================================================
+Script: pennylane_8q_200e_200s_15n_hybrid.py
+Mode: HYBRID parallelization (8 qubits HEAVY)
+Results directory: /mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/../../results/pennylane_8q_200e_200s_15n_hybrid_20260120_142554
+⚠️  WARNING: HEAVY benchmark - default.mixed WILL likely OOM!
+======================================================================
+Traceback (most recent call last):
+  File "/mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/pennylane_8q_200e_200s_15n_hybrid.py", line 48, in <module>
+    subprocess.Popen(["powershell", "-NoExit", "-Command", benchmark_cmd], creationflags=subprocess.CREATE_NEW_CONSOLE)
+                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'subprocess' has no attribute 'CREATE_NEW_CONSOLE'
+▶ Running benchmarks/pennylane/pennylane_4q_50e_25s_10n_compare_all.py
+======================================================================
+LAUNCHING BENCHMARK WITH CPU MONITORING
+======================================================================
+Script: pennylane_4q_50e_25s_10n_compare_all.py
+Results directory: /mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/../../results/pennylane_4q_50e_25s_10n_compare_all_20260120_142556
+This will open TWO new PowerShell windows:
+  1. Benchmark execution window
+  2. CPU monitoring window
+======================================================================
+Traceback (most recent call last):
+  File "/mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/pennylane_4q_50e_25s_10n_compare_all.py", line 57, in <module>
+    creationflags=subprocess.CREATE_NEW_CONSOLE
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'subprocess' has no attribute 'CREATE_NEW_CONSOLE'
+▶ Running benchmarks/pennylane/pennylane_8q_100e_100s_12n_compare_all.py
+======================================================================
+LAUNCHING BENCHMARK WITH CPU MONITORING
+======================================================================
+Script: pennylane_8q_100e_100s_12n_compare_all.py
+Results directory: /mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/../../results/pennylane_8q_100e_100s_12n_compare_all_20260120_142558
+This will open TWO new PowerShell windows:
+  1. Benchmark execution window
+  2. CPU monitoring window
+======================================================================
+Traceback (most recent call last):
+  File "/mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/pennylane_8q_100e_100s_12n_compare_all.py", line 55, in <module>
+    creationflags=subprocess.CREATE_NEW_CONSOLE
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'subprocess' has no attribute 'CREATE_NEW_CONSOLE'
+▶ Running benchmarks/pennylane/pennylane_8q_200e_200s_15n_compare_all.py
+======================================================================
+LAUNCHING BENCHMARK WITH CPU MONITORING
+======================================================================
+Script: pennylane_8q_200e_200s_15n_compare_all.py
+Results directory: /mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/../../results/pennylane_8q_200e_200s_15n_compare_all_20260120_142600
+This will open TWO new PowerShell windows:
+  1. Benchmark execution window
+  2. CPU monitoring window
+⚠️  WARNING: This is a HEAVY benchmark (8q, 200 epochs)
+======================================================================
+Traceback (most recent call last):
+  File "/mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/pennylane_8q_200e_200s_15n_compare_all.py", line 56, in <module>
+    creationflags=subprocess.CREATE_NEW_CONSOLE
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'subprocess' has no attribute 'CREATE_NEW_CONSOLE'
+▶ Running benchmarks/pennylane/pennylane_parallel_modes_comparison.py
+======================================================================
+LAUNCHING BENCHMARK WITH CPU MONITORING
+======================================================================
+Script: pennylane_parallel_modes_comparison.py
+Results directory: /mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/../../results/pennylane_parallel_modes_comparison_20260120_142602
+This will open TWO new PowerShell windows:
+  1. Benchmark execution window
+  2. CPU monitoring window
+======================================================================
+Traceback (most recent call last):
+  File "/mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET/benchmarks/pennylane/pennylane_parallel_modes_comparison.py", line 59, in <module>
+    creationflags=subprocess.CREATE_NEW_CONSOLE
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'subprocess' has no attribute 'CREATE_NEW_CONSOLE'
+(pen_venv) jaihind@DESKTOP-42O9PRG:/mnt/c/Users/Jai Hind/Downloads/Kislaya/LRET$

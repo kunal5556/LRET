@@ -1,0 +1,44 @@
+{
+  "run_id": "20260119_022434",
+  "config": {
+    "n_qubits": 4,
+    "n_epochs": 25,
+    "n_samples": 25,
+    "noise_rate": 0.1,
+    "cpu_cores": 8
+  },
+  "results": {
+    "sequential": {
+      "total_time_seconds": 87.9051604270935,
+      "avg_epoch_time": 3.5162064170837404,
+      "final_loss": 1.0391622471926483,
+      "speedup_vs_sequential": 1.0
+    },
+    "row": {
+      "total_time_seconds": 94.73359251022339,
+      "avg_epoch_time": 3.7893437004089354,
+      "final_loss": 1.0391622471926483,
+      "speedup_vs_sequential": 0.9279196333402749
+    },
+    "column": {
+      "total_time_seconds": 92.52485871315002,
+      "avg_epoch_time": 3.700994348526001,
+      "final_loss": 1.0391622471926483,
+      "speedup_vs_sequential": 0.9500707339594138
+    },
+    "hybrid": {
+      "total_time_seconds": 91.80075359344482,
+      "avg_epoch_time": 3.672030143737793,
+      "final_loss": 1.0391622471926483,
+      "speedup_vs_sequential": 0.9575646929479075
+    },
+    "batch": {
+      "total_time_seconds": 95.85779619216919,
+      "avg_epoch_time": 3.8343118476867675,
+      "final_loss": 1.0391622471926483,
+      "speedup_vs_sequential": 0.9170371521046365
+    }
+  },
+  "best_mode": "sequential",
+  "best_speedup": 1.0
+}

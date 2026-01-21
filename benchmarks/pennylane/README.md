@@ -155,9 +155,20 @@ python benchmarks/pennylane/pennylane_8q_200e_200s_15n.py
 python benchmarks/pennylane/pennylane_parallel_modes_comparison.py
 ```
 
-**Note:** All scripts now launch two PowerShell windows:
+**Note:** All scripts now automatically launch two terminal windows:
 1. Benchmark execution with live progress
 2. CPU monitoring (saves to `cpu_usage.csv`)
+
+### Platform Support
+
+The benchmark suite supports **Windows, Linux, and macOS** with automatic terminal detection:
+
+- **Windows**: Launches PowerShell windows with `CREATE_NEW_CONSOLE`
+- **Linux**: Launches `gnome-terminal`, `konsole`, or `xterm` (auto-detected)
+- **macOS**: Launches Terminal.app via AppleScript
+- **WSL**: Detected and uses Linux terminal launchers
+
+If no terminal is available, benchmarks run in background mode (check log files for progress).
 
 ---
 

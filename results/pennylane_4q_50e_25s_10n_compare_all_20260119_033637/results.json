@@ -1,0 +1,57 @@
+{
+  "run_id": "20260119_033637",
+  "log_dir": "D:\\LRET\\benchmarks\\pennylane\\..\\..\\results\\pennylane_4q_50e_25s_10n_compare_all_20260119_033637",
+  "config": {
+    "n_qubits": 4,
+    "n_epochs": 50,
+    "n_samples": 25,
+    "noise_rate": 0.1,
+    "cpu_cores": 8
+  },
+  "results": {
+    "lret_sequential": {
+      "total_time_seconds": 165.0289604663849,
+      "avg_epoch_time": 3.3005792093276978,
+      "final_loss": 1.0460866038025523,
+      "speedup_vs_baseline": 2.8814641236310536,
+      "csv_file": "D:\\LRET\\benchmarks\\pennylane\\..\\..\\results\\pennylane_4q_50e_25s_10n_compare_all_20260119_033637\\epochs_lret_sequential.csv"
+    },
+    "lret_row": {
+      "total_time_seconds": 164.3794162273407,
+      "avg_epoch_time": 3.287588324546814,
+      "final_loss": 1.0460866038025523,
+      "speedup_vs_baseline": 2.8928502111624055,
+      "csv_file": "D:\\LRET\\benchmarks\\pennylane\\..\\..\\results\\pennylane_4q_50e_25s_10n_compare_all_20260119_033637\\epochs_lret_row.csv"
+    },
+    "lret_column": {
+      "total_time_seconds": 164.34292554855347,
+      "avg_epoch_time": 3.2868585109710695,
+      "final_loss": 1.0460866038025523,
+      "speedup_vs_baseline": 2.8934925391937627,
+      "csv_file": "D:\\LRET\\benchmarks\\pennylane\\..\\..\\results\\pennylane_4q_50e_25s_10n_compare_all_20260119_033637\\epochs_lret_column.csv"
+    },
+    "lret_hybrid": {
+      "total_time_seconds": 164.0987265110016,
+      "avg_epoch_time": 3.281974530220032,
+      "final_loss": 1.0460866038025523,
+      "speedup_vs_baseline": 2.8977984110811192,
+      "csv_file": "D:\\LRET\\benchmarks\\pennylane\\..\\..\\results\\pennylane_4q_50e_25s_10n_compare_all_20260119_033637\\epochs_lret_hybrid.csv"
+    },
+    "lret_batch": {
+      "total_time_seconds": 163.8415288925171,
+      "avg_epoch_time": 3.2768305778503417,
+      "final_loss": 1.0460866038025523,
+      "speedup_vs_baseline": 2.9023473606375356,
+      "csv_file": "D:\\LRET\\benchmarks\\pennylane\\..\\..\\results\\pennylane_4q_50e_25s_10n_compare_all_20260119_033637\\epochs_lret_batch.csv"
+    },
+    "default_mixed": {
+      "total_time_seconds": 475.5250289440155,
+      "avg_epoch_time": 9.51050057888031,
+      "final_loss": 1.0460944709893696,
+      "speedup_vs_baseline": 1.0,
+      "csv_file": "D:\\LRET\\benchmarks\\pennylane\\..\\..\\results\\pennylane_4q_50e_25s_10n_compare_all_20260119_033637\\epochs_default.mixed.csv"
+    }
+  },
+  "fastest_mode": "lret_batch",
+  "fastest_speedup": 2.9023473606375356
+}

@@ -16,6 +16,7 @@ import sys
 import os
 import json
 import subprocess
+import platform
 import numpy as np
 import psutil
 import threading
@@ -31,6 +32,8 @@ else:
 # LAUNCHER MODE - Start benchmark and CPU monitor in separate windows
 # =============================================================================
 if not IS_WORKER:
+    from launcher_utils import launch_in_new_terminal, get_terminal_name, format_command_for_platform
+    
     script_path = os.path.abspath(__file__)
     script_dir = os.path.dirname(script_path)
     script_name = os.path.splitext(os.path.basename(script_path))[0]
@@ -40,35 +43,32 @@ if not IS_WORKER:
     log_dir = os.path.join(script_dir, '..', '..', 'results', f'{script_name}_{run_id}')
     os.makedirs(log_dir, exist_ok=True)
     
+    terminal_name = get_terminal_name()
+    
     print("=" * 70)
     print("LAUNCHING BENCHMARK WITH CPU MONITORING")
     print("=" * 70)
+    print(f"Platform: {platform.system()}")
     print(f"Script: {os.path.basename(script_path)}")
     print(f"Results directory: {log_dir}")
-    print(f"This will open TWO new PowerShell windows:")
+    print(f"This will open TWO new {terminal_name} windows:")
     print("  1. Benchmark execution window")
     print("  2. CPU monitoring window")
     print("=" * 70)
     
-    # Start benchmark in new window, pass log_dir as argument
-    benchmark_cmd = f'cd "{script_dir}"; python "{script_path}" --worker "{log_dir}"'
-    subprocess.Popen(
-        ["powershell", "-NoExit", "-Command", benchmark_cmd],
-        creationflags=subprocess.CREATE_NEW_CONSOLE
-    )
+    # Start benchmark in new window with log_dir argument
+    benchmark_cmd = format_command_for_platform(script_path, "--worker", log_dir)
+    launch_in_new_terminal(benchmark_cmd, "LRET Benchmark")
     
     # Wait a moment for benchmark to start
     time.sleep(2)
     
     # Start CPU monitor in new window with log_dir argument
     monitor_path = os.path.join(script_dir, "monitor_cpu.py")
-    monitor_cmd = f'cd "{script_dir}"; python "{monitor_path}" "{log_dir}"'
-    subprocess.Popen(
-        ["powershell", "-NoExit", "-Command", monitor_cmd],
-        creationflags=subprocess.CREATE_NEW_CONSOLE
-    )
+    monitor_cmd = format_command_for_platform(monitor_path, log_dir)
+    launch_in_new_terminal(monitor_cmd, "CPU Monitor")
     
-    print("\n✓ Both windows launched. Check the new PowerShell windows.")
+    print(f"\n✓ Both windows launched. Check the new {terminal_name} windows.")
     print(f"✓ Results will be saved to: {log_dir}")
     print("  - Close this window or press Ctrl+C to exit.")
     sys.exit(0)

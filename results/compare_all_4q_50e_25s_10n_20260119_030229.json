@@ -1,0 +1,50 @@
+{
+  "run_id": "20260119_030229",
+  "config": {
+    "n_qubits": 4,
+    "n_epochs": 50,
+    "n_samples": 25,
+    "noise_rate": 0.1,
+    "cpu_cores": 8
+  },
+  "results": {
+    "lret_sequential": {
+      "total_time_seconds": 178.90048480033875,
+      "avg_epoch_time": 3.578009696006775,
+      "final_loss": 1.0460866038025523,
+      "speedup_vs_baseline": 3.0289945019265403
+    },
+    "lret_row": {
+      "total_time_seconds": 178.11761212348938,
+      "avg_epoch_time": 3.5623522424697875,
+      "final_loss": 1.0460866038025523,
+      "speedup_vs_baseline": 3.0423077111348538
+    },
+    "lret_column": {
+      "total_time_seconds": 186.08621907234192,
+      "avg_epoch_time": 3.7217243814468386,
+      "final_loss": 1.0460866038025523,
+      "speedup_vs_baseline": 2.91202963633517
+    },
+    "lret_hybrid": {
+      "total_time_seconds": 172.4222490787506,
+      "avg_epoch_time": 3.4484449815750122,
+      "final_loss": 1.0460866038025523,
+      "speedup_vs_baseline": 3.1427996546125625
+    },
+    "lret_batch": {
+      "total_time_seconds": 193.2414412498474,
+      "avg_epoch_time": 3.8648288249969482,
+      "final_loss": 1.0460866038025523,
+      "speedup_vs_baseline": 2.8042048400559967
+    },
+    "default_mixed": {
+      "total_time_seconds": 541.8885848522186,
+      "avg_epoch_time": 10.837771697044372,
+      "final_loss": 1.0460944709893696,
+      "speedup_vs_baseline": 1.0
+    }
+  },
+  "fastest_mode": "lret_hybrid",
+  "fastest_speedup": 3.1427996546125625
+}
