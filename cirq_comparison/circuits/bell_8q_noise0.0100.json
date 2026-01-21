@@ -1,0 +1,67 @@
+{
+  "circuit": {
+    "num_qubits": 8,
+    "operations": [
+      {
+        "gate": "H",
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 0,
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "H",
+        "targets": [
+          2
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 2,
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "H",
+        "targets": [
+          4
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 4,
+        "targets": [
+          5
+        ]
+      },
+      {
+        "gate": "H",
+        "targets": [
+          6
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 6,
+        "targets": [
+          7
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 1e-06,
+    "max_rank": 1000,
+    "noise": {
+      "type": "depolarizing",
+      "parameter": 0.01
+    }
+  }
+}

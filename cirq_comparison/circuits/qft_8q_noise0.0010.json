@@ -1,0 +1,679 @@
+{
+  "circuit": {
+    "num_qubits": 8,
+    "operations": [
+      {
+        "gate": "H",
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 1,
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          0
+        ],
+        "parameters": 1.5707963267948966
+      },
+      {
+        "gate": "CNOT",
+        "control": 1,
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 2,
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          0
+        ],
+        "parameters": 0.7853981633974483
+      },
+      {
+        "gate": "CNOT",
+        "control": 2,
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 3,
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          0
+        ],
+        "parameters": 0.39269908169872414
+      },
+      {
+        "gate": "CNOT",
+        "control": 3,
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 4,
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          0
+        ],
+        "parameters": 0.19634954084936207
+      },
+      {
+        "gate": "CNOT",
+        "control": 4,
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 5,
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          0
+        ],
+        "parameters": 0.09817477042468103
+      },
+      {
+        "gate": "CNOT",
+        "control": 5,
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 6,
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          0
+        ],
+        "parameters": 0.04908738521234052
+      },
+      {
+        "gate": "CNOT",
+        "control": 6,
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 7,
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          0
+        ],
+        "parameters": 0.02454369260617026
+      },
+      {
+        "gate": "CNOT",
+        "control": 7,
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "H",
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 2,
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          1
+        ],
+        "parameters": 1.5707963267948966
+      },
+      {
+        "gate": "CNOT",
+        "control": 2,
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 3,
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          1
+        ],
+        "parameters": 0.7853981633974483
+      },
+      {
+        "gate": "CNOT",
+        "control": 3,
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 4,
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          1
+        ],
+        "parameters": 0.39269908169872414
+      },
+      {
+        "gate": "CNOT",
+        "control": 4,
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 5,
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          1
+        ],
+        "parameters": 0.19634954084936207
+      },
+      {
+        "gate": "CNOT",
+        "control": 5,
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 6,
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          1
+        ],
+        "parameters": 0.09817477042468103
+      },
+      {
+        "gate": "CNOT",
+        "control": 6,
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 7,
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          1
+        ],
+        "parameters": 0.04908738521234052
+      },
+      {
+        "gate": "CNOT",
+        "control": 7,
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "H",
+        "targets": [
+          2
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 3,
+        "targets": [
+          2
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          2
+        ],
+        "parameters": 1.5707963267948966
+      },
+      {
+        "gate": "CNOT",
+        "control": 3,
+        "targets": [
+          2
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 4,
+        "targets": [
+          2
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          2
+        ],
+        "parameters": 0.7853981633974483
+      },
+      {
+        "gate": "CNOT",
+        "control": 4,
+        "targets": [
+          2
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 5,
+        "targets": [
+          2
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          2
+        ],
+        "parameters": 0.39269908169872414
+      },
+      {
+        "gate": "CNOT",
+        "control": 5,
+        "targets": [
+          2
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 6,
+        "targets": [
+          2
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          2
+        ],
+        "parameters": 0.19634954084936207
+      },
+      {
+        "gate": "CNOT",
+        "control": 6,
+        "targets": [
+          2
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 7,
+        "targets": [
+          2
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          2
+        ],
+        "parameters": 0.09817477042468103
+      },
+      {
+        "gate": "CNOT",
+        "control": 7,
+        "targets": [
+          2
+        ]
+      },
+      {
+        "gate": "H",
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 4,
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          3
+        ],
+        "parameters": 1.5707963267948966
+      },
+      {
+        "gate": "CNOT",
+        "control": 4,
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 5,
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          3
+        ],
+        "parameters": 0.7853981633974483
+      },
+      {
+        "gate": "CNOT",
+        "control": 5,
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 6,
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          3
+        ],
+        "parameters": 0.39269908169872414
+      },
+      {
+        "gate": "CNOT",
+        "control": 6,
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 7,
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          3
+        ],
+        "parameters": 0.19634954084936207
+      },
+      {
+        "gate": "CNOT",
+        "control": 7,
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "H",
+        "targets": [
+          4
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 5,
+        "targets": [
+          4
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          4
+        ],
+        "parameters": 1.5707963267948966
+      },
+      {
+        "gate": "CNOT",
+        "control": 5,
+        "targets": [
+          4
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 6,
+        "targets": [
+          4
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          4
+        ],
+        "parameters": 0.7853981633974483
+      },
+      {
+        "gate": "CNOT",
+        "control": 6,
+        "targets": [
+          4
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 7,
+        "targets": [
+          4
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          4
+        ],
+        "parameters": 0.39269908169872414
+      },
+      {
+        "gate": "CNOT",
+        "control": 7,
+        "targets": [
+          4
+        ]
+      },
+      {
+        "gate": "H",
+        "targets": [
+          5
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 6,
+        "targets": [
+          5
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          5
+        ],
+        "parameters": 1.5707963267948966
+      },
+      {
+        "gate": "CNOT",
+        "control": 6,
+        "targets": [
+          5
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 7,
+        "targets": [
+          5
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          5
+        ],
+        "parameters": 0.7853981633974483
+      },
+      {
+        "gate": "CNOT",
+        "control": 7,
+        "targets": [
+          5
+        ]
+      },
+      {
+        "gate": "H",
+        "targets": [
+          6
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 7,
+        "targets": [
+          6
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          6
+        ],
+        "parameters": 1.5707963267948966
+      },
+      {
+        "gate": "CNOT",
+        "control": 7,
+        "targets": [
+          6
+        ]
+      },
+      {
+        "gate": "H",
+        "targets": [
+          7
+        ]
+      },
+      {
+        "gate": "SWAP",
+        "targets": [
+          0,
+          7
+        ]
+      },
+      {
+        "gate": "SWAP",
+        "targets": [
+          1,
+          6
+        ]
+      },
+      {
+        "gate": "SWAP",
+        "targets": [
+          2,
+          5
+        ]
+      },
+      {
+        "gate": "SWAP",
+        "targets": [
+          3,
+          4
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 1e-06,
+    "max_rank": 1000,
+    "noise": {
+      "type": "depolarizing",
+      "parameter": 0.001
+    }
+  }
+}

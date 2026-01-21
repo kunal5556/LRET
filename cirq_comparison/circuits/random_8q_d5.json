@@ -1,0 +1,358 @@
+{
+  "circuit": {
+    "num_qubits": 8,
+    "operations": [
+      {
+        "gate": "RY",
+        "targets": [
+          0
+        ],
+        "parameters": 5.004827191577157
+      },
+      {
+        "gate": "RY",
+        "targets": [
+          1
+        ],
+        "parameters": 4.599253580133889
+      },
+      {
+        "gate": "H",
+        "targets": [
+          2
+        ]
+      },
+      {
+        "gate": "H",
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "RY",
+        "targets": [
+          4
+        ],
+        "parameters": 2.8012498021891115
+      },
+      {
+        "gate": "RY",
+        "targets": [
+          5
+        ],
+        "parameters": 0.3649500985631483
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          6
+        ],
+        "parameters": 2.096753042388008
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          7
+        ],
+        "parameters": 4.448951217224888
+      },
+      {
+        "gate": "CNOT",
+        "control": 2,
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 4,
+        "targets": [
+          5
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          0
+        ],
+        "parameters": 6.234249090952325
+      },
+      {
+        "gate": "H",
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          2
+        ],
+        "parameters": 3.843130151069924
+      },
+      {
+        "gate": "H",
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          4
+        ],
+        "parameters": 0.14490549016815404
+      },
+      {
+        "gate": "RY",
+        "targets": [
+          5
+        ],
+        "parameters": 3.844385118274953
+      },
+      {
+        "gate": "RX",
+        "targets": [
+          6
+        ],
+        "parameters": 0.29320900945357936
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          7
+        ],
+        "parameters": 2.3019193508941536
+      },
+      {
+        "gate": "CNOT",
+        "control": 2,
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 6,
+        "targets": [
+          7
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          0
+        ],
+        "parameters": 2.932757752792341
+      },
+      {
+        "gate": "H",
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "RY",
+        "targets": [
+          2
+        ],
+        "parameters": 4.274498330818247
+      },
+      {
+        "gate": "H",
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "RY",
+        "targets": [
+          4
+        ],
+        "parameters": 0.08334620905998126
+      },
+      {
+        "gate": "H",
+        "targets": [
+          5
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          6
+        ],
+        "parameters": 3.5392442540744664
+      },
+      {
+        "gate": "RX",
+        "targets": [
+          7
+        ],
+        "parameters": 1.9139447588347167
+      },
+      {
+        "gate": "CNOT",
+        "control": 2,
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "H",
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          1
+        ],
+        "parameters": 0.21606945060677518
+      },
+      {
+        "gate": "RX",
+        "targets": [
+          2
+        ],
+        "parameters": 2.4571062637209087
+      },
+      {
+        "gate": "RX",
+        "targets": [
+          3
+        ],
+        "parameters": 4.162750282731995
+      },
+      {
+        "gate": "RX",
+        "targets": [
+          4
+        ],
+        "parameters": 2.671333143864477
+      },
+      {
+        "gate": "RX",
+        "targets": [
+          5
+        ],
+        "parameters": 3.435081994453742
+      },
+      {
+        "gate": "RX",
+        "targets": [
+          6
+        ],
+        "parameters": 0.1967472190761831
+      },
+      {
+        "gate": "RX",
+        "targets": [
+          7
+        ],
+        "parameters": 4.870303166855185
+      },
+      {
+        "gate": "CNOT",
+        "control": 0,
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 2,
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 4,
+        "targets": [
+          5
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 6,
+        "targets": [
+          7
+        ]
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          0
+        ],
+        "parameters": 3.5842051985531334
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          1
+        ],
+        "parameters": 0.28417143716625903
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          2
+        ],
+        "parameters": 5.3063626694303885
+      },
+      {
+        "gate": "H",
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "RX",
+        "targets": [
+          4
+        ],
+        "parameters": 3.390985676627486
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          5
+        ],
+        "parameters": 2.241547260568599
+      },
+      {
+        "gate": "RZ",
+        "targets": [
+          6
+        ],
+        "parameters": 3.814108666019791
+      },
+      {
+        "gate": "H",
+        "targets": [
+          7
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 2,
+        "targets": [
+          3
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 6,
+        "targets": [
+          7
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 1e-06,
+    "max_rank": 1000
+  }
+}

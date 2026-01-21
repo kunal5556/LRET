@@ -1,0 +1,35 @@
+{
+  "circuit": {
+    "num_qubits": 3,
+    "operations": [
+      {
+        "gate": "H",
+        "targets": [
+          0
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 0,
+        "targets": [
+          1
+        ]
+      },
+      {
+        "gate": "CNOT",
+        "control": 1,
+        "targets": [
+          2
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 1e-06,
+    "max_rank": 1000,
+    "noise": {
+      "type": "depolarizing",
+      "parameter": 0.001
+    }
+  }
+}

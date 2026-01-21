@@ -1,0 +1,794 @@
+[
+  {
+    "name": "bell_2q",
+    "type": "bell",
+    "num_qubits": 2,
+    "depth": 2,
+    "noise": 0.0,
+    "path": "circuits\\bell_2q.json"
+  },
+  {
+    "name": "bell_2q_noise0.0010",
+    "type": "bell",
+    "num_qubits": 2,
+    "depth": 2,
+    "noise": 0.001,
+    "path": "circuits\\bell_2q_noise0.0010.json"
+  },
+  {
+    "name": "bell_2q_noise0.0100",
+    "type": "bell",
+    "num_qubits": 2,
+    "depth": 2,
+    "noise": 0.01,
+    "path": "circuits\\bell_2q_noise0.0100.json"
+  },
+  {
+    "name": "bell_4q",
+    "type": "bell",
+    "num_qubits": 4,
+    "depth": 2,
+    "noise": 0.0,
+    "path": "circuits\\bell_4q.json"
+  },
+  {
+    "name": "bell_4q_noise0.0010",
+    "type": "bell",
+    "num_qubits": 4,
+    "depth": 2,
+    "noise": 0.001,
+    "path": "circuits\\bell_4q_noise0.0010.json"
+  },
+  {
+    "name": "bell_4q_noise0.0100",
+    "type": "bell",
+    "num_qubits": 4,
+    "depth": 2,
+    "noise": 0.01,
+    "path": "circuits\\bell_4q_noise0.0100.json"
+  },
+  {
+    "name": "bell_6q",
+    "type": "bell",
+    "num_qubits": 6,
+    "depth": 2,
+    "noise": 0.0,
+    "path": "circuits\\bell_6q.json"
+  },
+  {
+    "name": "bell_6q_noise0.0010",
+    "type": "bell",
+    "num_qubits": 6,
+    "depth": 2,
+    "noise": 0.001,
+    "path": "circuits\\bell_6q_noise0.0010.json"
+  },
+  {
+    "name": "bell_6q_noise0.0100",
+    "type": "bell",
+    "num_qubits": 6,
+    "depth": 2,
+    "noise": 0.01,
+    "path": "circuits\\bell_6q_noise0.0100.json"
+  },
+  {
+    "name": "bell_8q",
+    "type": "bell",
+    "num_qubits": 8,
+    "depth": 2,
+    "noise": 0.0,
+    "path": "circuits\\bell_8q.json"
+  },
+  {
+    "name": "bell_8q_noise0.0010",
+    "type": "bell",
+    "num_qubits": 8,
+    "depth": 2,
+    "noise": 0.001,
+    "path": "circuits\\bell_8q_noise0.0010.json"
+  },
+  {
+    "name": "bell_8q_noise0.0100",
+    "type": "bell",
+    "num_qubits": 8,
+    "depth": 2,
+    "noise": 0.01,
+    "path": "circuits\\bell_8q_noise0.0100.json"
+  },
+  {
+    "name": "bell_10q",
+    "type": "bell",
+    "num_qubits": 10,
+    "depth": 2,
+    "noise": 0.0,
+    "path": "circuits\\bell_10q.json"
+  },
+  {
+    "name": "bell_10q_noise0.0010",
+    "type": "bell",
+    "num_qubits": 10,
+    "depth": 2,
+    "noise": 0.001,
+    "path": "circuits\\bell_10q_noise0.0010.json"
+  },
+  {
+    "name": "bell_10q_noise0.0100",
+    "type": "bell",
+    "num_qubits": 10,
+    "depth": 2,
+    "noise": 0.01,
+    "path": "circuits\\bell_10q_noise0.0100.json"
+  },
+  {
+    "name": "ghz_3q",
+    "type": "ghz",
+    "num_qubits": 3,
+    "depth": 3,
+    "noise": 0.0,
+    "path": "circuits\\ghz_3q.json"
+  },
+  {
+    "name": "ghz_3q_noise0.0010",
+    "type": "ghz",
+    "num_qubits": 3,
+    "depth": 3,
+    "noise": 0.001,
+    "path": "circuits\\ghz_3q_noise0.0010.json"
+  },
+  {
+    "name": "ghz_3q_noise0.0100",
+    "type": "ghz",
+    "num_qubits": 3,
+    "depth": 3,
+    "noise": 0.01,
+    "path": "circuits\\ghz_3q_noise0.0100.json"
+  },
+  {
+    "name": "ghz_4q",
+    "type": "ghz",
+    "num_qubits": 4,
+    "depth": 4,
+    "noise": 0.0,
+    "path": "circuits\\ghz_4q.json"
+  },
+  {
+    "name": "ghz_4q_noise0.0010",
+    "type": "ghz",
+    "num_qubits": 4,
+    "depth": 4,
+    "noise": 0.001,
+    "path": "circuits\\ghz_4q_noise0.0010.json"
+  },
+  {
+    "name": "ghz_4q_noise0.0100",
+    "type": "ghz",
+    "num_qubits": 4,
+    "depth": 4,
+    "noise": 0.01,
+    "path": "circuits\\ghz_4q_noise0.0100.json"
+  },
+  {
+    "name": "ghz_5q",
+    "type": "ghz",
+    "num_qubits": 5,
+    "depth": 5,
+    "noise": 0.0,
+    "path": "circuits\\ghz_5q.json"
+  },
+  {
+    "name": "ghz_5q_noise0.0010",
+    "type": "ghz",
+    "num_qubits": 5,
+    "depth": 5,
+    "noise": 0.001,
+    "path": "circuits\\ghz_5q_noise0.0010.json"
+  },
+  {
+    "name": "ghz_5q_noise0.0100",
+    "type": "ghz",
+    "num_qubits": 5,
+    "depth": 5,
+    "noise": 0.01,
+    "path": "circuits\\ghz_5q_noise0.0100.json"
+  },
+  {
+    "name": "ghz_6q",
+    "type": "ghz",
+    "num_qubits": 6,
+    "depth": 6,
+    "noise": 0.0,
+    "path": "circuits\\ghz_6q.json"
+  },
+  {
+    "name": "ghz_6q_noise0.0010",
+    "type": "ghz",
+    "num_qubits": 6,
+    "depth": 6,
+    "noise": 0.001,
+    "path": "circuits\\ghz_6q_noise0.0010.json"
+  },
+  {
+    "name": "ghz_6q_noise0.0100",
+    "type": "ghz",
+    "num_qubits": 6,
+    "depth": 6,
+    "noise": 0.01,
+    "path": "circuits\\ghz_6q_noise0.0100.json"
+  },
+  {
+    "name": "ghz_7q",
+    "type": "ghz",
+    "num_qubits": 7,
+    "depth": 7,
+    "noise": 0.0,
+    "path": "circuits\\ghz_7q.json"
+  },
+  {
+    "name": "ghz_7q_noise0.0010",
+    "type": "ghz",
+    "num_qubits": 7,
+    "depth": 7,
+    "noise": 0.001,
+    "path": "circuits\\ghz_7q_noise0.0010.json"
+  },
+  {
+    "name": "ghz_7q_noise0.0100",
+    "type": "ghz",
+    "num_qubits": 7,
+    "depth": 7,
+    "noise": 0.01,
+    "path": "circuits\\ghz_7q_noise0.0100.json"
+  },
+  {
+    "name": "ghz_8q",
+    "type": "ghz",
+    "num_qubits": 8,
+    "depth": 8,
+    "noise": 0.0,
+    "path": "circuits\\ghz_8q.json"
+  },
+  {
+    "name": "ghz_8q_noise0.0010",
+    "type": "ghz",
+    "num_qubits": 8,
+    "depth": 8,
+    "noise": 0.001,
+    "path": "circuits\\ghz_8q_noise0.0010.json"
+  },
+  {
+    "name": "ghz_8q_noise0.0100",
+    "type": "ghz",
+    "num_qubits": 8,
+    "depth": 8,
+    "noise": 0.01,
+    "path": "circuits\\ghz_8q_noise0.0100.json"
+  },
+  {
+    "name": "ghz_9q",
+    "type": "ghz",
+    "num_qubits": 9,
+    "depth": 9,
+    "noise": 0.0,
+    "path": "circuits\\ghz_9q.json"
+  },
+  {
+    "name": "ghz_9q_noise0.0010",
+    "type": "ghz",
+    "num_qubits": 9,
+    "depth": 9,
+    "noise": 0.001,
+    "path": "circuits\\ghz_9q_noise0.0010.json"
+  },
+  {
+    "name": "ghz_9q_noise0.0100",
+    "type": "ghz",
+    "num_qubits": 9,
+    "depth": 9,
+    "noise": 0.01,
+    "path": "circuits\\ghz_9q_noise0.0100.json"
+  },
+  {
+    "name": "ghz_10q",
+    "type": "ghz",
+    "num_qubits": 10,
+    "depth": 10,
+    "noise": 0.0,
+    "path": "circuits\\ghz_10q.json"
+  },
+  {
+    "name": "ghz_10q_noise0.0010",
+    "type": "ghz",
+    "num_qubits": 10,
+    "depth": 10,
+    "noise": 0.001,
+    "path": "circuits\\ghz_10q_noise0.0010.json"
+  },
+  {
+    "name": "ghz_10q_noise0.0100",
+    "type": "ghz",
+    "num_qubits": 10,
+    "depth": 10,
+    "noise": 0.01,
+    "path": "circuits\\ghz_10q_noise0.0100.json"
+  },
+  {
+    "name": "qft_3q",
+    "type": "qft",
+    "num_qubits": 3,
+    "depth": 13,
+    "noise": 0.0,
+    "path": "circuits\\qft_3q.json"
+  },
+  {
+    "name": "qft_3q_noise0.0010",
+    "type": "qft",
+    "num_qubits": 3,
+    "depth": 13,
+    "noise": 0.001,
+    "path": "circuits\\qft_3q_noise0.0010.json"
+  },
+  {
+    "name": "qft_3q_noise0.0100",
+    "type": "qft",
+    "num_qubits": 3,
+    "depth": 13,
+    "noise": 0.01,
+    "path": "circuits\\qft_3q_noise0.0100.json"
+  },
+  {
+    "name": "qft_4q",
+    "type": "qft",
+    "num_qubits": 4,
+    "depth": 24,
+    "noise": 0.0,
+    "path": "circuits\\qft_4q.json"
+  },
+  {
+    "name": "qft_4q_noise0.0010",
+    "type": "qft",
+    "num_qubits": 4,
+    "depth": 24,
+    "noise": 0.001,
+    "path": "circuits\\qft_4q_noise0.0010.json"
+  },
+  {
+    "name": "qft_4q_noise0.0100",
+    "type": "qft",
+    "num_qubits": 4,
+    "depth": 24,
+    "noise": 0.01,
+    "path": "circuits\\qft_4q_noise0.0100.json"
+  },
+  {
+    "name": "qft_5q",
+    "type": "qft",
+    "num_qubits": 5,
+    "depth": 37,
+    "noise": 0.0,
+    "path": "circuits\\qft_5q.json"
+  },
+  {
+    "name": "qft_5q_noise0.0010",
+    "type": "qft",
+    "num_qubits": 5,
+    "depth": 37,
+    "noise": 0.001,
+    "path": "circuits\\qft_5q_noise0.0010.json"
+  },
+  {
+    "name": "qft_5q_noise0.0100",
+    "type": "qft",
+    "num_qubits": 5,
+    "depth": 37,
+    "noise": 0.01,
+    "path": "circuits\\qft_5q_noise0.0100.json"
+  },
+  {
+    "name": "qft_6q",
+    "type": "qft",
+    "num_qubits": 6,
+    "depth": 54,
+    "noise": 0.0,
+    "path": "circuits\\qft_6q.json"
+  },
+  {
+    "name": "qft_6q_noise0.0010",
+    "type": "qft",
+    "num_qubits": 6,
+    "depth": 54,
+    "noise": 0.001,
+    "path": "circuits\\qft_6q_noise0.0010.json"
+  },
+  {
+    "name": "qft_6q_noise0.0100",
+    "type": "qft",
+    "num_qubits": 6,
+    "depth": 54,
+    "noise": 0.01,
+    "path": "circuits\\qft_6q_noise0.0100.json"
+  },
+  {
+    "name": "qft_7q",
+    "type": "qft",
+    "num_qubits": 7,
+    "depth": 73,
+    "noise": 0.0,
+    "path": "circuits\\qft_7q.json"
+  },
+  {
+    "name": "qft_7q_noise0.0010",
+    "type": "qft",
+    "num_qubits": 7,
+    "depth": 73,
+    "noise": 0.001,
+    "path": "circuits\\qft_7q_noise0.0010.json"
+  },
+  {
+    "name": "qft_7q_noise0.0100",
+    "type": "qft",
+    "num_qubits": 7,
+    "depth": 73,
+    "noise": 0.01,
+    "path": "circuits\\qft_7q_noise0.0100.json"
+  },
+  {
+    "name": "qft_8q",
+    "type": "qft",
+    "num_qubits": 8,
+    "depth": 96,
+    "noise": 0.0,
+    "path": "circuits\\qft_8q.json"
+  },
+  {
+    "name": "qft_8q_noise0.0010",
+    "type": "qft",
+    "num_qubits": 8,
+    "depth": 96,
+    "noise": 0.001,
+    "path": "circuits\\qft_8q_noise0.0010.json"
+  },
+  {
+    "name": "qft_8q_noise0.0100",
+    "type": "qft",
+    "num_qubits": 8,
+    "depth": 96,
+    "noise": 0.01,
+    "path": "circuits\\qft_8q_noise0.0100.json"
+  },
+  {
+    "name": "qft_9q",
+    "type": "qft",
+    "num_qubits": 9,
+    "depth": 121,
+    "noise": 0.0,
+    "path": "circuits\\qft_9q.json"
+  },
+  {
+    "name": "qft_9q_noise0.0010",
+    "type": "qft",
+    "num_qubits": 9,
+    "depth": 121,
+    "noise": 0.001,
+    "path": "circuits\\qft_9q_noise0.0010.json"
+  },
+  {
+    "name": "qft_9q_noise0.0100",
+    "type": "qft",
+    "num_qubits": 9,
+    "depth": 121,
+    "noise": 0.01,
+    "path": "circuits\\qft_9q_noise0.0100.json"
+  },
+  {
+    "name": "qft_10q",
+    "type": "qft",
+    "num_qubits": 10,
+    "depth": 150,
+    "noise": 0.0,
+    "path": "circuits\\qft_10q.json"
+  },
+  {
+    "name": "qft_10q_noise0.0010",
+    "type": "qft",
+    "num_qubits": 10,
+    "depth": 150,
+    "noise": 0.001,
+    "path": "circuits\\qft_10q_noise0.0010.json"
+  },
+  {
+    "name": "qft_10q_noise0.0100",
+    "type": "qft",
+    "num_qubits": 10,
+    "depth": 150,
+    "noise": 0.01,
+    "path": "circuits\\qft_10q_noise0.0100.json"
+  },
+  {
+    "name": "random_4q_d5",
+    "type": "random",
+    "num_qubits": 4,
+    "depth": 5,
+    "noise": 0.0,
+    "path": "circuits\\random_4q_d5.json"
+  },
+  {
+    "name": "random_4q_d5_noise0.0010",
+    "type": "random",
+    "num_qubits": 4,
+    "depth": 5,
+    "noise": 0.001,
+    "path": "circuits\\random_4q_d5_noise0.0010.json"
+  },
+  {
+    "name": "random_4q_d5_noise0.0100",
+    "type": "random",
+    "num_qubits": 4,
+    "depth": 5,
+    "noise": 0.01,
+    "path": "circuits\\random_4q_d5_noise0.0100.json"
+  },
+  {
+    "name": "random_4q_d10",
+    "type": "random",
+    "num_qubits": 4,
+    "depth": 10,
+    "noise": 0.0,
+    "path": "circuits\\random_4q_d10.json"
+  },
+  {
+    "name": "random_4q_d10_noise0.0010",
+    "type": "random",
+    "num_qubits": 4,
+    "depth": 10,
+    "noise": 0.001,
+    "path": "circuits\\random_4q_d10_noise0.0010.json"
+  },
+  {
+    "name": "random_4q_d10_noise0.0100",
+    "type": "random",
+    "num_qubits": 4,
+    "depth": 10,
+    "noise": 0.01,
+    "path": "circuits\\random_4q_d10_noise0.0100.json"
+  },
+  {
+    "name": "random_4q_d20",
+    "type": "random",
+    "num_qubits": 4,
+    "depth": 20,
+    "noise": 0.0,
+    "path": "circuits\\random_4q_d20.json"
+  },
+  {
+    "name": "random_4q_d20_noise0.0010",
+    "type": "random",
+    "num_qubits": 4,
+    "depth": 20,
+    "noise": 0.001,
+    "path": "circuits\\random_4q_d20_noise0.0010.json"
+  },
+  {
+    "name": "random_4q_d20_noise0.0100",
+    "type": "random",
+    "num_qubits": 4,
+    "depth": 20,
+    "noise": 0.01,
+    "path": "circuits\\random_4q_d20_noise0.0100.json"
+  },
+  {
+    "name": "random_6q_d5",
+    "type": "random",
+    "num_qubits": 6,
+    "depth": 5,
+    "noise": 0.0,
+    "path": "circuits\\random_6q_d5.json"
+  },
+  {
+    "name": "random_6q_d5_noise0.0010",
+    "type": "random",
+    "num_qubits": 6,
+    "depth": 5,
+    "noise": 0.001,
+    "path": "circuits\\random_6q_d5_noise0.0010.json"
+  },
+  {
+    "name": "random_6q_d5_noise0.0100",
+    "type": "random",
+    "num_qubits": 6,
+    "depth": 5,
+    "noise": 0.01,
+    "path": "circuits\\random_6q_d5_noise0.0100.json"
+  },
+  {
+    "name": "random_6q_d10",
+    "type": "random",
+    "num_qubits": 6,
+    "depth": 10,
+    "noise": 0.0,
+    "path": "circuits\\random_6q_d10.json"
+  },
+  {
+    "name": "random_6q_d10_noise0.0010",
+    "type": "random",
+    "num_qubits": 6,
+    "depth": 10,
+    "noise": 0.001,
+    "path": "circuits\\random_6q_d10_noise0.0010.json"
+  },
+  {
+    "name": "random_6q_d10_noise0.0100",
+    "type": "random",
+    "num_qubits": 6,
+    "depth": 10,
+    "noise": 0.01,
+    "path": "circuits\\random_6q_d10_noise0.0100.json"
+  },
+  {
+    "name": "random_6q_d20",
+    "type": "random",
+    "num_qubits": 6,
+    "depth": 20,
+    "noise": 0.0,
+    "path": "circuits\\random_6q_d20.json"
+  },
+  {
+    "name": "random_6q_d20_noise0.0010",
+    "type": "random",
+    "num_qubits": 6,
+    "depth": 20,
+    "noise": 0.001,
+    "path": "circuits\\random_6q_d20_noise0.0010.json"
+  },
+  {
+    "name": "random_6q_d20_noise0.0100",
+    "type": "random",
+    "num_qubits": 6,
+    "depth": 20,
+    "noise": 0.01,
+    "path": "circuits\\random_6q_d20_noise0.0100.json"
+  },
+  {
+    "name": "random_8q_d5",
+    "type": "random",
+    "num_qubits": 8,
+    "depth": 5,
+    "noise": 0.0,
+    "path": "circuits\\random_8q_d5.json"
+  },
+  {
+    "name": "random_8q_d5_noise0.0010",
+    "type": "random",
+    "num_qubits": 8,
+    "depth": 5,
+    "noise": 0.001,
+    "path": "circuits\\random_8q_d5_noise0.0010.json"
+  },
+  {
+    "name": "random_8q_d5_noise0.0100",
+    "type": "random",
+    "num_qubits": 8,
+    "depth": 5,
+    "noise": 0.01,
+    "path": "circuits\\random_8q_d5_noise0.0100.json"
+  },
+  {
+    "name": "random_8q_d10",
+    "type": "random",
+    "num_qubits": 8,
+    "depth": 10,
+    "noise": 0.0,
+    "path": "circuits\\random_8q_d10.json"
+  },
+  {
+    "name": "random_8q_d10_noise0.0010",
+    "type": "random",
+    "num_qubits": 8,
+    "depth": 10,
+    "noise": 0.001,
+    "path": "circuits\\random_8q_d10_noise0.0010.json"
+  },
+  {
+    "name": "random_8q_d10_noise0.0100",
+    "type": "random",
+    "num_qubits": 8,
+    "depth": 10,
+    "noise": 0.01,
+    "path": "circuits\\random_8q_d10_noise0.0100.json"
+  },
+  {
+    "name": "random_8q_d20",
+    "type": "random",
+    "num_qubits": 8,
+    "depth": 20,
+    "noise": 0.0,
+    "path": "circuits\\random_8q_d20.json"
+  },
+  {
+    "name": "random_8q_d20_noise0.0010",
+    "type": "random",
+    "num_qubits": 8,
+    "depth": 20,
+    "noise": 0.001,
+    "path": "circuits\\random_8q_d20_noise0.0010.json"
+  },
+  {
+    "name": "random_8q_d20_noise0.0100",
+    "type": "random",
+    "num_qubits": 8,
+    "depth": 20,
+    "noise": 0.01,
+    "path": "circuits\\random_8q_d20_noise0.0100.json"
+  },
+  {
+    "name": "random_10q_d5",
+    "type": "random",
+    "num_qubits": 10,
+    "depth": 5,
+    "noise": 0.0,
+    "path": "circuits\\random_10q_d5.json"
+  },
+  {
+    "name": "random_10q_d5_noise0.0010",
+    "type": "random",
+    "num_qubits": 10,
+    "depth": 5,
+    "noise": 0.001,
+    "path": "circuits\\random_10q_d5_noise0.0010.json"
+  },
+  {
+    "name": "random_10q_d5_noise0.0100",
+    "type": "random",
+    "num_qubits": 10,
+    "depth": 5,
+    "noise": 0.01,
+    "path": "circuits\\random_10q_d5_noise0.0100.json"
+  },
+  {
+    "name": "random_10q_d10",
+    "type": "random",
+    "num_qubits": 10,
+    "depth": 10,
+    "noise": 0.0,
+    "path": "circuits\\random_10q_d10.json"
+  },
+  {
+    "name": "random_10q_d10_noise0.0010",
+    "type": "random",
+    "num_qubits": 10,
+    "depth": 10,
+    "noise": 0.001,
+    "path": "circuits\\random_10q_d10_noise0.0010.json"
+  },
+  {
+    "name": "random_10q_d10_noise0.0100",
+    "type": "random",
+    "num_qubits": 10,
+    "depth": 10,
+    "noise": 0.01,
+    "path": "circuits\\random_10q_d10_noise0.0100.json"
+  },
+  {
+    "name": "random_10q_d20",
+    "type": "random",
+    "num_qubits": 10,
+    "depth": 20,
+    "noise": 0.0,
+    "path": "circuits\\random_10q_d20.json"
+  },
+  {
+    "name": "random_10q_d20_noise0.0010",
+    "type": "random",
+    "num_qubits": 10,
+    "depth": 20,
+    "noise": 0.001,
+    "path": "circuits\\random_10q_d20_noise0.0010.json"
+  },
+  {
+    "name": "random_10q_d20_noise0.0100",
+    "type": "random",
+    "num_qubits": 10,
+    "depth": 20,
+    "noise": 0.01,
+    "path": "circuits\\random_10q_d20_noise0.0100.json"
+  }
+]
