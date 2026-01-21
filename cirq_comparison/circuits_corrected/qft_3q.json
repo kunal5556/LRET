@@ -1,0 +1,66 @@
+{
+  "circuit": {
+    "num_qubits": 3,
+    "operations": [
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "CRZ",
+        "wires": [
+          1,
+          0
+        ],
+        "params": [
+          1.5707963267948966
+        ]
+      },
+      {
+        "name": "CRZ",
+        "wires": [
+          2,
+          0
+        ],
+        "params": [
+          0.7853981633974483
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "CRZ",
+        "wires": [
+          2,
+          1
+        ],
+        "params": [
+          1.5707963267948966
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "SWAP",
+        "wires": [
+          0,
+          2
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.0001,
+    "initial_rank": 1
+  }
+}

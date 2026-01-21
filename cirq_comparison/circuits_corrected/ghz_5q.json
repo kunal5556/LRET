@@ -1,0 +1,45 @@
+{
+  "circuit": {
+    "num_qubits": 5,
+    "operations": [
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          1
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          2
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          3
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          3,
+          4
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.0001,
+    "initial_rank": 1
+  }
+}

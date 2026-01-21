@@ -213,28 +213,66 @@ class CirqFDMSimulator:
         }
 
         for op in operations:
-            gate_type = op["gate"]
-            targets = op.get("targets", op.get("target", []))
-            if isinstance(targets, int):
-                targets = [targets]
+            # Support both "gate" (old format) and "name" (LRET format)
+            gate_type = op.get("gate", op.get("name", ""))
+            
+            # Support both "targets"/"control" (old) and "wires" (LRET format)
+            if "wires" in op:
+                wires = op["wires"]
+                if gate_type in ["CNOT", "CZ"]:
+                    control = wires[0]
+                    targets = wires[1:]
+                elif gate_type == "SWAP":
+                    targets = wires
+                else:
+                    targets = wires
+            else:
+                targets = op.get("targets", op.get("target", []))
+                if isinstance(targets, int):
+                    targets = [targets]
+
+            # Get parameters (support both "params" and "parameters")
+            params = op.get("params", op.get("parameters", []))
+            if not isinstance(params, list):
+                params = [params]
 
             if gate_type in ["H", "X", "Y", "Z", "S", "T"]:
                 for target in targets:
                     circuit.append(gate_map[gate_type](qubits[target]))
 
             elif gate_type in ["RX", "RY", "RZ"]:
-                angle = op.get("parameters", op.get("angle", 0.0))
+                angle = params[0] if params else op.get("parameters", op.get("angle", 0.0))
                 for target in targets:
                     circuit.append(gate_map[gate_type](qubits[target], angle))
 
             elif gate_type in ["CNOT", "CZ"]:
-                control = op.get("control", op.get("controls", [0])[0])
-                target = targets[0]
+                if "wires" in op:
+                    # LRET format: wires = [control, target]
+                    control = op["wires"][0]
+                    target = op["wires"][1]
+                else:
+                    # Old format: control and targets separate
+                    control = op.get("control", op.get("controls", [0])[0])
+                    target = targets[0]
                 circuit.append(gate_map[gate_type](qubits[control], qubits[target]))
 
             elif gate_type == "SWAP":
-                q1, q2 = targets[0], targets[1]
+                if "wires" in op:
+                    q1, q2 = op["wires"][0], op["wires"][1]
+                else:
+                    q1, q2 = targets[0], targets[1]
                 circuit.append(gate_map["SWAP"](qubits[q1], qubits[q2]))
+            
+            elif gate_type == "CRZ":
+                # Controlled RZ
+                angle = params[0] if params else 0.0
+                if "wires" in op:
+                    control = op["wires"][0]
+                    target = op["wires"][1]
+                else:
+                    control = op.get("control", 0)
+                    target = targets[0]
+                circuit.append(cirq.CZPowGate(exponent=angle/np.pi)(qubits[control], qubits[target]))
 
         # Extract noise model if present
         noise_model = None

@@ -1,0 +1,109 @@
+{
+  "circuit": {
+    "num_qubits": 4,
+    "operations": [
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "CRZ",
+        "wires": [
+          1,
+          0
+        ],
+        "params": [
+          1.5707963267948966
+        ]
+      },
+      {
+        "name": "CRZ",
+        "wires": [
+          2,
+          0
+        ],
+        "params": [
+          0.7853981633974483
+        ]
+      },
+      {
+        "name": "CRZ",
+        "wires": [
+          3,
+          0
+        ],
+        "params": [
+          0.39269908169872414
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "CRZ",
+        "wires": [
+          2,
+          1
+        ],
+        "params": [
+          1.5707963267948966
+        ]
+      },
+      {
+        "name": "CRZ",
+        "wires": [
+          3,
+          1
+        ],
+        "params": [
+          0.7853981633974483
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "CRZ",
+        "wires": [
+          3,
+          2
+        ],
+        "params": [
+          1.5707963267948966
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "SWAP",
+        "wires": [
+          0,
+          3
+        ]
+      },
+      {
+        "name": "SWAP",
+        "wires": [
+          1,
+          2
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.0001,
+    "initial_rank": 1
+  }
+}
