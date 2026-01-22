@@ -1,0 +1,34 @@
+================================================================================
+COMPREHENSIVE BENCHMARK: LRET vs Cirq
+================================================================================
+
+=== Testing 7 qubits, depth=15 ===
+  Running LRET...
+    LRET: 1.06±0.34ms, rank=1
+  Running Cirq...
+    Cirq: 35.25±5.33ms
+    Speedup: 33.4x
+    Fidelity: N/A
+
+=== Testing 8 qubits, depth=15 ===
+  Running LRET...
+    LRET: 1.83±0.33ms, rank=1
+  Running Cirq...
+    Cirq: 71.48±4.14ms
+    Speedup: 39.0x
+    Fidelity: N/A
+
+=== Testing 9 qubits, depth=15 ===
+  Running LRET...
+    LRET: 2.71±0.61ms, rank=1
+  Running Cirq...
+    Cirq: 282.82±7.43ms
+    Speedup: 104.3x
+    Fidelity: N/A
+
+Saved to: d:\LRET\cirq_comparison\benchmark_results\results.json
+Saved plot: d:\LRET\cirq_comparison\benchmark_results\benchmark_plot.png
+
+================================================================================
+BENCHMARK COMPLETE!
+================================================================================

@@ -1,0 +1,49 @@
+================================================================================
+COMPREHENSIVE BENCHMARK WITH NOISE: LRET vs Cirq (using quantum_sim.exe)
+Configuration: 7-9 qubits, depth=15, noise=0.1% per gate
+================================================================================
+
+=== Testing 7 qubits, depth=15, noise=0.1% ===
+  Running LRET...
+================================================================================
+COMPREHENSIVE BENCHMARK WITH NOISE: LRET vs Cirq (using quantum_sim.exe)
+Configuration: 7-9 qubits, depth=15, noise=0.1% per gate
+================================================================================
+
+=== Testing 7 qubits, depth=15, noise=0.1% ===
+  Running LRET...
+    LRET: 856.32±84.38ms, rank=16, status=success
+  Running Cirq...
+    Cirq: 697.93±101.28ms
+    Speedup: 0.8x
+
+=== Testing 8 qubits, depth=15, noise=0.1% ===
+  Running LRET...
+    LRET: 1619.10±140.52ms, rank=19, status=success
+  Running Cirq...
+    Cirq: 1906.64±108.30ms
+    Speedup: 1.2x
+
+=== Testing 9 qubits, depth=15, noise=0.1% ===
+  Running LRET...
+    LRET: 2896.94±105.33ms, rank=21, status=success
+  Running Cirq...
+    Cirq: 9707.54±256.26ms
+    Speedup: 3.4x
+
+Saved to: d:\LRET\cirq_comparison\benchmark_results_with_noise_exe\results.json
+
+Generating plots...
+  Saved: d:\LRET\cirq_comparison\benchmark_results_with_noise_exe\benchmark_plot.png
+  Saved: d:\LRET\cirq_comparison\benchmark_results_with_noise_exe\rank_plot.png
+
+================================================================================
+Summary:
+  7q: LRET=856.32ms, Cirq=697.93ms, Speedup=0.8x, Rank=16
+  8q: LRET=1619.10ms, Cirq=1906.64ms, Speedup=1.2x, Rank=19
+  9q: LRET=2896.94ms, Cirq=9707.54ms, Speedup=3.4x, Rank=21
+
+Average speedup: 1.8x
+================================================================================
+BENCHMARK COMPLETE!
+================================================================================

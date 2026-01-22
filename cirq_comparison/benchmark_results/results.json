@@ -1,0 +1,35 @@
+[
+  {
+    "n_qubits": 7,
+    "lret_mean": 1.0559666358555357,
+    "lret_std": 0.3396814184932775,
+    "cirq_mean": 35.251600008147456,
+    "cirq_std": 5.326741286373687,
+    "speedup": 33.38325171570112,
+    "rank": 1,
+    "fidelity": null,
+    "max_diff": null
+  },
+  {
+    "n_qubits": 8,
+    "lret_mean": 1.83080000958095,
+    "lret_std": 0.3253886775111935,
+    "cirq_mean": 71.48323328389476,
+    "cirq_std": 4.135753096669032,
+    "speedup": 39.044807138851006,
+    "rank": 1,
+    "fidelity": null,
+    "max_diff": null
+  },
+  {
+    "n_qubits": 9,
+    "lret_mean": 2.711233333684504,
+    "lret_std": 0.6135134892074806,
+    "cirq_mean": 282.821233306701,
+    "cirq_std": 7.425981419155712,
+    "speedup": 104.31460464612738,
+    "rank": 1,
+    "fidelity": null,
+    "max_diff": null
+  }
+]

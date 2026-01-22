@@ -1,0 +1,44 @@
+[
+  {
+    "n_qubits": 7,
+    "depth": 15,
+    "lret_wall_mean": 2.7851000195369124,
+    "lret_wall_std": 2.8155572297134817,
+    "lret_internal_mean": 0.24256666666666668,
+    "cirq_mean": 35.77166667673737,
+    "cirq_std": 7.7799758928420415,
+    "speedup": 12.843943278807359,
+    "final_rank": 1,
+    "fidelity": 1.0000000000000002,
+    "trace_distance": 2.2204460492503407e-16,
+    "max_diff": 3.469446951953614e-18
+  },
+  {
+    "n_qubits": 8,
+    "depth": 15,
+    "lret_wall_mean": 1.4080333057790995,
+    "lret_wall_std": 0.24774504609348313,
+    "lret_internal_mean": 0.4120000000000001,
+    "cirq_mean": 61.1779666505754,
+    "cirq_std": 8.566169373897846,
+    "speedup": 43.449232627863246,
+    "final_rank": 1,
+    "fidelity": 1.0000000000000002,
+    "trace_distance": 2.2204460492503486e-16,
+    "max_diff": 1.734723475976807e-18
+  },
+  {
+    "n_qubits": 9,
+    "depth": 15,
+    "lret_wall_mean": 1.8116666081671913,
+    "lret_wall_std": 0.40771764253203596,
+    "lret_internal_mean": 0.7015666666666668,
+    "cirq_mean": 438.1498666868235,
+    "cirq_std": 104.21622716225306,
+    "speedup": 241.84906025843605,
+    "final_rank": 1,
+    "fidelity": 1.0000000000000002,
+    "trace_distance": 2.220446049250371e-16,
+    "max_diff": 8.673617379884035e-19
+  }
+]

@@ -338,6 +338,27 @@ QuantumSequence build_sequence(const JsonCircuitSpec& spec) {
             continue;
         }
         
+        // Handle DEPOLARIZE noise operation
+        std::string op_upper = to_upper_copy(op.name);
+        if (op_upper == "DEPOLARIZE" || op_upper == "DEPOLARIZING") {
+            // DEPOLARIZE requires a probability parameter in params array
+            if (op.params.empty()) {
+                throw std::invalid_argument("DEPOLARIZE gate requires probability parameter. Use 'params': [probability] in JSON");
+            }
+            
+            double prob = op.params[0];
+            if (prob < 0.0 || prob > 1.0) {
+                throw std::invalid_argument("DEPOLARIZE probability must be in [0, 1], got: " + std::to_string(prob));
+            }
+            
+            // Create depolarizing noise operation for each qubit
+            for (size_t qubit : op.wires) {
+                NoiseOp noise_op(NoiseType::DEPOLARIZING, qubit, prob);
+                seq.add_noise(noise_op);
+            }
+            continue;
+        }
+        
         GateType gtype = gate_type_from_string(op.name);
         if (gtype == GateType::CNOT || gtype == GateType::CZ || gtype == GateType::CY || gtype == GateType::SWAP || gtype == GateType::ISWAP) {
             if (op.wires.size() != 2) {
