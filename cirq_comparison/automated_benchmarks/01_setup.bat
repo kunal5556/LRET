@@ -9,15 +9,14 @@ echo.
 
 REM Auto-detect LRET root directory (go up 2 levels from automated_benchmarks)
 set SCRIPT_DIR=%~dp0
-cd /d "%SCRIPT_DIR%..\.."
+pushd "%SCRIPT_DIR%..\.."
 set LRET_ROOT=%CD%
-cd /d "%SCRIPT_DIR%"
+popd
 
 echo LRET Root: %LRET_ROOT%
 echo.
 
 set BUILD_DIR=%LRET_ROOT%\build
-set MSBUILD="C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
 
 REM Verify LRET root exists
 if not exist "%LRET_ROOT%\CMakeLists.txt" (
@@ -32,6 +31,27 @@ if not exist "%BUILD_DIR%" (
     echo Please run CMake configuration first
     exit /b 1
 )
+
+REM Find MSBuild - try multiple locations
+set MSBUILD=
+if exist "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe" (
+    set MSBUILD="C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe"
+)
+if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin\MSBuild.exe" (
+    set MSBUILD="C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
+)
+if exist "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe" (
+    set MSBUILD="C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe"
+)
+
+if "%MSBUILD%"=="" (
+    echo ERROR: MSBuild not found
+    echo Please install Visual Studio 2019/2022 Build Tools or Community Edition
+    exit /b 1
+)
+
+echo Using MSBuild: %MSBUILD%
+echo.
 
 REM Step 1: Check Python
 echo [1/6] Checking Python version...
@@ -51,12 +71,21 @@ REM Step 3: Build LRET binaries
 echo.
 echo [3/6] Building LRET C++ binaries...
 
-cd /d "%BUILD_DIR%"
+REM Verify vcxproj files exist
+if not exist "%BUILD_DIR%\qlret_lib.vcxproj" (
+    echo ERROR: qlret_lib.vcxproj not found in build directory
+    echo Please run CMake to generate Visual Studio project files
+    echo Expected: %BUILD_DIR%\qlret_lib.vcxproj
+    exit /b 1
+)
+
+pushd "%BUILD_DIR%"
 
 echo   Building qlret_lib.lib...
 %MSBUILD% qlret_lib.vcxproj /p:Configuration=Release /p:Platform=x64 /v:minimal /nologo
 if errorlevel 1 (
     echo   ERROR: qlret_lib build failed
+    popd
     exit /b 1
 )
 
@@ -64,12 +93,13 @@ echo   Building quantum_sim.exe...
 %MSBUILD% quantum_sim.vcxproj /p:Configuration=Release /p:Platform=x64 /v:minimal /nologo
 if errorlevel 1 (
     echo   ERROR: quantum_sim build failed
+    popd
     exit /b 1
 )
 
 echo   Binaries built successfully
 
-cd /d "%LRET_ROOT%"
+popd
 
 REM Step 4: Verify binary
 echo.
