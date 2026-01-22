@@ -51,7 +51,7 @@ REM Step 3: Build LRET binaries
 echo.
 echo [3/6] Building LRET C++ binaries...
 
-cd /d %BUILD_DIR%
+cd /d "%BUILD_DIR%"
 
 echo   Building qlret_lib.lib...
 %MSBUILD% qlret_lib.vcxproj /p:Configuration=Release /p:Platform=x64 /v:minimal /nologo
@@ -69,7 +69,7 @@ if errorlevel 1 (
 
 echo   Binaries built successfully
 
-cd /d %LRET_ROOT%
+cd /d "%LRET_ROOT%"
 
 REM Step 4: Verify binary
 echo.
