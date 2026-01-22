@@ -7,9 +7,31 @@ echo LRET Automated Benchmark Setup
 echo ========================================================================
 echo.
 
-set LRET_ROOT=d:\LRET
+REM Auto-detect LRET root directory (go up 2 levels from automated_benchmarks)
+set SCRIPT_DIR=%~dp0
+cd /d "%SCRIPT_DIR%..\.."
+set LRET_ROOT=%CD%
+cd /d "%SCRIPT_DIR%"
+
+echo LRET Root: %LRET_ROOT%
+echo.
+
 set BUILD_DIR=%LRET_ROOT%\build
 set MSBUILD="C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
+
+REM Verify LRET root exists
+if not exist "%LRET_ROOT%\CMakeLists.txt" (
+    echo ERROR: Cannot find LRET root directory
+    echo Expected CMakeLists.txt at: %LRET_ROOT%
+    exit /b 1
+)
+
+REM Verify build directory exists
+if not exist "%BUILD_DIR%" (
+    echo ERROR: Build directory not found: %BUILD_DIR%
+    echo Please run CMake configuration first
+    exit /b 1
+)
 
 REM Step 1: Check Python
 echo [1/6] Checking Python version...

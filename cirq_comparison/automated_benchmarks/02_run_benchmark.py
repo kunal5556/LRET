@@ -44,7 +44,8 @@ CONFIG = {
     'timeout': 300,  # 5 minutes per simulation
 }
 
-LRET_ROOT = Path("d:/LRET")
+# Auto-detect LRET root (go up 2 levels from automated_benchmarks)
+LRET_ROOT = Path(__file__).parent.parent.parent
 QUANTUM_SIM = LRET_ROOT / "build" / "Release" / "quantum_sim.exe"
 OUTPUT_DIR = Path(__file__).parent / f"results_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 OUTPUT_DIR.mkdir(exist_ok=True)
@@ -426,8 +427,8 @@ def main():
     """Main benchmark execution."""
     log("="*70)
     log("LRET AUTOMATED BENCHMARK")
-    log("="*70)
-    log(f"Configuration: {CONFIG['qubits']} qubits, depth={CONFIG['depth']}, "
+    log("="*70)    log(f"LRET Root: {LRET_ROOT}")
+    log(f"quantum_sim.exe: {QUANTUM_SIM}")    log(f"Configuration: {CONFIG['qubits']} qubits, depth={CONFIG['depth']}, "
         f"noise={CONFIG['noise_prob']*100:.4f}%, ε={CONFIG['epsilon']}")
     log(f"Output directory: {OUTPUT_DIR}")
     
