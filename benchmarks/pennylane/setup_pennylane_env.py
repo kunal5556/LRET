@@ -183,11 +183,29 @@ def main():
         # Build
         build_dir = project_root / "build"
         
-        # On Windows, clear build directory if it exists (to avoid cached generator issues)
-        if system == "Windows" and build_dir.exists():
-            print(colored("\n⚠ Clearing existing build directory to avoid CMake cache issues...", Colors.WARNING))
-            import shutil
-            shutil.rmtree(build_dir)
+        # On Windows, FORCE clear build directory (to avoid cached generator issues)
+        if system == "Windows":
+            if build_dir.exists():
+                print(colored("\n⚠ Removing existing build directory to clear CMake cache...", Colors.WARNING))
+                import shutil
+                try:
+                    shutil.rmtree(build_dir, ignore_errors=True)
+                    import time
+                    time.sleep(0.5)  # Give filesystem time to settle
+                except Exception as e:
+                    print(colored(f"  Warning: Could not fully clear build directory: {e}", Colors.WARNING))
+                    print(colored("  Trying to remove CMake cache files manually...", Colors.WARNING))
+                    # Try to remove specific cache files
+                    for cache_file in ["CMakeCache.txt", "CMakeFiles"]:
+                        cache_path = build_dir / cache_file
+                        if cache_path.exists():
+                            try:
+                                if cache_path.is_dir():
+                                    shutil.rmtree(cache_path, ignore_errors=True)
+                                else:
+                                    cache_path.unlink()
+                            except:
+                                pass
         
         build_dir.mkdir(exist_ok=True)
         
@@ -196,35 +214,89 @@ def main():
         
         # CMake configure
         if system == "Windows":
-            # Try to detect and use the newest Visual Studio version
             print("Detecting Visual Studio installation...")
             
-            # Try VS 2022 first (most common on new systems)
-            cmake_config_2022 = ["cmake", "..", "-G", "Visual Studio 17 2022", "-A", "x64"]
-            cmake_config_2019 = ["cmake", "..", "-G", "Visual Studio 16 2019", "-A", "x64"]
-            cmake_config_auto = ["cmake", "..", "-A", "x64"]  # Let CMake decide
-            
-            # Try each generator in order
-            success = False
-            for generator_name, cmake_config in [
-                ("Visual Studio 2022", cmake_config_2022),
-                ("Visual Studio 2019", cmake_config_2019),
-                ("Auto-detect", cmake_config_auto)
-            ]:
+            # First, try to find vswhere (official VS locator tool)
+            vswhere_path = Path(r"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe")
+            vs_path = None
+            if vswhere_path.exists():
                 try:
-                    print(colored(f"  Trying {generator_name}...", Colors.OKBLUE))
-                    result = run_command(cmake_config, capture_output=True)
-                    success = True
-                    print(colored(f"  ✓ Using {generator_name}", Colors.OKGREEN))
-                    break
-                except subprocess.CalledProcessError:
-                    print(colored(f"  ✗ {generator_name} not available", Colors.WARNING))
-                    continue
+                    result = subprocess.run(
+                        [str(vswhere_path), "-latest", "-property", "installationPath"],
+                        capture_output=True, text=True, check=True
+                    )
+                    vs_path = result.stdout.strip()
+                    print(colored(f"  Found Visual Studio at: {vs_path}", Colors.OKGREEN))
+                except:
+                    pass
+            
+            # Try Ninja generator first (works with any VS installation, including Community)
+            print(colored("\n  Strategy 1: Trying Ninja generator (recommended)...", Colors.OKBLUE))
+            if check_command_exists("ninja"):
+                # Setup MSVC environment for Ninja
+                if vs_path:
+                    vcvars_path = Path(vs_path) / "VC" / "Auxiliary" / "Build" / "vcvars64.bat"
+                    if vcvars_path.exists():
+                        print(colored(f"    Using MSVC environment from: {vcvars_path}", Colors.OKBLUE))
+                        # Call vcvars64 and then cmake with Ninja
+                        cmake_ninja = f'"{vcvars_path}" && cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release'
+                        try:
+                            result = subprocess.run(cmake_ninja, shell=True, check=True, 
+                                                  capture_output=True, text=True)
+                            print(colored("  ✓ Successfully configured with Ninja generator", Colors.OKGREEN))
+                            success = True
+                        except subprocess.CalledProcessError as e:
+                            print(colored(f"  ✗ Ninja generator failed: {e.stderr[:200]}", Colors.WARNING))
+                            success = False
+                    else:
+                        success = False
+                else:
+                    # Try Ninja without vcvars (might work if VS is in PATH)
+                    try:
+                        run_command(["cmake", "..", "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Release"], 
+                                  capture_output=True)
+                        print(colored("  ✓ Successfully configured with Ninja generator", Colors.OKGREEN))
+                        success = True
+                    except:
+                        success = False
+            else:
+                print(colored("    Ninja not found, skipping...", Colors.WARNING))
+                success = False
+            
+            # Fallback: Try Visual Studio generators
+            if not success:
+                print(colored("\n  Strategy 2: Trying Visual Studio generators...", Colors.OKBLUE))
+                
+                for generator_name, generator_arg in [
+                    ("Visual Studio 17 2022", "Visual Studio 17 2022"),
+                    ("Visual Studio 16 2019", "Visual Studio 16 2019"),
+                ]:
+                    try:
+                        print(colored(f"    Trying {generator_name}...", Colors.OKBLUE))
+                        result = subprocess.run(
+                            ["cmake", "..", "-G", generator_arg, "-A", "x64"],
+                            capture_output=True, text=True, check=True
+                        )
+                        success = True
+                        print(colored(f"  ✓ Successfully configured with {generator_name}", Colors.OKGREEN))
+                        break
+                    except subprocess.CalledProcessError as e:
+                        print(colored(f"    ✗ {generator_name} failed", Colors.WARNING))
+                        continue
             
             if not success:
-                print(colored("✗ No compatible Visual Studio installation found", Colors.FAIL))
-                print(colored("\nPlease install Visual Studio 2022 Build Tools:", Colors.WARNING))
-                print(colored("  PowerShell: Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vs_buildtools.exe' -OutFile vs_buildtools.exe; .\\vs_buildtools.exe --add Microsoft.VisualStudio.Workload.VCTools", Colors.WARNING))
+                print(colored("\n✗ Could not configure CMake with any generator", Colors.FAIL))
+                print(colored("\nDiagnostics:", Colors.WARNING))
+                print(colored("  1. Visual Studio 2022 is installed but CMake can't find it", Colors.WARNING))
+                print(colored("  2. You may need to install C++ build tools", Colors.WARNING))
+                print(colored("\nSolutions:", Colors.OKGREEN))
+                print(colored("  Option A: Repair Visual Studio installation and ensure 'Desktop development with C++' is installed", Colors.OKGREEN))
+                print(colored("  Option B: Install Ninja build system:", Colors.OKGREEN))
+                print(colored("    choco install ninja  (if you have Chocolatey)", Colors.OKGREEN))
+                print(colored("    Or download from: https://github.com/ninja-build/ninja/releases", Colors.OKGREEN))
+                print(colored("  Option C: Install VS Build Tools:", Colors.OKGREEN))
+                print(colored("    Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vs_buildtools.exe' -OutFile vs_buildtools.exe", Colors.OKGREEN))
+                print(colored("    .\\vs_buildtools.exe --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended", Colors.OKGREEN))
                 sys.exit(1)
         else:
             cmake_config = ["cmake", ".."]
@@ -241,12 +313,24 @@ def main():
         
         # CMake build
         print("\nBuilding LRET (this may take several minutes)...")
+        
+        # Detect if we used Ninja or VS generator
+        cmake_cache = build_dir / "CMakeCache.txt"
+        using_ninja = False
+        if cmake_cache.exists():
+            with open(cmake_cache, 'r') as f:
+                if 'Ninja' in f.read():
+                    using_ninja = True
+        
         if system == "Windows":
-            cmake_build = ["cmake", "--build", ".", "--config", "Release"]
+            if using_ninja:
+                cmake_build = ["cmake", "--build", "."]
+            else:
+                cmake_build = ["cmake", "--build", ".", "--config", "Release"]
         else:
             import multiprocessing
             n_cores = multiprocessing.cpu_count()
-            cmake_build = ["make", f"-j{n_cores}"]
+            cmake_build = ["cmake", "--build", ".", "-j", str(n_cores)]
         
         try:
             run_command(cmake_build)
