@@ -189,7 +189,10 @@ def main():
         
         # CMake configure
         if system == "Windows":
-            cmake_config = ["cmake", "..", "-G", "Visual Studio 16 2019", "-A", "x64"]
+            # Auto-detect Visual Studio version (try VS 2022, 2019, or let CMake decide)
+            # CMake can auto-detect installed Visual Studio versions
+            print("Detecting Visual Studio installation...")
+            cmake_config = ["cmake", "..", "-A", "x64"]  # Let CMake auto-detect VS version
         else:
             cmake_config = ["cmake", ".."]
         

@@ -42,9 +42,16 @@ This will check/install all dependencies, build LRET, and verify the installatio
      sudo apt install build-essential g++ cmake
      ```
    - Windows:
-     - Install Visual Studio 2019/2022 with "Desktop development with C++"
-     - Or install Build Tools for Visual Studio
+     - **Recommended:** Visual Studio 2022 Build Tools (minimal installation)
+     - **Alternative:** Visual Studio 2022 Community (full IDE)
+     - **Minimum:** Visual Studio 2019 or newer
      - Download from: https://visualstudio.microsoft.com/downloads/
+     - **Quick Install (PowerShell):**
+       ```powershell
+       # Build Tools only (minimal, ~2GB)
+       Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vs_buildtools.exe" -OutFile "$env:TEMP\vs_buildtools.exe"
+       Start-Process -FilePath "$env:TEMP\vs_buildtools.exe" -ArgumentList "--quiet", "--wait", "--add", "Microsoft.VisualStudio.Workload.VCTools" -Wait
+       ```
 
 3. **CMake 3.16+**
    - Linux:
@@ -120,14 +127,21 @@ cd D:\LRET
 mkdir build -Force
 cd build
 
-# Configure with CMake (adjust Visual Studio version if needed)
-cmake .. -G "Visual Studio 16 2019" -A x64
+# Configure with CMake (auto-detects Visual Studio 2022/2019)
+cmake .. -A x64
 
 # Build
 cmake --build . --config Release
 
 # Verify build
 Get-ChildItem quantum_sim.exe, Release\quantum_sim.lib
+```
+
+**Note:** CMake will automatically detect the newest installed Visual Studio version. If you have multiple versions installed, you can specify one explicitly:
+```powershell
+# Force specific VS version (optional)
+cmake .. -G "Visual Studio 17 2022" -A x64  # VS 2022
+cmake .. -G "Visual Studio 16 2019" -A x64  # VS 2019
 ```
 
 **Common Build Issues:**
