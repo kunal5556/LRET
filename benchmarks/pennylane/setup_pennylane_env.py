@@ -182,6 +182,13 @@ def main():
         
         # Build
         build_dir = project_root / "build"
+        
+        # On Windows, clear build directory if it exists (to avoid cached generator issues)
+        if system == "Windows" and build_dir.exists():
+            print(colored("\n⚠ Clearing existing build directory to avoid CMake cache issues...", Colors.WARNING))
+            import shutil
+            shutil.rmtree(build_dir)
+        
         build_dir.mkdir(exist_ok=True)
         
         print(f"\nConfiguring CMake in {build_dir}...")
@@ -189,17 +196,45 @@ def main():
         
         # CMake configure
         if system == "Windows":
-            # Auto-detect Visual Studio version (try VS 2022, 2019, or let CMake decide)
-            # CMake can auto-detect installed Visual Studio versions
+            # Try to detect and use the newest Visual Studio version
             print("Detecting Visual Studio installation...")
-            cmake_config = ["cmake", "..", "-A", "x64"]  # Let CMake auto-detect VS version
+            
+            # Try VS 2022 first (most common on new systems)
+            cmake_config_2022 = ["cmake", "..", "-G", "Visual Studio 17 2022", "-A", "x64"]
+            cmake_config_2019 = ["cmake", "..", "-G", "Visual Studio 16 2019", "-A", "x64"]
+            cmake_config_auto = ["cmake", "..", "-A", "x64"]  # Let CMake decide
+            
+            # Try each generator in order
+            success = False
+            for generator_name, cmake_config in [
+                ("Visual Studio 2022", cmake_config_2022),
+                ("Visual Studio 2019", cmake_config_2019),
+                ("Auto-detect", cmake_config_auto)
+            ]:
+                try:
+                    print(colored(f"  Trying {generator_name}...", Colors.OKBLUE))
+                    result = run_command(cmake_config, capture_output=True)
+                    success = True
+                    print(colored(f"  ✓ Using {generator_name}", Colors.OKGREEN))
+                    break
+                except subprocess.CalledProcessError:
+                    print(colored(f"  ✗ {generator_name} not available", Colors.WARNING))
+                    continue
+            
+            if not success:
+                print(colored("✗ No compatible Visual Studio installation found", Colors.FAIL))
+                print(colored("\nPlease install Visual Studio 2022 Build Tools:", Colors.WARNING))
+                print(colored("  PowerShell: Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vs_buildtools.exe' -OutFile vs_buildtools.exe; .\\vs_buildtools.exe --add Microsoft.VisualStudio.Workload.VCTools", Colors.WARNING))
+                sys.exit(1)
         else:
             cmake_config = ["cmake", ".."]
+            try:
+                run_command(cmake_config)
+                success = True
+            except subprocess.CalledProcessError:
+                success = False
         
-        try:
-            run_command(cmake_config)
-            print(colored("✓ CMake configuration successful", Colors.OKGREEN))
-        except subprocess.CalledProcessError:
+        if not success:
             print(colored("✗ CMake configuration failed", Colors.FAIL))
             print(colored("Check REQUIREMENTS.md for manual build instructions", Colors.WARNING))
             sys.exit(1)
