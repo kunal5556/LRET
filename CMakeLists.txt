@@ -205,6 +205,11 @@ target_link_libraries(qlret_lib PUBLIC Eigen3::Eigen nlohmann_json::nlohmann_jso
 if(OpenMP_CXX_FOUND)
     target_link_libraries(qlret_lib PUBLIC OpenMP::OpenMP_CXX)
     target_compile_definitions(qlret_lib PUBLIC USE_OPENMP)
+    
+    # MSVC requires -openmp:experimental for OpenMP SIMD features
+    if(MSVC)
+        target_compile_options(qlret_lib PUBLIC /openmp:experimental)
+    endif()
 endif()
 
 #==============================================================================
