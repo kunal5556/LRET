@@ -22,10 +22,36 @@ def print_step(step, total, msg):
     print(f"[{step}/{total}] {msg}")
 
 def find_msbuild():
-    """Find MSBuild.exe in various Visual Studio installations"""
+    """Find MSBuild.exe and VsDevCmd.bat in various Visual Studio installations"""
     
-    # Potential MSBuild locations (ordered by priority)
-    search_paths = [
+    # Potential locations for VsDevCmd.bat (preferred - sets up full environment)
+    vsdevcmd_paths = [
+        # VS 2022 (version-numbered, non-standard)
+        r"C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\VsDevCmd.bat",
+        r"C:\Program Files\Microsoft Visual Studio\17\Community\Common7\Tools\VsDevCmd.bat",
+        r"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat",
+        
+        # VS 2022 (standard locations)
+        r"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat",
+        r"C:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\Tools\VsDevCmd.bat",
+        r"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat",
+        r"C:\Program Files\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat",
+        
+        # VS 2019
+        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat",
+        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\Common7\Tools\VsDevCmd.bat",
+        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\VsDevCmd.bat",
+        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat",
+    ]
+    
+    # Check for VsDevCmd.bat first (preferred)
+    for path in vsdevcmd_paths:
+        if os.path.exists(path):
+            print(f"  Found VS Developer Command Prompt: {path}")
+            return ("vsdevcmd", path)
+    
+    # Fallback: Find MSBuild directly (less reliable)
+    msbuild_paths = [
         # VS 2022 (version-numbered, non-standard)
         r"C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe",
         r"C:\Program Files\Microsoft Visual Studio\17\Community\MSBuild\Current\Bin\MSBuild.exe",
@@ -50,28 +76,17 @@ def find_msbuild():
         r"C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin\MSBuild.exe",
     ]
     
-    # Check each path
-    for path in search_paths:
+    # Check each MSBuild path
+    for path in msbuild_paths:
         if os.path.exists(path):
             print(f"  Found MSBuild: {path}")
-            return path
+            return ("msbuild", path)
     
     # Try PATH
     msbuild = shutil.which("msbuild")
     if msbuild:
         print(f"  Found MSBuild in PATH: {msbuild}")
-        return msbuild
-    
-    # Deep search as last resort
-    print("  Performing deep search for MSBuild.exe...")
-    for root_dir in [r"C:\Program Files\Microsoft Visual Studio", 
-                      r"C:\Program Files (x86)\Microsoft Visual Studio"]:
-        if os.path.exists(root_dir):
-            for root, dirs, files in os.walk(root_dir):
-                if "MSBuild.exe" in files and "Bin" in root:
-                    found_path = os.path.join(root, "MSBuild.exe")
-                    print(f"  Found MSBuild (deep search): {found_path}")
-                    return found_path
+        return ("msbuild", msbuild)
     
     return None
 
@@ -124,21 +139,64 @@ def main():
         print("  cmake -B build -DCMAKE_BUILD_TYPE=Release")
         return 1
     
-    # Step 1: Find MSBuild
+    # Step 1: Find MSBuild or VS Developer Command Prompt
     print_step(1, 6, "Finding MSBuild...")
-    msbuild = find_msbuild()
+    build_tool = find_msbuild()
     
-    if not msbuild:
+    if not build_tool:
         print("\nERROR: MSBuild not found in any Visual Studio installation")
         print("\nChecked:")
         print("  - Visual Studio 2022 (all editions, standard and non-standard paths)")
         print("  - Visual Studio 2019 (all editions)")
         print("  - Visual Studio 2017 (all editions)")
         print("  - System PATH")
-        print("  - Deep filesystem search")
         print("\nPlease install Visual Studio 2017/2019/2022 with C++ build tools")
         print("Download: https://visualstudio.microsoft.com/downloads/")
         return 1
+    
+    tool_type, tool_path = build_tool
+    
+    # Prepare MSBuild command wrapper
+    if tool_type == "vsdevcmd":
+        # Use VS Developer Command Prompt to set up environment
+        def run_msbuild(vcxproj, cwd):
+            """Run MSBuild through VS Developer Command Prompt"""
+            # Create a batch script that loads VS environment and runs MSBuild
+            batch_script = f'''@echo off
+call "{tool_path}" -arch=x64 -host_arch=x64 >nul 2>&1
+msbuild "{vcxproj}" /p:Configuration=Release /p:Platform=x64 /v:minimal /nologo
+'''
+            batch_file = cwd / "temp_build.bat"
+            with open(batch_file, 'w') as f:
+                f.write(batch_script)
+            
+            result = subprocess.run(
+                [str(batch_file)],
+                cwd=cwd,
+                capture_output=True,
+                text=True,
+                shell=True
+            )
+            
+            # Clean up
+            try:
+                batch_file.unlink()
+            except:
+                pass
+            
+            return result
+    else:
+        # Use MSBuild directly
+        def run_msbuild(vcxproj, cwd):
+            """Run MSBuild directly"""
+            return subprocess.run(
+                [tool_path, str(vcxproj), 
+                 "/p:Configuration=Release", "/p:Platform=x64", 
+                 "/v:minimal", "/nologo"],
+                cwd=cwd,
+                capture_output=True,
+                text=True
+            )
     
     # Step 2: Check Python
     print_step(2, 6, "Checking Python version...")
@@ -166,34 +224,38 @@ def main():
     
     # Build qlret_lib
     print("  Building qlret_lib.lib...")
-    result = run_command([
-        msbuild,
-        str(qlret_vcxproj),
-        "/p:Configuration=Release",
-        "/p:Platform=x64",
-        "/v:minimal",
-        "/nologo"
-    ], cwd=build_dir)
+    result = run_msbuild(qlret_vcxproj, build_dir)
     
     if result.returncode != 0:
-        print("  ERROR: qlret_lib build failed")
+        print("\n  ERROR: qlret_lib build failed")
+        if result.stdout:
+            print("  STDOUT:")
+            print(result.stdout)
+        if result.stderr:
+            print("  STDERR:")
+            print(result.stderr)
         return 1
+    
+    if result.stdout:
+        print(result.stdout)
     
     # Build quantum_sim
     print("  Building quantum_sim.exe...")
     quantum_sim_vcxproj = build_dir / "quantum_sim.vcxproj"
-    result = run_command([
-        msbuild,
-        str(quantum_sim_vcxproj),
-        "/p:Configuration=Release",
-        "/p:Platform=x64",
-        "/v:minimal",
-        "/nologo"
-    ], cwd=build_dir)
+    result = run_msbuild(quantum_sim_vcxproj, build_dir)
     
     if result.returncode != 0:
-        print("  ERROR: quantum_sim build failed")
+        print("\n  ERROR: quantum_sim build failed")
+        if result.stdout:
+            print("  STDOUT:")
+            print(result.stdout)
+        if result.stderr:
+            print("  STDERR:")
+            print(result.stderr)
         return 1
+    
+    if result.stdout:
+        print(result.stdout)
     
     print("  Binaries built successfully")
     
