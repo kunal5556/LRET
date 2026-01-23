@@ -88,12 +88,16 @@ def run_command(cmd, cwd=None, check=True):
             shell=True if isinstance(cmd, str) else False
         )
         if result.stdout:
-            print(f"  {result.stdout.strip()}")
+            print(result.stdout)
         return result
     except subprocess.CalledProcessError as e:
-        print(f"  ERROR: Command failed with exit code {e.returncode}")
+        print(f"\n  ERROR: Command failed with exit code {e.returncode}")
+        if e.stdout:
+            print("  STDOUT:")
+            print(e.stdout)
         if e.stderr:
-            print(f"  {e.stderr}")
+            print("  STDERR:")
+            print(e.stderr)
         if check:
             raise
         return e
