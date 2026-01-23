@@ -49,10 +49,14 @@ def _find_executable() -> Optional[str]:
 
     # Check common locations
     candidates = [
-        # Relative to package
-        Path(__file__).parent.parent.parent / "build" / "quantum_sim",
-        Path(__file__).parent.parent.parent / "build" / "quantum_sim.exe",
+        # Windows Visual Studio builds
         Path(__file__).parent.parent.parent / "build" / "Release" / "quantum_sim.exe",
+        Path(__file__).parent.parent.parent / "build" / "Debug" / "quantum_sim.exe",
+        Path(__file__).parent.parent.parent / "build" / "RelWithDebInfo" / "quantum_sim.exe",
+        # Windows MinGW / Ninja builds
+        Path(__file__).parent.parent.parent / "build" / "quantum_sim.exe",
+        # Linux / macOS builds
+        Path(__file__).parent.parent.parent / "build" / "quantum_sim",
         # System PATH
         shutil.which("quantum_sim"),
     ]
@@ -60,8 +64,8 @@ def _find_executable() -> Optional[str]:
     for c in candidates:
         if c is not None:
             p = Path(c) if isinstance(c, str) else c
-            if p.exists():
-                _executable_path = str(p)
+            if p.exists() and p.is_file():
+                _executable_path = str(p.resolve())
                 return _executable_path
 
     return None
@@ -161,11 +165,31 @@ def _simulate_subprocess(circuit: Dict[str, Any], export_state: bool) -> Dict[st
     """Execute via CLI subprocess."""
     exe = _find_executable()
     if exe is None:
-        # This should not happen since we check in simulate_json
-        raise QLRETError(
-            "quantum_sim executable not found. "
-            "Build the project or call set_executable_path()."
-        )
+        # Provide detailed diagnostics
+        build_dir = Path(__file__).parent.parent.parent / "build"
+        error_msg = [
+            "quantum_sim executable not found.",
+            f"Searched locations:",
+            f"  - {build_dir / 'Release' / 'quantum_sim.exe'}",
+            f"  - {build_dir / 'Debug' / 'quantum_sim.exe'}",
+            f"  - {build_dir / 'quantum_sim.exe'}",
+            f"  - {build_dir / 'quantum_sim'}",
+            f"  - System PATH",
+            f"\nBuild directory exists: {build_dir.exists()}",
+        ]
+        if build_dir.exists():
+            try:
+                files = list(build_dir.rglob("quantum_sim*"))
+                if files:
+                    error_msg.append(f"Found these files in build/:")
+                    for f in files[:10]:  # Show first 10
+                        error_msg.append(f"  - {f}")
+                else:
+                    error_msg.append("No quantum_sim files found in build/")
+            except Exception as e:
+                error_msg.append(f"Could not list build directory: {e}")
+        
+        raise QLRETError("\n".join(error_msg))
 
     # Write circuit to temp file
     with tempfile.NamedTemporaryFile(
