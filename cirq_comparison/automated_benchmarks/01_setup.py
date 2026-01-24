@@ -1,273 +1,330 @@
 #!/usr/bin/env python3
 """
-LRET Automated Benchmark Setup - Python Version
-Handles MSBuild detection and compilation robustly across Windows configurations
+LRET Cirq Benchmark Setup (Based on working setup_pennylane_env.py)
+===================================================================
+This script automates the complete setup process:
+  1. Check Python version
+  2. Install Python dependencies (cirq, matplotlib, numpy, scipy, psutil)
+  3. Build LRET C++ backend with CMake
+  4. Verify quantum_sim.exe
+  5. Test DEPOLARIZE gate support
+
+Usage:
+  python 01_setup.py
+  python 01_setup.py --skip-build  # Skip C++ build if already done
 """
 
-import os
 import sys
+import os
+import platform
 import subprocess
+import shutil
 import json
 from pathlib import Path
-import shutil
 
-def print_header(msg):
-    """Print formatted header"""
-    print("\n" + "=" * 72)
-    print(msg)
-    print("=" * 72 + "\n")
+# ANSI color codes
+class Colors:
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
 
-def print_step(step, total, msg):
-    """Print step progress"""
-    print(f"[{step}/{total}] {msg}")
+def colored(text, color):
+    """Return colored text (degrades gracefully on Windows)"""
+    if platform.system() == "Windows":
+        return text
+    return f"{color}{text}{Colors.ENDC}"
 
-def find_msbuild():
-    """Find MSBuild.exe and VsDevCmd.bat in various Visual Studio installations"""
-    
-    # Potential locations for VsDevCmd.bat (preferred - sets up full environment)
-    vsdevcmd_paths = [
-        # VS 2022 (version-numbered, non-standard)
-        r"C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\VsDevCmd.bat",
-        r"C:\Program Files\Microsoft Visual Studio\17\Community\Common7\Tools\VsDevCmd.bat",
-        r"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat",
-        
-        # VS 2022 (standard locations)
-        r"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat",
-        r"C:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\Tools\VsDevCmd.bat",
-        r"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat",
-        r"C:\Program Files\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat",
-        
-        # VS 2019
-        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat",
-        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\Common7\Tools\VsDevCmd.bat",
-        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\Tools\VsDevCmd.bat",
-        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\Tools\VsDevCmd.bat",
-    ]
-    
-    # Check for VsDevCmd.bat first (preferred)
-    for path in vsdevcmd_paths:
-        if os.path.exists(path):
-            print(f"  Found VS Developer Command Prompt: {path}")
-            return ("vsdevcmd", path)
-    
-    # Fallback: Find MSBuild directly (less reliable)
-    msbuild_paths = [
-        # VS 2022 (version-numbered, non-standard)
-        r"C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe",
-        r"C:\Program Files\Microsoft Visual Studio\17\Community\MSBuild\Current\Bin\MSBuild.exe",
-        r"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe",
-        
-        # VS 2022 (standard locations)
-        r"C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\MSBuild.exe",
-        r"C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe",
-        r"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe",
-        r"C:\Program Files\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe",
-        
-        # VS 2019
-        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\MSBuild.exe",
-        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\MSBuild\Current\Bin\MSBuild.exe",
-        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe",
-        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin\MSBuild.exe",
-        
-        # VS 2017
-        r"C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\MSBuild\15.0\Bin\MSBuild.exe",
-        r"C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\MSBuild\15.0\Bin\MSBuild.exe",
-        r"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin\MSBuild.exe",
-        r"C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\MSBuild\15.0\Bin\MSBuild.exe",
-    ]
-    
-    # Check each MSBuild path
-    for path in msbuild_paths:
-        if os.path.exists(path):
-            print(f"  Found MSBuild: {path}")
-            return ("msbuild", path)
-    
-    # Try PATH
-    msbuild = shutil.which("msbuild")
-    if msbuild:
-        print(f"  Found MSBuild in PATH: {msbuild}")
-        return ("msbuild", msbuild)
-    
-    return None
+def print_step(step_num, total_steps, message):
+    """Print a formatted step header"""
+    print(f"\n{'='*70}")
+    print(colored(f"Step {step_num}/{total_steps}: {message}", Colors.BOLD))
+    print('='*70)
 
-def run_command(cmd, cwd=None, check=True):
-    """Run command and return result"""
-    print(f"  Running: {' '.join(cmd) if isinstance(cmd, list) else cmd}")
+def run_command(cmd, shell=False, check=True, capture_output=False):
+    """Run a shell command and return result"""
+    print(colored(f"Running: {cmd if isinstance(cmd, str) else ' '.join(cmd)}", Colors.OKBLUE))
     try:
-        result = subprocess.run(
-            cmd,
-            cwd=cwd,
-            check=check,
-            capture_output=True,
-            text=True,
-            shell=True if isinstance(cmd, str) else False
-        )
-        if result.stdout:
-            print(result.stdout)
-        return result
+        if capture_output:
+            result = subprocess.run(cmd, shell=shell, check=check, 
+                                  capture_output=True, text=True)
+            return result
+        else:
+            result = subprocess.run(cmd, shell=shell, check=check)
+            return result
     except subprocess.CalledProcessError as e:
-        print(f"\n  ERROR: Command failed with exit code {e.returncode}")
-        if e.stdout:
-            print("  STDOUT:")
-            print(e.stdout)
-        if e.stderr:
-            print("  STDERR:")
-            print(e.stderr)
-        if check:
-            raise
-        return e
+        print(colored(f"✗ Command failed with exit code {e.returncode}", Colors.FAIL))
+        if capture_output and e.stderr:
+            print(colored(f"Error output: {e.stderr}", Colors.FAIL))
+        raise
+
+def check_command_exists(command):
+    """Check if a command exists in PATH"""
+    return shutil.which(command) is not None
+
+def get_python_executable():
+    """Get the current Python executable path"""
+    return sys.executable
 
 def main():
-    print_header("LRET Automated Benchmark Setup (Python)")
+    # Parse command line arguments
+    skip_build = '--skip-build' in sys.argv
     
-    # Detect LRET root
-    script_dir = Path(__file__).parent.resolve()
-    lret_root = script_dir.parent.parent
-    print(f"LRET Root: {lret_root}\n")
+    print(colored("\n╔═══════════════════════════════════════════════════════════════════╗", Colors.BOLD))
+    print(colored("║   LRET Cirq Benchmarking - Automated Setup Script               ║", Colors.BOLD))
+    print(colored("╚═══════════════════════════════════════════════════════════════════╝", Colors.BOLD))
+    
+    # Detect system
+    system = platform.system()
+    print(f"\nDetected OS: {colored(system, Colors.OKCYAN)}")
+    print(f"Python: {colored(sys.version.split()[0], Colors.OKCYAN)} at {sys.executable}")
+    
+    # Determine project root (3 levels up: automated_benchmarks -> cirq_comparison -> LRET)
+    script_dir = Path(__file__).parent.absolute()
+    project_root = script_dir.parent.parent
+    print(f"Project root: {colored(str(project_root), Colors.OKCYAN)}")
     
     # Verify LRET root
-    if not (lret_root / "CMakeLists.txt").exists():
-        print(f"ERROR: Cannot find LRET root directory")
-        print(f"Expected CMakeLists.txt at: {lret_root}")
+    if not (project_root / "CMakeLists.txt").exists():
+        print(colored(f"✗ Cannot find LRET root directory", Colors.FAIL))
+        print(f"Expected CMakeLists.txt at: {project_root}")
         return 1
     
-    build_dir = lret_root / "build"
-    if not build_dir.exists():
-        print(f"ERROR: Build directory not found: {build_dir}")
-        print("Please run CMake configuration first:")
-        print(f"  cd {lret_root}")
-        print("  cmake -B build -DCMAKE_BUILD_TYPE=Release")
+    total_steps = 5 if skip_build else 6
+    current_step = 0
+    
+    # ==========================================================================
+    # STEP 1: Check Python Version
+    # ==========================================================================
+    current_step += 1
+    print_step(current_step, total_steps, "Check Python Version")
+    
+    py_version = sys.version_info
+    if py_version < (3, 8):
+        print(colored(f"✗ Python {py_version.major}.{py_version.minor} is too old. Need Python 3.8+", Colors.FAIL))
         return 1
-    
-    # Step 1: Find MSBuild or VS Developer Command Prompt
-    print_step(1, 6, "Finding MSBuild...")
-    build_tool = find_msbuild()
-    
-    if not build_tool:
-        print("\nERROR: MSBuild not found in any Visual Studio installation")
-        print("\nChecked:")
-        print("  - Visual Studio 2022 (all editions, standard and non-standard paths)")
-        print("  - Visual Studio 2019 (all editions)")
-        print("  - Visual Studio 2017 (all editions)")
-        print("  - System PATH")
-        print("\nPlease install Visual Studio 2017/2019/2022 with C++ build tools")
-        print("Download: https://visualstudio.microsoft.com/downloads/")
-        return 1
-    
-    tool_type, tool_path = build_tool
-    
-    # Prepare MSBuild command wrapper
-    if tool_type == "vsdevcmd":
-        # Use VS Developer Command Prompt to set up environment
-        def run_msbuild(vcxproj, cwd):
-            """Run MSBuild through VS Developer Command Prompt"""
-            # Create a batch script that loads VS environment and runs MSBuild
-            batch_script = f'''@echo off
-call "{tool_path}" -arch=x64 -host_arch=x64 >nul 2>&1
-msbuild "{vcxproj}" /p:Configuration=Release /p:Platform=x64 /v:minimal /nologo
-'''
-            batch_file = cwd / "temp_build.bat"
-            with open(batch_file, 'w') as f:
-                f.write(batch_script)
-            
-            result = subprocess.run(
-                [str(batch_file)],
-                cwd=cwd,
-                capture_output=True,
-                text=True,
-                shell=True
-            )
-            
-            # Clean up
-            try:
-                batch_file.unlink()
-            except:
-                pass
-            
-            return result
+    elif py_version >= (3, 13):
+        print(colored(f"⚠ Python {py_version.major}.{py_version.minor} - very new, tested on 3.8-3.12", Colors.WARNING))
     else:
-        # Use MSBuild directly
-        def run_msbuild(vcxproj, cwd):
-            """Run MSBuild directly"""
-            return subprocess.run(
-                [tool_path, str(vcxproj), 
-                 "/p:Configuration=Release", "/p:Platform=x64", 
-                 "/v:minimal", "/nologo"],
-                cwd=cwd,
-                capture_output=True,
-                text=True
-            )
+        print(colored(f"✓ Python {py_version.major}.{py_version.minor} is compatible", Colors.OKGREEN))
     
-    # Step 2: Check Python
-    print_step(2, 6, "Checking Python version...")
-    python_version = sys.version.split()[0]
-    print(f"  Python {python_version}")
+    # ==========================================================================
+    # STEP 2: Install Python Dependencies
+    # ==========================================================================
+    current_step += 1
+    print_step(current_step, total_steps, "Install Python Dependencies")
     
-    # Step 3: Install dependencies
-    print_step(3, 6, "Installing Python dependencies...")
-    deps = ["cirq", "matplotlib", "numpy", "scipy", "psutil"]
+    packages = [
+        "cirq",
+        "matplotlib",
+        "numpy",
+        "scipy",
+        "psutil>=5.8",
+    ]
+    
+    print(f"Installing packages: {', '.join(packages)}")
+    pip_cmd = [get_python_executable(), "-m", "pip", "install"] + packages
+    
     try:
-        run_command([sys.executable, "-m", "pip", "install", "--quiet"] + deps)
-        print(f"  Installed: {', '.join(deps)}")
-    except:
-        print("  WARNING: Some dependencies may already be installed")
+        run_command(pip_cmd)
+        print(colored("✓ Python dependencies installed successfully", Colors.OKGREEN))
+    except subprocess.CalledProcessError:
+        print(colored("⚠ Some packages may already be installed (continuing)", Colors.WARNING))
     
-    # Step 4: Build LRET binaries
-    print_step(4, 6, "Building LRET C++ binaries...")
-    
-    # Verify vcxproj exists
-    qlret_vcxproj = build_dir / "qlret_lib.vcxproj"
-    if not qlret_vcxproj.exists():
-        print(f"ERROR: {qlret_vcxproj} not found")
-        print("Please run CMake to generate Visual Studio project files")
+    # Verify installations
+    print("\nVerifying installations...")
+    try:
+        import cirq
+        print(colored(f"  ✓ Cirq {cirq.__version__}", Colors.OKGREEN))
+    except ImportError:
+        print(colored("  ✗ Cirq not found", Colors.FAIL))
         return 1
     
-    # Build qlret_lib
-    print("  Building qlret_lib.lib...")
-    result = run_msbuild(qlret_vcxproj, build_dir)
-    
-    if result.returncode != 0:
-        print("\n  ERROR: qlret_lib build failed")
-        if result.stdout:
-            print("  STDOUT:")
-            print(result.stdout)
-        if result.stderr:
-            print("  STDERR:")
-            print(result.stderr)
+    try:
+        import numpy as np
+        print(colored(f"  ✓ NumPy {np.__version__}", Colors.OKGREEN))
+    except ImportError:
+        print(colored("  ✗ NumPy not found", Colors.FAIL))
         return 1
     
-    if result.stdout:
-        print(result.stdout)
+    # ==========================================================================
+    # STEP 3: Build LRET C++ Backend (if not skipped)
+    # ==========================================================================
+    if not skip_build:
+        current_step += 1
+        print_step(current_step, total_steps, "Build LRET C++ Backend")
+        
+        # Check for CMake
+        if not check_command_exists("cmake"):
+            print(colored("✗ CMake not found in PATH", Colors.FAIL))
+            print(colored("Please install CMake 3.16+ and add to PATH", Colors.WARNING))
+            print(colored("  Windows: Download from https://cmake.org/download/", Colors.WARNING))
+            return 1
+        
+        build_dir = project_root / "build"
+        
+        # On Windows, clear build directory if it exists (to avoid cached generator issues)
+        if system == "Windows":
+            if build_dir.exists():
+                print(colored("\n⚠ Removing existing build directory to clear CMake cache...", Colors.WARNING))
+                try:
+                    shutil.rmtree(build_dir, ignore_errors=True)
+                    import time
+                    time.sleep(0.5)  # Give filesystem time to settle
+                except Exception as e:
+                    print(colored(f"  Warning: Could not fully clear build directory: {e}", Colors.WARNING))
+        
+        build_dir.mkdir(exist_ok=True)
+        
+        print(f"\nConfiguring CMake in {build_dir}...")
+        os.chdir(build_dir)
+        
+        # CMake configure
+        if system == "Windows":
+            print("Detecting Visual Studio installation...")
+            
+            # Try to find vswhere (official VS locator tool)
+            vswhere_path = Path(r"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe")
+            vs_path = None
+            if vswhere_path.exists():
+                try:
+                    result = subprocess.run(
+                        [str(vswhere_path), "-latest", "-property", "installationPath"],
+                        capture_output=True, text=True, check=True
+                    )
+                    vs_path = result.stdout.strip()
+                    print(colored(f"  Found Visual Studio at: {vs_path}", Colors.OKGREEN))
+                except:
+                    pass
+            
+            # Try Ninja generator first (recommended - works with any VS installation)
+            print(colored("\n  Strategy 1: Trying Ninja generator (recommended)...", Colors.OKBLUE))
+            success = False
+            if check_command_exists("ninja"):
+                # Setup MSVC environment for Ninja
+                if vs_path:
+                    vcvars_path = Path(vs_path) / "VC" / "Auxiliary" / "Build" / "vcvars64.bat"
+                    if vcvars_path.exists():
+                        print(colored(f"    Using MSVC environment from: {vcvars_path}", Colors.OKBLUE))
+                        # Call vcvars64 and then cmake with Ninja
+                        cmake_ninja = f'"{vcvars_path}" && cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release'
+                        try:
+                            result = subprocess.run(cmake_ninja, shell=True, check=True, 
+                                                  capture_output=True, text=True)
+                            print(colored("  ✓ Successfully configured with Ninja generator", Colors.OKGREEN))
+                            success = True
+                        except subprocess.CalledProcessError as e:
+                            print(colored(f"  ✗ Ninja generator failed: {e.stderr[:200]}", Colors.WARNING))
+                else:
+                    # Try Ninja without vcvars (might work if VS is in PATH)
+                    try:
+                        run_command(["cmake", "..", "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Release"], 
+                                  capture_output=True)
+                        print(colored("  ✓ Successfully configured with Ninja generator", Colors.OKGREEN))
+                        success = True
+                    except:
+                        pass
+            else:
+                print(colored("    Ninja not found, skipping...", Colors.WARNING))
+            
+            # Fallback: Try Visual Studio generators
+            if not success:
+                print(colored("\n  Strategy 2: Trying Visual Studio generators...", Colors.OKBLUE))
+                
+                for generator_name, generator_arg in [
+                    ("Visual Studio 17 2022", "Visual Studio 17 2022"),
+                    ("Visual Studio 16 2019", "Visual Studio 16 2019"),
+                ]:
+                    try:
+                        print(colored(f"    Trying {generator_name}...", Colors.OKBLUE))
+                        result = subprocess.run(
+                            ["cmake", "..", "-G", generator_arg, "-A", "x64"],
+                            capture_output=True, text=True, check=True
+                        )
+                        success = True
+                        print(colored(f"  ✓ Successfully configured with {generator_name}", Colors.OKGREEN))
+                        break
+                    except subprocess.CalledProcessError:
+                        print(colored(f"    ✗ {generator_name} failed", Colors.WARNING))
+                        continue
+            
+            if not success:
+                print(colored("\n✗ Could not configure CMake with any generator", Colors.FAIL))
+                print(colored("\nSolutions:", Colors.OKGREEN))
+                print(colored("  1. Repair Visual Studio installation", Colors.OKGREEN))
+                print(colored("  2. Ensure 'Desktop development with C++' is installed", Colors.OKGREEN))
+                print(colored("  3. Or install Ninja: choco install ninja", Colors.OKGREEN))
+                return 1
+        else:
+            # Linux/Mac
+            cmake_config = ["cmake", ".."]
+            try:
+                run_command(cmake_config)
+                success = True
+            except subprocess.CalledProcessError:
+                success = False
+        
+        if not success:
+            print(colored("✗ CMake configuration failed", Colors.FAIL))
+            return 1
+        
+        # CMake build
+        print("\nBuilding LRET (this may take several minutes)...")
+        
+        # Detect if we used Ninja or VS generator
+        cmake_cache = build_dir / "CMakeCache.txt"
+        using_ninja = False
+        if cmake_cache.exists():
+            with open(cmake_cache, 'r') as f:
+                if 'Ninja' in f.read():
+                    using_ninja = True
+        
+        if system == "Windows":
+            if using_ninja:
+                cmake_build = ["cmake", "--build", "."]
+            else:
+                cmake_build = ["cmake", "--build", ".", "--config", "Release"]
+        else:
+            import multiprocessing
+            n_cores = multiprocessing.cpu_count()
+            cmake_build = ["cmake", "--build", ".", "-j", str(n_cores)]
+        
+        try:
+            run_command(cmake_build)
+            print(colored("✓ LRET C++ backend built successfully", Colors.OKGREEN))
+        except subprocess.CalledProcessError:
+            print(colored("✗ Build failed", Colors.FAIL))
+            return 1
+        
+        os.chdir(project_root)
     
-    # Build quantum_sim
-    print("  Building quantum_sim.exe...")
-    quantum_sim_vcxproj = build_dir / "quantum_sim.vcxproj"
-    result = run_msbuild(quantum_sim_vcxproj, build_dir)
+    # ==========================================================================
+    # STEP 4: Verify quantum_sim.exe
+    # ==========================================================================
+    current_step += 1
+    print_step(current_step, total_steps, "Verify quantum_sim.exe")
     
-    if result.returncode != 0:
-        print("\n  ERROR: quantum_sim build failed")
-        if result.stdout:
-            print("  STDOUT:")
-            print(result.stdout)
-        if result.stderr:
-            print("  STDERR:")
-            print(result.stderr)
+    build_dir = project_root / "build"
+    if not build_dir.exists():
+        print(colored(f"✗ Build directory not found: {build_dir}", Colors.FAIL))
+        print(colored("Please run CMake configuration first or remove --skip-build", Colors.WARNING))
         return 1
     
-    if result.stdout:
-        print(result.stdout)
+    if system == "Windows":
+        exe_path = build_dir / "Release" / "quantum_sim.exe"
+    else:
+        exe_path = build_dir / "quantum_sim"
     
-    print("  Binaries built successfully")
-    
-    # Step 5: Verify binary
-    print_step(5, 6, "Verifying quantum_sim.exe...")
-    exe_path = build_dir / "Release" / "quantum_sim.exe"
     if not exe_path.exists():
-        print(f"  ERROR: quantum_sim.exe not found at {exe_path}")
+        print(colored(f"✗ quantum_sim executable not found at {exe_path}", Colors.FAIL))
         return 1
-    print(f"  Found: {exe_path}")
+    print(colored(f"✓ Found: {exe_path}", Colors.OKGREEN))
     
     # Test basic circuit
+    print("\nTesting basic circuit...")
     test_basic_json = {
         "circuit": {
             "num_qubits": 2,
@@ -285,19 +342,27 @@ msbuild "{vcxproj}" /p:Configuration=Release /p:Platform=x64 /v:minimal /nologo
     with open(test_file, 'w') as f:
         json.dump(test_basic_json, f)
     
-    result = run_command([
-        str(exe_path),
-        "--input-json", str(test_file),
-        "--output", str(test_output)
-    ], check=False)
-    
-    if not test_output.exists():
-        print("  ERROR: Basic test failed")
+    try:
+        result = subprocess.run([
+            str(exe_path),
+            "--input-json", str(test_file),
+            "--output", str(test_output)
+        ], capture_output=True, text=True, check=True)
+        
+        if not test_output.exists():
+            print(colored("✗ Basic test failed - no output file", Colors.FAIL))
+            return 1
+        print(colored("✓ Basic circuit test passed", Colors.OKGREEN))
+    except subprocess.CalledProcessError as e:
+        print(colored(f"✗ Basic test failed: {e.stderr}", Colors.FAIL))
         return 1
-    print("  Basic circuit test passed")
     
-    # Step 6: Test DEPOLARIZE
-    print_step(6, 6, "Testing DEPOLARIZE gate...")
+    # ==========================================================================
+    # STEP 5: Test DEPOLARIZE Gate
+    # ==========================================================================
+    current_step += 1
+    print_step(current_step, total_steps, "Test DEPOLARIZE Gate Support")
+    
     test_depol_json = {
         "circuit": {
             "num_qubits": 2,
@@ -316,25 +381,32 @@ msbuild "{vcxproj}" /p:Configuration=Release /p:Platform=x64 /v:minimal /nologo
     with open(test_depol_file, 'w') as f:
         json.dump(test_depol_json, f)
     
-    result = run_command([
-        str(exe_path),
-        "--input-json", str(test_depol_file),
-        "--output", str(test_depol_output)
-    ], check=False)
-    
-    if not test_depol_output.exists():
-        print("  ERROR: DEPOLARIZE test failed")
+    try:
+        result = subprocess.run([
+            str(exe_path),
+            "--input-json", str(test_depol_file),
+            "--output", str(test_depol_output)
+        ], capture_output=True, text=True, check=True)
+        
+        if not test_depol_output.exists():
+            print(colored("✗ DEPOLARIZE test failed - no output file", Colors.FAIL))
+            return 1
+        print(colored("✓ DEPOLARIZE gate working", Colors.OKGREEN))
+    except subprocess.CalledProcessError as e:
+        print(colored(f"✗ DEPOLARIZE test failed: {e.stderr}", Colors.FAIL))
         return 1
-    print("  DEPOLARIZE gate working")
     
-    # Summary
-    print_header("SETUP COMPLETE - Ready to run benchmarks!")
-    print("Summary:")
-    print("  ✓ Python dependencies: OK")
-    print("  ✓ LRET binaries: OK")
-    print("  ✓ quantum_sim.exe: OK")
-    print("  ✓ DEPOLARIZE support: OK")
-    print("\nNext: python 02_run_benchmark.py\n")
+    # ==========================================================================
+    # SUCCESS!
+    # ==========================================================================
+    print("\n" + "="*70)
+    print(colored("🎉 SETUP COMPLETE! 🎉", Colors.OKGREEN + Colors.BOLD))
+    print("="*70)
+    print(colored("\n✓ All checks passed. Ready to run benchmarks!\n", Colors.OKGREEN))
+    
+    print("Next step:")
+    print(colored("  python 02_run_benchmark.py", Colors.OKCYAN))
+    print(colored("\nResults will be saved to: cirq_comparison/benchmark_results_TIMESTAMP/\n", Colors.OKCYAN))
     
     return 0
 
@@ -342,10 +414,10 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except KeyboardInterrupt:
-        print("\n\nSetup interrupted by user")
+        print(colored("\n\n✗ Setup interrupted by user", Colors.WARNING))
         sys.exit(1)
     except Exception as e:
-        print(f"\nFATAL ERROR: {e}")
+        print(colored(f"\n✗ Unexpected error: {e}", Colors.FAIL))
         import traceback
         traceback.print_exc()
         sys.exit(1)
