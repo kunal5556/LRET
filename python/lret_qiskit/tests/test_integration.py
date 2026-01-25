@@ -331,24 +331,560 @@ class TestIntegration:
             raise
 
     def test_transpile_and_run(self):
-        """Circuit can be transpiled to backend and run."""
-        provider = LRETProvider()
-        backend = provider.get_backend()
+        """Circuit can be transpiled to backend and run.
+        
+        Note: We use a smaller backend (8 qubits) to avoid memory issues
+        with large simulations. The full 20-qubit backend would require
+        significant memory for dense simulation.
+        """
+        from lret_qiskit.backends import LRETBackend
+        
+        # Create a small backend for testing
+        small_backend = LRETBackend(
+            name="lret_test",
+            description="Small test backend",
+            epsilon=1e-4,
+            num_qubits=4,  # Small enough to simulate quickly
+        )
         
         # Create a circuit that may need transpilation
         qc = QuantumCircuit(2, 2)
         qc.h(0)
         qc.cx(0, 1)
-        qc.measure_all()
+        qc.measure([0, 1], [0, 1])
         
         # Transpile to backend's basis gates
-        transpiled = transpile(qc, backend)
+        transpiled = transpile(qc, small_backend)
         
         try:
-            job = backend.run(transpiled, shots=100)
+            job = small_backend.run(transpiled, shots=100)
             result = job.result()
             assert result.success
+            # Should get Bell state distribution
+            counts = result.get_counts()
+            assert '00' in counts or '11' in counts
         except Exception as e:
             if "No LRET backend available" in str(e):
                 pytest.skip("LRET native module not built")
             raise
+
+# =============================================================================
+# Extended Gate Tests
+# =============================================================================
+
+class TestExtendedGates:
+    """Tests for all supported gate types."""
+
+    def test_translate_y_gate(self):
+        """Y gate translates correctly."""
+        translator = CircuitTranslator()
+        qc = QuantumCircuit(1)
+        qc.y(0)
+        
+        result = translator.translate(qc)
+        assert result["circuit"]["operations"][0] == {"name": "Y", "wires": [0]}
+
+    def test_translate_z_gate(self):
+        """Z gate translates correctly."""
+        translator = CircuitTranslator()
+        qc = QuantumCircuit(1)
+        qc.z(0)
+        
+        result = translator.translate(qc)
+        assert result["circuit"]["operations"][0] == {"name": "Z", "wires": [0]}
+
+    def test_translate_s_gate(self):
+        """S gate translates correctly."""
+        translator = CircuitTranslator()
+        qc = QuantumCircuit(1)
+        qc.s(0)
+        
+        result = translator.translate(qc)
+        assert result["circuit"]["operations"][0] == {"name": "S", "wires": [0]}
+
+    def test_translate_sdg_gate(self):
+        """Sdg gate translates correctly."""
+        translator = CircuitTranslator()
+        qc = QuantumCircuit(1)
+        qc.sdg(0)
+        
+        result = translator.translate(qc)
+        assert result["circuit"]["operations"][0] == {"name": "SDG", "wires": [0]}
+
+    def test_translate_t_gate(self):
+        """T gate translates correctly."""
+        translator = CircuitTranslator()
+        qc = QuantumCircuit(1)
+        qc.t(0)
+        
+        result = translator.translate(qc)
+        assert result["circuit"]["operations"][0] == {"name": "T", "wires": [0]}
+
+    def test_translate_tdg_gate(self):
+        """Tdg gate translates correctly."""
+        translator = CircuitTranslator()
+        qc = QuantumCircuit(1)
+        qc.tdg(0)
+        
+        result = translator.translate(qc)
+        assert result["circuit"]["operations"][0] == {"name": "TDG", "wires": [0]}
+
+    def test_translate_rx_gate(self):
+        """RX gate with parameter translates correctly."""
+        import math
+        translator = CircuitTranslator()
+        qc = QuantumCircuit(1)
+        qc.rx(math.pi / 4, 0)
+        
+        result = translator.translate(qc)
+        op = result["circuit"]["operations"][0]
+        assert op["name"] == "RX"
+        assert op["wires"] == [0]
+        assert abs(op["params"][0] - math.pi / 4) < 1e-10
+
+    def test_translate_ry_gate(self):
+        """RY gate with parameter translates correctly."""
+        import math
+        translator = CircuitTranslator()
+        qc = QuantumCircuit(1)
+        qc.ry(math.pi / 2, 0)
+        
+        result = translator.translate(qc)
+        op = result["circuit"]["operations"][0]
+        assert op["name"] == "RY"
+        assert abs(op["params"][0] - math.pi / 2) < 1e-10
+
+    def test_translate_phase_gate(self):
+        """Phase (P) gate translates correctly."""
+        import math
+        translator = CircuitTranslator()
+        qc = QuantumCircuit(1)
+        qc.p(math.pi / 3, 0)
+        
+        result = translator.translate(qc)
+        op = result["circuit"]["operations"][0]
+        assert op["name"] == "U1"  # Phase maps to U1 in LRET
+
+    def test_translate_swap_gate(self):
+        """SWAP gate translates correctly."""
+        translator = CircuitTranslator()
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+        
+        result = translator.translate(qc)
+        op = result["circuit"]["operations"][0]
+        assert op["name"] == "SWAP"
+        assert op["wires"] == [0, 1]
+
+
+# =============================================================================
+# Parameterized Circuit Tests
+# =============================================================================
+
+class TestParameterizedCircuits:
+    """Tests for parameterized circuits."""
+
+    def test_bound_parameters(self):
+        """Circuit with bound parameters translates correctly."""
+        from qiskit.circuit import Parameter
+        
+        translator = CircuitTranslator()
+        theta = Parameter('θ')
+        qc = QuantumCircuit(1)
+        qc.rx(theta, 0)
+        
+        # Bind the parameter
+        bound_qc = qc.assign_parameters({theta: 0.5})
+        
+        result = translator.translate(bound_qc)
+        op = result["circuit"]["operations"][0]
+        assert op["name"] == "RX"
+        assert abs(op["params"][0] - 0.5) < 1e-10
+
+    def test_multiple_parameters(self):
+        """Circuit with multiple parameters translates correctly."""
+        from qiskit.circuit import Parameter
+        
+        translator = CircuitTranslator()
+        theta = Parameter('θ')
+        phi = Parameter('φ')
+        
+        qc = QuantumCircuit(1)
+        qc.rx(theta, 0)
+        qc.ry(phi, 0)
+        
+        bound_qc = qc.assign_parameters({theta: 0.3, phi: 0.7})
+        
+        result = translator.translate(bound_qc)
+        ops = result["circuit"]["operations"]
+        
+        assert len(ops) == 2
+        assert abs(ops[0]["params"][0] - 0.3) < 1e-10
+        assert abs(ops[1]["params"][0] - 0.7) < 1e-10
+
+
+# =============================================================================
+# Multiple Circuit Tests
+# =============================================================================
+
+class TestMultipleCircuits:
+    """Tests for running multiple circuits."""
+
+    def test_run_multiple_circuits(self):
+        """Multiple circuits can be run in a single job."""
+        provider = LRETProvider()
+        backend = provider.get_backend()
+        
+        qc1 = QuantumCircuit(1, 1)
+        qc1.h(0)
+        qc1.measure(0, 0)
+        
+        qc2 = QuantumCircuit(1, 1)
+        qc2.x(0)
+        qc2.measure(0, 0)
+        
+        try:
+            job = backend.run([qc1, qc2], shots=100)
+            result = job.result()
+            
+            assert len(result.results) == 2
+        except Exception as e:
+            if "No LRET backend available" in str(e):
+                pytest.skip("LRET native module not built")
+            raise
+
+
+# =============================================================================
+# Error Handling Tests
+# =============================================================================
+
+class TestErrorHandling:
+    """Tests for error handling."""
+
+    def test_unsupported_gate_error_message(self):
+        """TranslationError includes helpful message."""
+        translator = CircuitTranslator()
+        qc = QuantumCircuit(3)
+        qc.ccx(0, 1, 2)  # Toffoli
+        
+        with pytest.raises(TranslationError) as exc_info:
+            translator.translate(qc)
+        
+        assert "Unsupported gate" in str(exc_info.value)
+        assert "ccx" in str(exc_info.value).lower()
+
+    def test_job_error_state(self):
+        """Job correctly reports error status for bad circuits."""
+        # This test checks error handling when simulation fails
+        from lret_qiskit.backends.lret_job import LRETJob
+        
+        # The job should handle errors gracefully
+        provider = LRETProvider()
+        backend = provider.get_backend()
+        
+        # Create a valid circuit - actual errors would come from native module
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.measure(0, 0)
+        
+        try:
+            job = backend.run(qc, shots=10)
+            # Job should complete successfully for valid circuit
+            assert job.status() in [JobStatus.DONE, JobStatus.RUNNING]
+        except Exception as e:
+            if "No LRET backend available" in str(e):
+                pytest.skip("LRET native module not built")
+            raise
+
+
+# =============================================================================
+# Backend Configuration Tests  
+# =============================================================================
+
+class TestBackendConfiguration:
+    """Tests for backend configuration options."""
+
+    def test_custom_num_qubits(self):
+        """Backend can be created with custom qubit count."""
+        backend = LRETBackend(
+            name="test",
+            description="Test",
+            epsilon=1e-4,
+            num_qubits=10,
+        )
+        assert backend.target.num_qubits == 10
+
+    def test_custom_epsilon(self):
+        """Backend uses custom epsilon value."""
+        backend = LRETBackend(
+            name="test",
+            description="Test",
+            epsilon=1e-8,
+            num_qubits=4,
+        )
+        assert backend._epsilon == 1e-8
+
+    def test_backend_str_repr(self):
+        """Backend has meaningful string representation."""
+        provider = LRETProvider()
+        backend = provider.get_backend()
+        
+        # Should not raise
+        str(backend)
+        repr(backend)
+
+    def test_provider_str_repr(self):
+        """Provider has meaningful string representation."""
+        provider = LRETProvider()
+        
+        s = str(provider)
+        assert "LRETProvider" in s
+        assert "version" in s
+
+
+# =============================================================================
+# Result Format Tests
+# =============================================================================
+
+class TestResultFormat:
+    """Tests for result format and metadata."""
+
+    def test_result_has_backend_name(self):
+        """Result contains backend name."""
+        provider = LRETProvider()
+        backend = provider.get_backend()
+        
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.measure(0, 0)
+        
+        try:
+            job = backend.run(qc, shots=10)
+            result = job.result()
+            
+            assert result.backend_name == "lret_simulator"
+        except Exception as e:
+            if "No LRET backend available" in str(e):
+                pytest.skip("LRET native module not built")
+            raise
+
+    def test_result_has_job_id(self):
+        """Result contains job ID."""
+        provider = LRETProvider()
+        backend = provider.get_backend()
+        
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.measure(0, 0)
+        
+        try:
+            job = backend.run(qc, shots=10)
+            result = job.result()
+            
+            assert result.job_id is not None
+            assert len(result.job_id) > 0
+        except Exception as e:
+            if "No LRET backend available" in str(e):
+                pytest.skip("LRET native module not built")
+            raise
+
+    def test_counts_sum_to_shots(self):
+        """Measurement counts sum to number of shots."""
+        provider = LRETProvider()
+        backend = provider.get_backend()
+        
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.measure(0, 0)
+        
+        shots = 200
+        try:
+            job = backend.run(qc, shots=shots)
+            result = job.result()
+            
+            counts = result.get_counts()
+            total = sum(counts.values())
+            assert total == shots
+        except Exception as e:
+            if "No LRET backend available" in str(e):
+                pytest.skip("LRET native module not built")
+            raise
+
+
+# =============================================================================
+# Circuit Validity Tests
+# =============================================================================
+
+class TestCircuitValidity:
+    """Tests for circuit validation."""
+
+    def test_empty_circuit_runs(self):
+        """Empty circuit can be executed."""
+        provider = LRETProvider()
+        backend = provider.get_backend()
+        
+        qc = QuantumCircuit(1, 1)
+        qc.measure(0, 0)  # Just measure initial |0⟩
+        
+        try:
+            job = backend.run(qc, shots=100)
+            result = job.result()
+            
+            counts = result.get_counts()
+            # Should be 100% |0⟩
+            assert counts.get('0', 0) == 100
+        except Exception as e:
+            if "No LRET backend available" in str(e):
+                pytest.skip("LRET native module not built")
+            raise
+
+    def test_x_gate_flips_qubit(self):
+        """X gate correctly flips qubit from |0⟩ to |1⟩."""
+        provider = LRETProvider()
+        backend = provider.get_backend()
+        
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.measure(0, 0)
+        
+        try:
+            job = backend.run(qc, shots=100)
+            result = job.result()
+            
+            counts = result.get_counts()
+            # Should be 100% |1⟩
+            assert counts.get('1', 0) == 100
+        except Exception as e:
+            if "No LRET backend available" in str(e):
+                pytest.skip("LRET native module not built")
+            raise
+
+    def test_ghz_state(self):
+        """GHZ state produces correct correlations."""
+        provider = LRETProvider()
+        backend = provider.get_backend()
+        
+        qc = QuantumCircuit(3, 3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.measure([0, 1, 2], [0, 1, 2])
+        
+        try:
+            job = backend.run(qc, shots=1000)
+            result = job.result()
+            
+            counts = result.get_counts()
+            # GHZ should only have |000⟩ and |111⟩
+            for bitstring in counts:
+                assert bitstring in ['000', '111']
+        except Exception as e:
+            if "No LRET backend available" in str(e):
+                pytest.skip("LRET native module not built")
+            raise
+
+
+# =============================================================================
+# Additional Job Tests  
+# =============================================================================
+
+class TestJobBehavior:
+    """Tests for job behavior and lifecycle."""
+
+    def test_job_has_unique_id(self):
+        """Each job has a unique ID."""
+        provider = LRETProvider()
+        backend = provider.get_backend()
+        
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.measure(0, 0)
+        
+        try:
+            job1 = backend.run(qc, shots=10)
+            job2 = backend.run(qc, shots=10)
+            
+            assert job1.job_id() != job2.job_id()
+        except Exception as e:
+            if "No LRET backend available" in str(e):
+                pytest.skip("LRET native module not built")
+            raise
+
+    def test_job_returns_same_result(self):
+        """Calling result() multiple times returns same result."""
+        provider = LRETProvider()
+        backend = provider.get_backend()
+        
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.measure(0, 0)
+        
+        try:
+            job = backend.run(qc, shots=100)
+            result1 = job.result()
+            result2 = job.result()
+            
+            assert result1.get_counts() == result2.get_counts()
+        except Exception as e:
+            if "No LRET backend available" in str(e):
+                pytest.skip("LRET native module not built")
+            raise
+
+
+# =============================================================================
+# Complex Circuit Tests  
+# =============================================================================
+
+class TestComplexCircuits:
+    """Tests for more complex circuit patterns."""
+
+    def test_repeated_gates(self):
+        """Circuit with repeated gates translates correctly."""
+        translator = CircuitTranslator()
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.h(0)  # H twice = identity
+        qc.h(0)
+        
+        result = translator.translate(qc)
+        ops = result["circuit"]["operations"]
+        assert len(ops) == 3
+        assert all(op["name"] == "H" for op in ops)
+
+    def test_circuit_with_all_basic_gates(self):
+        """Circuit using all basic single-qubit gates."""
+        translator = CircuitTranslator()
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.x(0)
+        qc.y(0)
+        qc.z(0)
+        qc.s(0)
+        qc.t(0)
+        
+        result = translator.translate(qc)
+        ops = result["circuit"]["operations"]
+        gate_names = [op["name"] for op in ops]
+        
+        assert "H" in gate_names
+        assert "X" in gate_names
+        assert "Y" in gate_names
+        assert "Z" in gate_names
+        assert "S" in gate_names
+        assert "T" in gate_names
+
+    def test_multiple_qubits_independent(self):
+        """Independent operations on multiple qubits."""
+        translator = CircuitTranslator()
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.x(1)
+        qc.z(2)
+        
+        result = translator.translate(qc)
+        ops = result["circuit"]["operations"]
+        
+        assert len(ops) == 3
+        assert ops[0]["wires"] == [0]
+        assert ops[1]["wires"] == [1]
+        assert ops[2]["wires"] == [2]
