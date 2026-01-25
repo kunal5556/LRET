@@ -157,6 +157,18 @@ def main():
         current_step += 1
         print_step(current_step, total_steps, "Build LRET C++ Backend")
         
+        # On Windows, check if quantum_sim.exe is running and close it
+        if system == "Windows":
+            print("Checking for running quantum_sim.exe processes...")
+            result = subprocess.run(["tasklist", "/FI", "IMAGENAME eq quantum_sim.exe"], 
+                                  capture_output=True, text=True)
+            if "quantum_sim.exe" in result.stdout:
+                print(colored("⚠ Found running quantum_sim.exe, closing it...", Colors.WARNING))
+                subprocess.run(["taskkill", "/F", "/IM", "quantum_sim.exe"], 
+                             capture_output=True, check=False)
+                import time
+                time.sleep(0.5)
+        
         # Check for CMake
         if not check_command_exists("cmake"):
             print(colored("✗ CMake not found in PATH", Colors.FAIL))
@@ -295,9 +307,36 @@ def main():
         try:
             run_command(cmake_build)
             print(colored("✓ LRET C++ backend built successfully", Colors.OKGREEN))
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError as e:
             print(colored("✗ Build failed", Colors.FAIL))
-            return 1
+            
+            # Check for LNK1104 error (file locked)
+            if system == "Windows" and "LNK1104" in str(e):
+                print(colored("\n⚠ Detected LNK1104 error - quantum_sim.exe may be locked", Colors.WARNING))
+                print(colored("This can happen if:", Colors.WARNING))
+                print(colored("  1. quantum_sim.exe is currently running (close it)", Colors.WARNING))
+                print(colored("  2. Antivirus is scanning the file (wait or add exception)", Colors.WARNING))
+                print(colored("  3. File permissions issue", Colors.WARNING))
+                
+                # Try to kill any running quantum_sim.exe processes
+                print(colored("\nAttempting to close any running quantum_sim.exe...", Colors.OKBLUE))
+                try:
+                    subprocess.run(["taskkill", "/F", "/IM", "quantum_sim.exe"], 
+                                 capture_output=True, check=False)
+                    import time
+                    time.sleep(1)
+                    
+                    # Retry build
+                    print(colored("Retrying build...", Colors.OKBLUE))
+                    run_command(cmake_build)
+                    print(colored("✓ Build successful on retry", Colors.OKGREEN))
+                except subprocess.CalledProcessError:
+                    print(colored("✗ Retry failed", Colors.FAIL))
+                    print(colored("\nManual fix: Close all quantum_sim.exe processes and run:", Colors.WARNING))
+                    print(colored("  python 01_setup.py --skip-build (to skip to verification)", Colors.WARNING))
+                    return 1
+            else:
+                return 1
         
         os.chdir(project_root)
     
