@@ -1,0 +1,14 @@
+{
+  "circuit": {
+    "num_qubits": 2,
+    "operations": [
+      {"name": "H", "wires": [0]},
+      {"name": "DEPOLARIZE", "wires": [0], "params": [0.1]},
+      {"name": "CNOT", "wires": [0, 1]}
+    ]
+  },
+  "config": {
+    "epsilon": 1e-4,
+    "initial_rank": 1
+  }
+}

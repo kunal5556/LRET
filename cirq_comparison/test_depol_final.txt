@@ -1,0 +1,7 @@
+﻿Testing DEPOLARIZE gate support...
+Running circuit...
+Status: error
+Rank: None
+Has state: False
+
+SUCCESS!

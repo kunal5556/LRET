@@ -1,0 +1,65 @@
+================================================================================
+COMPREHENSIVE BENCHMARK WITH NOISE: LRET vs Cirq
+Configuration: 7-9 qubits, depth=15, noise=0.1% per gate
+================================================================================
+
+=== Testing 7 qubits, depth=15, noise=0.1% ===
+  Running LRET...
+    LRET: 1.86±0.21ms, rank=1, status=error
+  Running Cirq...
+    Cirq: 1205.67±226.25ms
+    Speedup: 647.2x
+
+=== Testing 8 qubits, depth=15, noise=0.1% ===
+  Running LRET...
+    LRET: 1.80±0.10ms, rank=1, status=error
+  Running Cirq...
+    Cirq: 1975.26±158.54ms
+    Speedup: 1098.9x
+
+=== Testing 9 qubits, depth=15, noise=0.1% ===
+  Running LRET...
+    LRET: 2.29±0.12ms, rank=1, status=error
+  Running Cirq...
+    Cirq: 12616.59±1602.34ms
+    Speedup: 5510.7x
+
+Saved to: d:\LRET\cirq_comparison\benchmark_results_with_noise\results.json
+
+Generating plots...
+  Saved: d:\LRET\cirq_comparison\benchmark_results_with_noise\benchmark_plot.png
+  Saved: d:\LRET\cirq_comparison\benchmark_results_with_noise\rank_plot.png
+
+================================================================================
+Summary:
+  7q: LRET=1.86ms, Cirq=1205.67ms, Speedup=647.2x, Rank=1
+  8q: LRET=1.80ms, Cirq=1975.26ms, Speedup=1098.9x, Rank=1
+  9q: LRET=2.29ms, Cirq=12616.59ms, Speedup=5510.7x, Rank=1
+
+Average speedup: 2418.9x
+================================================================================
+BENCHMARK COMPLETE!
+================================================================================
+================================================================================
+COMPREHENSIVE BENCHMARK WITH NOISE: LRET vs Cirq
+Configuration: 7-9 qubits, depth=15, noise=0.1% per gate
+================================================================================
+
+=== Testing 7 qubits, depth=15, noise=0.1% ===
+  Running LRET...
+    LRET: 6.45±0.83ms, rank=1, status=error
+  Running Cirq...
+    Cirq: 1211.21±193.75ms
+    Speedup: 187.9x
+
+=== Testing 8 qubits, depth=15, noise=0.1% ===
+  Running LRET...
+    LRET: 5.77±0.94ms, rank=1, status=error
+  Running Cirq...
+    Cirq: 3134.91±280.15ms
+    Speedup: 543.7x
+
+=== Testing 9 qubits, depth=15, noise=0.1% ===
+  Running LRET...
+    LRET: 2.50±0.30ms, rank=1, status=error
+  Running Cirq...
