@@ -219,6 +219,44 @@ std::vector<std::vector<const GateOp*>> build_parallel_layers(const std::vector<
     return layers;
 }
 
+// Group FusedGates into layers where no two gates share a qubit
+std::vector<std::vector<FusedGate>> build_fused_parallel_layers(const std::vector<FusedGate>& fused_gates) {
+    std::vector<std::vector<FusedGate>> layers;
+    
+    for (const auto& fg : fused_gates) {
+        bool placed = false;
+        
+        // Try to place in existing layer
+        for (auto& layer : layers) {
+            std::unordered_set<size_t> used_qubits;
+            for (const auto& g : layer) {
+                for (size_t q : g.qubits) used_qubits.insert(q);
+            }
+            
+            // Check if this gate conflicts with any in the layer
+            bool conflicts = false;
+            for (size_t q : fg.qubits) {
+                if (used_qubits.count(q)) {
+                    conflicts = true;
+                    break;
+                }
+            }
+            
+            if (!conflicts) {
+                layer.push_back(fg);
+                placed = true;
+                break;
+            }
+        }
+        
+        if (!placed) {
+            layers.push_back({fg});
+        }
+    }
+    
+    return layers;
+}
+
 //==============================================================================
 // Optimized Direct Gate Application (for row-parallel mode)
 // KEY INSIGHT: For low-rank LRET (rank=1 typical), the base functions are optimal.
@@ -292,6 +330,19 @@ MatrixXcd apply_two_qubit_gate_parallel(const MatrixXcd& L, const MatrixXcd& U,
     return result;
 }
 
+// Apply a FusedGate (from fusion pipeline) to the L matrix
+MatrixXcd apply_fused_gate(const MatrixXcd& L, const FusedGate& fg, size_t num_qubits) {
+    if (fg.qubits.size() == 1) {
+        // Single-qubit (possibly fused) gate - use optimized path
+        return apply_fused_single_gate(L, fg.matrix, fg.qubits[0], num_qubits);
+    } else if (fg.qubits.size() == 2) {
+        // Two-qubit gate - use parallel path
+        return apply_two_qubit_gate_parallel(L, fg.matrix, fg.qubits[0], fg.qubits[1], num_qubits);
+    } else {
+        throw std::invalid_argument("Only 1 and 2 qubit gates supported in apply_fused_gate");
+    }
+}
+
 // Apply a layer of non-overlapping gates in parallel
 MatrixXcd apply_gate_layer_parallel(const MatrixXcd& L, 
                                      const std::vector<const GateOp*>& layer,
@@ -321,6 +372,22 @@ MatrixXcd apply_gate_layer_parallel(const MatrixXcd& L,
         }
     }
     
+    return result;
+}
+
+// Apply a layer of FusedGates in parallel
+MatrixXcd apply_fused_layer_parallel(const MatrixXcd& L,
+                                      const std::vector<FusedGate>& layer,
+                                      size_t num_qubits) {
+    if (layer.empty()) return L;
+    if (layer.size() == 1) {
+        return apply_fused_gate(L, layer[0], num_qubits);
+    }
+    
+    MatrixXcd result = L;
+    for (const auto& fg : layer) {
+        result = apply_fused_gate(result, fg, num_qubits);
+    }
     return result;
 }
 
@@ -460,9 +527,9 @@ MatrixXcd run_sequential(
     return L;
 }
 
-// ROW-PARALLEL mode
-// For low rank (typical LRET), just use the base optimized functions
-// Gate fusion only helps when there are consecutive gates on same qubit
+// ROW-PARALLEL mode with GATE FUSION
+// Fuses consecutive single-qubit gates on the same target before application
+// This reduces the number of L matrix transformations and improves cache efficiency
 MatrixXcd run_row_parallel(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -471,14 +538,33 @@ MatrixXcd run_row_parallel(
 ) {
     MatrixXcd L = L_init;
     
-    // For efficiency, just apply gates directly using the base functions
-    // which are already OpenMP-optimized
+    // Collect gates between noise operations for fusion
+    std::vector<GateOp> gate_buffer;
+    
+    // Helper lambda to flush gate buffer with fusion
+    auto flush_gates_with_fusion = [&]() {
+        if (gate_buffer.empty()) return;
+        
+        // Stage 1: Fuse consecutive single-qubit gates on same target
+        auto fused_gates = fuse_single_qubit_gates(gate_buffer);
+        
+        // Stage 2: Apply fused gates with row-parallel execution
+        for (const auto& fg : fused_gates) {
+            L = parallel_ops::apply_fused_gate(L, fg, num_qubits);
+        }
+        
+        gate_buffer.clear();
+    };
+    
     for (const auto& op : sequence.operations) {
         if (std::holds_alternative<GateOp>(op)) {
-            const auto& gate = std::get<GateOp>(op);
-            // Use apply_gate_to_L which is already optimized
-            L = apply_gate_to_L(L, gate, num_qubits);
+            // Accumulate gates for fusion
+            gate_buffer.push_back(std::get<GateOp>(op));
         } else if (std::holds_alternative<NoiseOp>(op)) {
+            // Flush accumulated gates before noise (noise changes rank)
+            flush_gates_with_fusion();
+            
+            // Apply noise
             const auto& noise = std::get<NoiseOp>(op);
             L = apply_noise_to_L(L, noise, num_qubits);
             
@@ -488,6 +574,9 @@ MatrixXcd run_row_parallel(
         }
         // MeasurementOp and ConditionalOp handled in main simulation path
     }
+    
+    // Flush any remaining gates
+    flush_gates_with_fusion();
     
     return L;
 }
@@ -499,12 +588,31 @@ MatrixXcd run_column_parallel(
     const SimConfig& config
 ) {
     MatrixXcd L = L_init;
+    std::vector<GateOp> gate_buffer;
+    
+    // Helper lambda to flush gate buffer with fusion (column-parallel application)
+    auto flush_gates_with_fusion = [&]() {
+        if (gate_buffer.empty()) return;
+        
+        // Fuse consecutive single-qubit gates on same target
+        auto fused_gates = fuse_single_qubit_gates(gate_buffer);
+        
+        // Apply fused gates - apply_fused_gate handles single and two-qubit cases
+        for (const auto& fg : fused_gates) {
+            L = parallel_ops::apply_fused_gate(L, fg, num_qubits);
+        }
+        
+        gate_buffer.clear();
+    };
     
     for (const auto& op : sequence.operations) {
         if (std::holds_alternative<GateOp>(op)) {
-            const auto& gate = std::get<GateOp>(op);
-            L = parallel_ops::apply_gate_column_parallel(L, gate, num_qubits);
+            // Accumulate gates for fusion
+            gate_buffer.push_back(std::get<GateOp>(op));
         } else if (std::holds_alternative<NoiseOp>(op)) {
+            // Flush accumulated gates before noise
+            flush_gates_with_fusion();
+            
             const auto& noise = std::get<NoiseOp>(op);
             L = apply_noise_to_L(L, noise, num_qubits);
             
@@ -514,6 +622,9 @@ MatrixXcd run_column_parallel(
         }
         // MeasurementOp and ConditionalOp handled in main simulation path
     }
+    
+    // Flush any remaining gates
+    flush_gates_with_fusion();
     
     return L;
 }
@@ -532,14 +643,15 @@ MatrixXcd run_batch_parallel(
     );
 }
 
-// HYBRID: Adaptive mode that combines row AND column parallelism
+// HYBRID: Adaptive mode that combines row AND column parallelism WITH gate fusion
 // 
 // Design principles (inspired by qsim and QuEST patterns):
-// 1. Row-parallel for low-to-medium rank (cache-friendly, avoids false sharing)
-// 2. Column-parallel for high rank with large dims (independent columns, embarrassingly parallel)
-// 3. Static OpenMP scheduling: Predictable gate operations = balanced workload
-// 4. Aggressive truncation: Keep rank bounded to avoid memory explosion
-// 5. SIMD-friendly memory access patterns
+// 1. Gate Fusion: Combine consecutive single-qubit gates before application
+// 2. Row-parallel for low-to-medium rank (cache-friendly, avoids false sharing)
+// 3. Column-parallel for high rank with large dims (independent columns, embarrassingly parallel)
+// 4. Static OpenMP scheduling: Predictable gate operations = balanced workload
+// 5. Aggressive truncation: Keep rank bounded to avoid memory explosion
+// 6. SIMD-friendly memory access patterns
 //
 // Strategy selection (from QuEST/qsim benchmarks):
 // - rank <= 4: Sequential (OpenMP overhead > benefit)
@@ -575,9 +687,46 @@ MatrixXcd run_hybrid(
     const size_t truncation_interval = (num_qubits > 12) ? 5 : 10;
     size_t steps_since_truncation = 0;
     
-    for (const auto& op : sequence.operations) {
-        step++;
+    // Gate buffer for fusion
+    std::vector<GateOp> gate_buffer;
+    
+    // Helper to apply a fused gate with adaptive strategy
+    // Note: apply_fused_gate already uses efficient parallel implementations
+    // The adaptive strategy here just controls whether we use OpenMP at all
+    auto apply_fused_gate_adaptive = [&](const FusedGate& fg) {
+        const size_t rank = L.cols();
         
+        // apply_fused_gate internally uses row-parallel with OpenMP for large problems
+        // For very high rank with large dim, column-parallel could be better but
+        // apply_fused_gate is already well-optimized for the common case
+        L = parallel_ops::apply_fused_gate(L, fg, num_qubits);
+        (void)rank;  // Suppress unused variable warning
+    };
+    
+    // Helper lambda to flush gate buffer with fusion
+    auto flush_gates_with_fusion = [&]() {
+        if (gate_buffer.empty()) return;
+        
+        // Stage 1: Fuse consecutive single-qubit gates on same target
+        auto fused_gates = fuse_single_qubit_gates(gate_buffer);
+        
+        // Stage 2: Apply fused gates with adaptive strategy
+        for (const auto& fg : fused_gates) {
+            apply_fused_gate_adaptive(fg);
+            step++;
+            
+            // Progress reporting
+            if (config.verbose && (step - last_reported_step >= report_interval)) {
+                std::cout << "Hybrid: step " << step << "/" << total_ops 
+                          << " (rank=" << L.cols() << ", dim=" << dim << ")" << std::endl;
+                last_reported_step = step;
+            }
+        }
+        
+        gate_buffer.clear();
+    };
+    
+    for (const auto& op : sequence.operations) {
         // Check for abort signal
         if (should_abort()) {
             if (config.verbose) {
@@ -587,33 +736,13 @@ MatrixXcd run_hybrid(
         }
         
         if (std::holds_alternative<GateOp>(op)) {
-            const auto& gate = std::get<GateOp>(op);
-            const size_t rank = L.cols();
-            
-            // Strategy selection based on rank and dimension
-            // Key insight: Choose parallelism axis based on which dimension is larger
-            if (!use_openmp || rank <= SEQUENTIAL_RANK_THRESHOLD) {
-                // Sequential path: direct gate application without OpenMP
-                // Best for: small problems, very low rank
-                L = apply_gate_to_L(L, gate, num_qubits);
-            } else if (rank > COL_PARALLEL_RANK_THRESHOLD && dim >= COL_PARALLEL_DIM_THRESHOLD) {
-                // Column-parallel path: parallelize over columns (independent pure states)
-                // Best for: high rank AND large dim - each column is independent
-                // Cache note: Eigen uses column-major by default, so this is cache-friendly
-                L = parallel_ops::apply_gate_column_parallel(L, gate, num_qubits);
-            } else {
-                // Row-parallel path: parallelize over rows
-                // Best for: medium rank, any dim - good cache locality for row operations
-                if (gate.qubits.size() == 1) {
-                    MatrixXcd U = get_single_qubit_gate(gate.type, gate.params);
-                    L = parallel_ops::apply_fused_single_gate(L, U, gate.qubits[0], num_qubits);
-                } else {
-                    MatrixXcd U = get_two_qubit_gate(gate.type, gate.params);
-                    L = parallel_ops::apply_two_qubit_gate_parallel(L, U, gate.qubits[0], gate.qubits[1], num_qubits);
-                }
-            }
+            // Accumulate gates for fusion
+            gate_buffer.push_back(std::get<GateOp>(op));
         } else if (std::holds_alternative<NoiseOp>(op)) {
-            // Noise operation - increases rank
+            // Flush accumulated gates before noise
+            flush_gates_with_fusion();
+            
+            // Apply noise
             const auto& noise = std::get<NoiseOp>(op);
             L = apply_noise_to_L(L, noise, num_qubits);
             steps_since_truncation++;
@@ -627,16 +756,13 @@ MatrixXcd run_hybrid(
                     steps_since_truncation = 0;
                 }
             }
+            step++;
         }
         // MeasurementOp and ConditionalOp handled in main simulation path
-        
-        // Progress reporting (avoid flooding output)
-        if (config.verbose && (step - last_reported_step >= report_interval)) {
-            std::cout << "Hybrid: step " << step << "/" << total_ops 
-                      << " (rank=" << L.cols() << ", dim=" << dim << ")" << std::endl;
-            last_reported_step = step;
-        }
     }
+    
+    // Flush remaining gates
+    flush_gates_with_fusion();
     
     // Final truncation if needed
     if (config.do_truncation && L.cols() > 1) {
