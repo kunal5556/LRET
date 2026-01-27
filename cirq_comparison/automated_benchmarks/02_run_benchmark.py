@@ -58,7 +58,7 @@ def log(msg, level="INFO"):
     timestamp = datetime.now().strftime("%H:%M:%S")
     log_msg = f"[{timestamp}] {level}: {msg}"
     print(log_msg)
-    with open(log_file, 'a') as f:
+    with open(log_file, 'a', encoding='utf-8') as f:
         f.write(log_msg + '\n')
 
 def build_circuit_json(n_qubits, depth, noise_prob, epsilon):
@@ -142,7 +142,7 @@ def run_lret(circuit_json, timeout=300):
     try:
         result = subprocess.run(
             [str(QUANTUM_SIM), "--input-json", str(circuit_file), 
-             "--output", str(output_file)],
+             "--output-json", str(output_file)],
             capture_output=True,
             text=True,
             timeout=timeout
@@ -427,8 +427,10 @@ def main():
     """Main benchmark execution."""
     log("="*70)
     log("LRET AUTOMATED BENCHMARK")
-    log("="*70)    log(f"LRET Root: {LRET_ROOT}")
-    log(f"quantum_sim.exe: {QUANTUM_SIM}")    log(f"Configuration: {CONFIG['qubits']} qubits, depth={CONFIG['depth']}, "
+    log("="*70)
+    log(f"LRET Root: {LRET_ROOT}")
+    log(f"quantum_sim.exe: {QUANTUM_SIM}")
+    log(f"Configuration: {CONFIG['qubits']} qubits, depth={CONFIG['depth']}, "
         f"noise={CONFIG['noise_prob']*100:.4f}%, ε={CONFIG['epsilon']}")
     log(f"Output directory: {OUTPUT_DIR}")
     
