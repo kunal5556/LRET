@@ -113,7 +113,7 @@ MatrixXcd apply_single_qubit_core(
             const Complex u11 = U(1, 1);
 
             if (vectorize) {
-#ifdef _OPENMP
+#if defined(_OPENMP) && !defined(_MSC_VER)
                 #pragma omp simd
 #endif
                 for (size_t r = 0; r < rank; ++r) {
