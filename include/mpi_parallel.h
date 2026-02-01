@@ -565,6 +565,7 @@ void print_mpi_info();
 //==============================================================================
 
 #ifdef USE_GPU
+struct GPUConfig;
 /**
  * @brief Run simulation with MPI + GPU hybrid parallelization
  * 

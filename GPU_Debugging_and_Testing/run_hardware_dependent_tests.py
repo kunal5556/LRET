@@ -240,6 +240,279 @@ def ensure_directory(path: Path):
 
 
 # =============================================================================
+# Windows CUDA/MSBuild Workaround
+# =============================================================================
+
+def find_cuda_path(prefer_12x: bool = True) -> Optional[str]:
+    """Find CUDA installation path on Windows or Linux.
+    
+    Args:
+        prefer_12x: If True, prefer CUDA 12.x over 13.x for Pascal GPU compatibility.
+                   CUDA 13.x dropped support for compute capability < 7.5.
+    """
+    # Check environment variable first
+    cuda_path = os.environ.get('CUDA_PATH', '')
+    if cuda_path and os.path.exists(cuda_path):
+        # Check if it's a 12.x version when prefer_12x is set
+        if prefer_12x and 'v13' in cuda_path:
+            log(f"Environment CUDA_PATH points to {cuda_path}, but prefer_12x=True", "WARNING")
+            log("Searching for CUDA 12.x...", "INFO")
+        else:
+            return cuda_path
+    
+    if platform.system() == "Windows":
+        # Search common Windows CUDA installation paths
+        base_paths = [
+            r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA",
+            r"C:\CUDA",
+        ]
+        for base in base_paths:
+            if os.path.exists(base):
+                # Find all versions
+                versions = []
+                try:
+                    for item in os.listdir(base):
+                        if item.startswith('v') and os.path.isdir(os.path.join(base, item)):
+                            versions.append(item)
+                except:
+                    continue
+                if versions:
+                    versions.sort(reverse=True)
+                    
+                    # If prefer_12x, look for 12.x versions first
+                    if prefer_12x:
+                        v12_versions = [v for v in versions if v.startswith('v12')]
+                        if v12_versions:
+                            selected = v12_versions[0]  # Latest 12.x
+                            log(f"Selected CUDA {selected} (prefer_12x=True, Pascal GPU compatible)", "INFO")
+                            return os.path.join(base, selected)
+                        else:
+                            log(f"No CUDA 12.x found, using {versions[0]}", "WARNING")
+                    
+                    return os.path.join(base, versions[0])
+    else:
+        # Linux paths
+        linux_paths = [
+            "/usr/local/cuda",
+            "/opt/cuda",
+        ]
+        for path in linux_paths:
+            if os.path.exists(path):
+                return path
+    
+    return None
+
+
+def find_visual_studio_path() -> Optional[str]:
+    """Find Visual Studio or Build Tools installation path."""
+    vswhere_paths = [
+        r"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe",
+        r"C:\Program Files\Microsoft Visual Studio\Installer\vswhere.exe",
+    ]
+    
+    for vswhere in vswhere_paths:
+        if os.path.exists(vswhere):
+            try:
+                result = subprocess.run(
+                    [vswhere, "-latest", "-products", "*", 
+                     "-requires", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+                     "-property", "installationPath"],
+                    capture_output=True, text=True
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    return result.stdout.strip()
+            except:
+                pass
+    
+    # Fallback to common paths
+    common_paths = [
+        r"C:\Program Files\Microsoft Visual Studio\2022\Community",
+        r"C:\Program Files\Microsoft Visual Studio\2022\Professional",
+        r"C:\Program Files\Microsoft Visual Studio\2022\Enterprise",
+        r"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools",
+    ]
+    for path in common_paths:
+        if os.path.exists(path):
+            return path
+    
+    return None
+
+
+def setup_windows_build_environment(prefer_cuda_12x: bool = True) -> Dict[str, str]:
+    """
+    Set up environment for Windows CUDA builds using Ninja.
+    This bypasses the problematic MSBuild CUDA targets.
+    
+    Args:
+        prefer_cuda_12x: If True, prefer CUDA 12.x for Pascal GPU compatibility.
+    
+    Returns environment variables dict.
+    """
+    env = os.environ.copy()
+    
+    # Find CUDA (prefer 12.x by default for Pascal GPU compatibility)
+    cuda_path = find_cuda_path(prefer_12x=prefer_cuda_12x)
+    if cuda_path:
+        log(f"Found CUDA at: {cuda_path}", "SUCCESS")
+        
+        # Ensure trailing backslash for MSBuild compatibility
+        cuda_path_with_slash = cuda_path.rstrip('\\') + '\\'
+        
+        env['CUDA_PATH'] = cuda_path
+        env['CUDA_HOME'] = cuda_path
+        env['CUDAToolkit_ROOT'] = cuda_path
+        # CRITICAL: MSBuild CUDA targets require CudaToolkitDir with trailing backslash
+        env['CudaToolkitDir'] = cuda_path_with_slash
+        
+        # Add CUDA bin to PATH
+        cuda_bin = os.path.join(cuda_path, 'bin')
+        if cuda_bin not in env.get('PATH', ''):
+            env['PATH'] = f"{cuda_bin};{env.get('PATH', '')}"
+        
+        # Add CUDA lib to PATH for runtime
+        cuda_lib = os.path.join(cuda_path, 'lib', 'x64')
+        if os.path.exists(cuda_lib) and cuda_lib not in env.get('PATH', ''):
+            env['PATH'] = f"{cuda_lib};{env.get('PATH', '')}"
+    else:
+        log("CUDA not found - GPU tests will fail", "WARNING")
+    
+    # Find Visual Studio and set up vcvars
+    vs_path = find_visual_studio_path()
+    if vs_path:
+        log(f"Found Visual Studio at: {vs_path}", "SUCCESS")
+        
+        # Try to run vcvarsall to get the proper environment
+        vcvars_paths = [
+            os.path.join(vs_path, "VC", "Auxiliary", "Build", "vcvars64.bat"),
+            os.path.join(vs_path, "VC", "Auxiliary", "Build", "vcvarsall.bat"),
+        ]
+        
+        for vcvars in vcvars_paths:
+            if os.path.exists(vcvars):
+                try:
+                    # Run vcvars and capture the resulting environment
+                    if "vcvarsall" in vcvars:
+                        cmd = f'"{vcvars}" x64 && set'
+                    else:
+                        cmd = f'"{vcvars}" && set'
+                    
+                    result = subprocess.run(
+                        cmd, shell=True, capture_output=True, text=True
+                    )
+                    
+                    if result.returncode == 0:
+                        # Parse environment variables from output
+                        for line in result.stdout.split('\n'):
+                            if '=' in line:
+                                key, _, value = line.partition('=')
+                                key = key.strip()
+                                value = value.strip()
+                                if key and value:
+                                    env[key] = value
+                        log("Visual Studio environment configured", "SUCCESS")
+                        break
+                except Exception as e:
+                    log(f"Failed to run vcvars: {e}", "WARNING")
+    else:
+        log("Visual Studio not found - builds may fail", "WARNING")
+    
+    return env
+
+
+def check_ninja_available() -> bool:
+    """Check if Ninja build system is available."""
+    try:
+        result = subprocess.run(
+            ["ninja", "--version"], capture_output=True, text=True
+        )
+        if result.returncode == 0:
+            log(f"Ninja found: {result.stdout.strip()}", "SUCCESS")
+            return True
+    except:
+        pass
+    return False
+
+
+def install_ninja_windows() -> bool:
+    """Attempt to install Ninja on Windows."""
+    log("Attempting to install Ninja...", "INFO")
+    
+    # Try winget first
+    try:
+        result = subprocess.run(
+            ["winget", "install", "Ninja-build.Ninja", "--silent"],
+            capture_output=True, text=True, timeout=300
+        )
+        if result.returncode == 0:
+            log("Ninja installed via winget", "SUCCESS")
+            return True
+    except:
+        pass
+    
+    # Try pip
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "install", "ninja"],
+            capture_output=True, text=True, timeout=120
+        )
+        if result.returncode == 0:
+            log("Ninja installed via pip", "SUCCESS")
+            return True
+    except:
+        pass
+    
+    # Try chocolatey
+    try:
+        result = subprocess.run(
+            ["choco", "install", "ninja", "-y"],
+            capture_output=True, text=True, timeout=300
+        )
+        if result.returncode == 0:
+            log("Ninja installed via chocolatey", "SUCCESS")
+            return True
+    except:
+        pass
+    
+    log("Failed to install Ninja automatically", "WARNING")
+    log("Please install Ninja manually: https://ninja-build.org/", "WARNING")
+    return False
+
+
+def get_cmake_generator_and_env(prefer_cuda_12x: bool = True) -> Tuple[str, Dict[str, str]]:
+    """
+    Determine the best CMake generator and return appropriate environment.
+    On Windows, prefer Ninja to avoid MSBuild CUDA integration issues.
+    
+    Args:
+        prefer_cuda_12x: If True, prefer CUDA 12.x for Pascal GPU compatibility.
+    """
+    if platform.system() == "Windows":
+        # Set up Windows build environment first
+        env = setup_windows_build_environment(prefer_cuda_12x=prefer_cuda_12x)
+        
+        # Check for Ninja
+        if check_ninja_available():
+            log("Using Ninja generator (bypasses MSBuild CUDA issues)", "INFO")
+            return "Ninja", env
+        else:
+            log("Ninja not found, attempting installation...", "WARNING")
+            if install_ninja_windows():
+                # Refresh PATH and check again
+                env['PATH'] = os.environ.get('PATH', '') + ';' + env.get('PATH', '')
+                if check_ninja_available():
+                    return "Ninja", env
+            
+            # Fall back to Visual Studio generator with workaround
+            log("Falling back to Visual Studio generator", "WARNING")
+            return "Visual Studio 17 2022", env
+    else:
+        # Linux - use Unix Makefiles or Ninja if available
+        if check_ninja_available():
+            return "Ninja", os.environ.copy()
+        return "Unix Makefiles", os.environ.copy()
+
+
+# =============================================================================
 # System Information Collection
 # =============================================================================
 
@@ -537,13 +810,61 @@ fi
 # Build System
 # =============================================================================
 
+# Cache for build environment (computed once)
+_build_env_cache: Optional[Tuple[str, Dict[str, str]]] = None
+_prefer_cuda_12x: bool = True  # Global preference for CUDA 12.x (Pascal GPU compatible)
+
+def get_build_configuration(prefer_cuda_12x: Optional[bool] = None) -> Tuple[str, Dict[str, str]]:
+    """Get cached build configuration (generator and environment).
+    
+    Args:
+        prefer_cuda_12x: If provided, overrides the global preference. If None, uses _prefer_cuda_12x.
+    """
+    global _build_env_cache, _prefer_cuda_12x
+    if prefer_cuda_12x is not None:
+        use_12x = prefer_cuda_12x
+    else:
+        use_12x = _prefer_cuda_12x
+    
+    if _build_env_cache is None:
+        _build_env_cache = get_cmake_generator_and_env(prefer_cuda_12x=use_12x)
+    return _build_env_cache
+
+
 def build_tests(project_root: Path, build_dir: Path, build_flags: List[str], 
-                targets: List[str], skip: bool = False) -> Tuple[bool, str]:
-    """Build specific test targets with given CMake flags."""
+                targets: List[str], skip: bool = False, 
+                existing_build_dir: Optional[str] = None) -> Tuple[bool, str]:
+    """Build specific test targets with given CMake flags.
+    
+    Args:
+        project_root: Path to the LRET project root.
+        build_dir: Base directory for builds.
+        build_flags: CMake flags for this build.
+        targets: List of targets to build.
+        skip: If True, skip build entirely.
+        existing_build_dir: If provided, use this existing build directory instead of creating new one.
+    """
     
     if skip:
         log("Skipping build (--skip-build)", "WARNING")
         return True, "Skipped"
+    
+    # Use existing build directory if specified, otherwise create unique one
+    if existing_build_dir:
+        unique_build_dir = Path(existing_build_dir)
+        if unique_build_dir.exists():
+            log(f"Using existing build directory: {unique_build_dir}", "INFO")
+            # Check if executables exist in this directory
+            for target in targets:
+                exe_name = f"{target}.exe" if platform.system() == "Windows" else target
+                exe_path = unique_build_dir / exe_name
+                if exe_path.exists():
+                    log(f"  Found executable: {exe_name}", "INFO")
+            # Return success with the existing build path
+            return True, str(unique_build_dir)
+        else:
+            log(f"Existing build directory not found: {unique_build_dir}", "WARNING")
+            # Fall through to create new build
     
     # Create unique build directory based on flags
     flags_hash = "_".join(sorted(build_flags)).replace("-D", "").replace("=", "_")
@@ -554,19 +875,87 @@ def build_tests(project_root: Path, build_dir: Path, build_flags: List[str],
     log(f"Build flags: {' '.join(build_flags)}")
     log(f"Targets: {', '.join(targets)}")
     
-    # Configure with CMake
-    cmake_cmd = f"cmake {project_root} -DCMAKE_BUILD_TYPE=Release {' '.join(build_flags)}"
+    # Get CMake generator and environment
+    generator, build_env = get_build_configuration()
+    log(f"Using CMake generator: {generator}")
+    
+    # Build CMake configure command
+    cmake_args = [
+        f'cmake',
+        f'"{project_root}"',
+        f'-G "{generator}"',
+        f'-DCMAKE_BUILD_TYPE=Release',
+    ]
+    
+    # Add CUDA configuration if available
+    cuda_path = build_env.get('CUDA_PATH', '') or build_env.get('CUDAToolkit_ROOT', '')
+    if cuda_path:
+        # Normalize path separators for CMake
+        cuda_path_cmake = cuda_path.replace('\\', '/')
+        cmake_args.extend([
+            f'-DCUDAToolkit_ROOT="{cuda_path_cmake}"',
+            f'-DCMAKE_CUDA_COMPILER="{cuda_path_cmake}/bin/nvcc"',
+        ])
+        
+        # For Windows, also set the host compiler explicitly
+        if platform.system() == "Windows":
+            # Find cl.exe path from environment
+            cl_path = None
+            for path_dir in build_env.get('PATH', '').split(';'):
+                cl_candidate = os.path.join(path_dir, 'cl.exe')
+                if os.path.exists(cl_candidate):
+                    cl_path = cl_candidate.replace('\\', '/')
+                    break
+            
+            if cl_path:
+                cmake_args.append(f'-DCMAKE_CUDA_HOST_COMPILER="{cl_path}"')
+    
+    # Add build flags
+    cmake_args.extend(build_flags)
+    
+    cmake_cmd = ' '.join(cmake_args)
     log(f"CMake configure: {cmake_cmd}")
     
-    rc, stdout, stderr = run_command(cmake_cmd, cwd=str(unique_build_dir), timeout=300)
+    # Run CMake configure
+    rc, stdout, stderr = run_command(cmake_cmd, cwd=str(unique_build_dir), timeout=300, env=build_env)
     if rc != 0:
-        return False, f"CMake configure failed:\n{stderr}\n{stdout}"
+        # If Ninja failed, try falling back to Visual Studio generator
+        if "Ninja" in generator:
+            log("Ninja configuration failed, trying Visual Studio generator...", "WARNING")
+            
+            # Clean the build directory for fresh configuration
+            shutil.rmtree(unique_build_dir, ignore_errors=True)
+            ensure_directory(unique_build_dir)
+            
+            # Build new CMake command with VS generator
+            cmake_args_vs = [
+                f'cmake',
+                f'"{project_root}"',
+                f'-G "Visual Studio 17 2022"',
+                f'-A x64',  # Explicitly set architecture
+                f'-DCMAKE_BUILD_TYPE=Release',
+            ]
+            if cuda_path:
+                cmake_args_vs.extend([
+                    f'-DCUDAToolkit_ROOT="{cuda_path_cmake}"',
+                ])
+            cmake_args_vs.extend(build_flags)
+            cmake_cmd_vs = ' '.join(cmake_args_vs)
+            log(f"CMake configure (VS): {cmake_cmd_vs}")
+            
+            rc, stdout, stderr = run_command(cmake_cmd_vs, cwd=str(unique_build_dir), timeout=300, env=build_env)
+            if rc != 0:
+                return False, f"CMake configure failed:\n{stderr}\n{stdout}"
+        else:
+            return False, f"CMake configure failed:\n{stderr}\n{stdout}"
     
     # Build targets
     for target in targets:
         log(f"Building target: {target}")
-        build_cmd = f"cmake --build . --target {target} -j{os.cpu_count() or 4}"
-        rc, stdout, stderr = run_command(build_cmd, cwd=str(unique_build_dir), timeout=600)
+        # Use parallel build
+        parallel_jobs = min(os.cpu_count() or 4, 8)  # Limit to 8 parallel jobs
+        build_cmd = f'cmake --build . --target {target} --config Release --parallel {parallel_jobs}'
+        rc, stdout, stderr = run_command(build_cmd, cwd=str(unique_build_dir), timeout=600, env=build_env)
         if rc != 0:
             return False, f"Build failed for {target}:\n{stderr}\n{stdout}"
     
@@ -617,8 +1006,16 @@ def parse_test_output(stdout: str, stderr: str) -> Dict[str, Any]:
 
 
 def run_single_test(test_def: dict, build_dir: Path, output_dir: Path, 
-                    system_info: SystemInfo) -> TestResult:
-    """Run a single test and capture results."""
+                    system_info: SystemInfo, actual_build_path: Optional[str] = None) -> TestResult:
+    """Run a single test and capture results.
+    
+    Args:
+        test_def: Test definition dictionary.
+        build_dir: Base build directory.
+        output_dir: Output directory for results.
+        system_info: System information.
+        actual_build_path: If provided, use this path for the executable instead of computing from flags.
+    """
     
     result = TestResult(
         test_name=test_def["name"],
@@ -644,9 +1041,12 @@ def run_single_test(test_def: dict, build_dir: Path, output_dir: Path,
         result.error_message = "MPI not installed"
         return result
     
-    # Find the build directory with matching flags
-    flags_hash = "_".join(sorted(test_def["build_flags"])).replace("-D", "").replace("=", "_")
-    unique_build_dir = build_dir / f"build_{flags_hash}"
+    # Find the build directory: use actual_build_path if provided, else compute from flags
+    if actual_build_path and actual_build_path != "Skipped":
+        unique_build_dir = Path(actual_build_path)
+    else:
+        flags_hash = "_".join(sorted(test_def["build_flags"])).replace("-D", "").replace("=", "_")
+        unique_build_dir = build_dir / f"build_{flags_hash}"
     
     if not unique_build_dir.exists():
         result.status = TestStatus.ERROR
@@ -655,6 +1055,15 @@ def run_single_test(test_def: dict, build_dir: Path, output_dir: Path,
     
     # Check if executable exists
     executable = test_def["run_cmd"].split()[-1] if "mpirun" not in test_def["run_cmd"] else test_def["run_cmd"].split()[-1]
+    
+    # Strip leading ./ if present
+    if executable.startswith("./"):
+        executable = executable[2:]
+    
+    # Add .exe extension on Windows
+    if platform.system() == "Windows" and not executable.endswith(".exe"):
+        executable = executable + ".exe"
+    
     exec_path = unique_build_dir / executable
     
     # For mpirun commands, extract the actual executable
@@ -663,6 +1072,8 @@ def run_single_test(test_def: dict, build_dir: Path, output_dir: Path,
         for i, part in enumerate(parts):
             if part.startswith("./"):
                 executable = part[2:]
+                if platform.system() == "Windows" and not executable.endswith(".exe"):
+                    executable = executable + ".exe"
                 exec_path = unique_build_dir / executable
                 break
     
@@ -728,15 +1139,15 @@ def save_test_output(result: TestResult, output_dir: Path):
     ensure_directory(test_dir)
     
     # Save stdout
-    with open(test_dir / "stdout.log", "w") as f:
+    with open(test_dir / "stdout.log", "w", encoding="utf-8") as f:
         f.write(result.stdout)
     
     # Save stderr
-    with open(test_dir / "stderr.log", "w") as f:
+    with open(test_dir / "stderr.log", "w", encoding="utf-8") as f:
         f.write(result.stderr)
     
     # Save metrics as JSON
-    with open(test_dir / "metrics.json", "w") as f:
+    with open(test_dir / "metrics.json", "w", encoding="utf-8") as f:
         json.dump({
             "test_name": result.test_name,
             "status": result.status.value,
@@ -751,7 +1162,7 @@ def save_test_output(result: TestResult, output_dir: Path):
         }, f, indent=2)
     
     # Save summary
-    with open(test_dir / "summary.txt", "w") as f:
+    with open(test_dir / "summary.txt", "w", encoding="utf-8") as f:
         f.write(f"Test: {result.test_name}\n")
         f.write(f"Status: {result.status.value}\n")
         f.write(f"Duration: {result.duration_seconds:.2f}s\n")
@@ -771,7 +1182,7 @@ def generate_csv_report(results: List[TestResult], output_dir: Path, system_info
     
     # Main results CSV
     csv_path = output_dir / "test_results.csv"
-    with open(csv_path, "w", newline="") as f:
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         
         # Header
@@ -810,7 +1221,7 @@ def generate_csv_report(results: List[TestResult], output_dir: Path, system_info
     
     # System info CSV
     sys_csv_path = output_dir / "system_info.csv"
-    with open(sys_csv_path, "w", newline="") as f:
+    with open(sys_csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["Property", "Value"])
         writer.writerow(["OS", f"{system_info.os_name} {system_info.os_version}"])
@@ -838,7 +1249,7 @@ def generate_csv_report(results: List[TestResult], output_dir: Path, system_info
     skipped = sum(1 for r in results if r.status == TestStatus.SKIPPED)
     errors = sum(1 for r in results if r.status == TestStatus.ERROR)
     
-    with open(summary_path, "w", newline="") as f:
+    with open(summary_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["Metric", "Value"])
         writer.writerow(["Total Tests", len(results)])
@@ -987,7 +1398,7 @@ def generate_html_report(results: List[TestResult], output_dir: Path, system_inf
 </html>
 """
     
-    with open(html_path, "w") as f:
+    with open(html_path, "w", encoding="utf-8") as f:
         f.write(html)
     
     log(f"HTML report saved to: {html_path}", "SUCCESS")
@@ -1020,14 +1431,29 @@ Examples:
                         help="Skip dependency installation")
     parser.add_argument("--skip-build", action="store_true",
                         help="Skip building tests")
+    parser.add_argument("--use-existing-build", type=str, default=None,
+                        help="Use existing build directory (e.g., build_tests/gpu_build)")
     parser.add_argument("--output-dir", type=str, default=None,
                         help="Output directory for results (default: test_output_TIMESTAMP)")
     parser.add_argument("--project-root", type=str, default=None,
                         help="LRET project root directory")
     parser.add_argument("--tests", type=str, nargs="+", default=None,
                         help="Specific tests to run (default: all)")
+    parser.add_argument("--cuda-12x", action="store_true", default=True,
+                        help="Prefer CUDA 12.x for Pascal GPU compatibility (default: True)")
+    parser.add_argument("--cuda-13x", action="store_true", default=False,
+                        help="Allow CUDA 13.x (requires compute capability >= 7.5)")
     
     args = parser.parse_args()
+    
+    # Set global CUDA preference based on CLI arguments
+    global _prefer_cuda_12x
+    if args.cuda_13x:
+        _prefer_cuda_12x = False
+        log("Using CUDA 13.x (requires compute >= 7.5)", "INFO")
+    else:
+        _prefer_cuda_12x = True
+        log("Preferring CUDA 12.x for Pascal GPU compatibility", "INFO")
     
     # Determine paths
     script_dir = Path(__file__).parent.resolve()
@@ -1090,7 +1516,11 @@ Examples:
         targets = list(set(t["target"] for t in tests))
         
         log(f"\nBuilding configuration: {' '.join(flags)}")
-        success, result = build_tests(project_root, build_dir, flags, targets, skip=args.skip_build)
+        success, result = build_tests(
+            project_root, build_dir, flags, targets, 
+            skip=args.skip_build, 
+            existing_build_dir=args.use_existing_build
+        )
         build_success[flags_key] = (success, result)
         
         if not success:
@@ -1123,7 +1553,7 @@ Examples:
                 timestamp=datetime.datetime.now().isoformat()
             )
         else:
-            result = run_single_test(test, build_dir, output_dir, system_info)
+            result = run_single_test(test, build_dir, output_dir, system_info, actual_build_path=build_path)
         
         results.append(result)
         save_test_output(result, output_dir)

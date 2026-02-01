@@ -8,6 +8,7 @@
 #ifdef USE_GPU
 
 #include <cuda_runtime.h>
+#include <cuComplex.h>
 #include <stdexcept>
 #include <vector>
 #include <numeric>
@@ -342,7 +343,9 @@ public:
 private:
     void move_from(Impl&& other) {
         config_ = other.config_;
+#ifdef USE_NCCL
         nccl_enabled_ = other.nccl_enabled_;
+#endif
         compute_stream_ = other.compute_stream_;
         comm_stream_ = other.comm_stream_;
         d_L_ = other.d_L_;

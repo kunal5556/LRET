@@ -241,7 +241,7 @@ if(USE_GPU)
     # CUDA compile options
     set_target_properties(qlret_gpu PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON
-        CUDA_ARCHITECTURES "70;75;80;86;89;90"  # Volta, Turing, Ampere, Ada, Hopper
+        CUDA_ARCHITECTURES "61;70;75;80;86;89;90"  # Pascal, Volta, Turing, Ampere, Ada, Hopper
     )
     
     target_include_directories(qlret_gpu PUBLIC 

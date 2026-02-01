@@ -1053,11 +1053,11 @@ MatrixXcd simulate_auto(
         gpu_config.verbose = config.verbose;
         return simulate_gpu(L_init, sequence, num_qubits, config, gpu_config);
     } else {
-        // Fall back to CPU simulation
-        // Import from simulator.h
-        extern MatrixXcd run_lret_simulation(
-            const MatrixXcd&, const QuantumSequence&, size_t, const SimConfig&);
-        return run_lret_simulation(L_init, sequence, num_qubits, config);
+        // Fall back to CPU simulation using run_simulation_optimized
+        extern MatrixXcd run_simulation_optimized(
+            const MatrixXcd&, const QuantumSequence&, size_t, size_t, bool, bool, double);
+        return run_simulation_optimized(L_init, sequence, num_qubits, 
+            config.batch_size, config.do_truncation, config.verbose, config.truncation_threshold);
     }
 }
 
@@ -1119,10 +1119,11 @@ MatrixXcd simulate_gpu(const MatrixXcd&, const QuantumSequence&, size_t,
 
 MatrixXcd simulate_auto(const MatrixXcd& L_init, const QuantumSequence& sequence,
                         size_t num_qubits, const SimConfig& config, bool) {
-    // Always use CPU
-    extern MatrixXcd run_lret_simulation(
-        const MatrixXcd&, const QuantumSequence&, size_t, const SimConfig&);
-    return run_lret_simulation(L_init, sequence, num_qubits, config);
+    // Always use CPU - use run_simulation_optimized
+    extern MatrixXcd run_simulation_optimized(
+        const MatrixXcd&, const QuantumSequence&, size_t, size_t, bool, bool, double);
+    return run_simulation_optimized(L_init, sequence, num_qubits,
+        config.batch_size, config.do_truncation, config.verbose, config.truncation_threshold);
 }
 
 }  // namespace qlret

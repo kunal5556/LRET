@@ -238,7 +238,7 @@ MatrixXcd apply_single_gate_direct(const MatrixXcd& L, const MatrixXcd& gate, si
     // Use static scheduling: gate application has uniform workload per iteration
     // This avoids dynamic scheduling overhead which can cause apparent "hanging"
     #pragma omp parallel for schedule(static) if(dim > 256 && rank > 2)
-    for (size_t block = 0; block < dim; block += 2 * step) {
+    for (long long block = 0; block < (long long)dim; block += 2 * step) {
         for (size_t i = block; i < block + step && i < dim; ++i) {
             size_t i0 = i;           // target qubit = 0
             size_t i1 = i + step;    // target qubit = 1

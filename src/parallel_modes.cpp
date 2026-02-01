@@ -304,7 +304,7 @@ MatrixXcd apply_two_qubit_gate_parallel(const MatrixXcd& L, const MatrixXcd& U,
 #ifdef _OPENMP
     #pragma omp parallel for schedule(static) if(dim > 4096 && rank > 2)
 #endif
-    for (size_t base = 0; base < dim; ++base) {
+    for (long long base = 0; base < (long long)dim; ++base) {
         // Skip if either qubit bit is set
         if ((base & step_min) != 0 || (base & step_max) != 0) continue;
         
@@ -315,7 +315,7 @@ MatrixXcd apply_two_qubit_gate_parallel(const MatrixXcd& L, const MatrixXcd& U,
         idx[2] = base | step_q1;                // q1=1, q2=0
         idx[3] = base | step_q1 | step_q2;      // q1=1, q2=1
         
-        for (size_t r = 0; r < rank; ++r) {
+        for (long long r = 0; r < (long long)rank; ++r) {
             Complex v[4];
             for (int k = 0; k < 4; ++k) v[k] = L(idx[k], r);
             
@@ -424,7 +424,7 @@ MatrixXcd apply_gate_column_parallel(const MatrixXcd& L, const GateOp& gate, siz
 #ifdef _OPENMP
         #pragma omp parallel for schedule(static)
 #endif
-        for (size_t r = 0; r < rank; ++r) {
+        for (long long r = 0; r < (long long)rank; ++r) {
             VectorXcd col = L.col(r);
             VectorXcd new_col = col;
             
@@ -461,7 +461,7 @@ MatrixXcd apply_gate_column_parallel(const MatrixXcd& L, const GateOp& gate, siz
 #ifdef _OPENMP
         #pragma omp parallel for schedule(static)
 #endif
-        for (size_t r = 0; r < rank; ++r) {
+        for (long long r = 0; r < (long long)rank; ++r) {
             VectorXcd col = L.col(r);
             VectorXcd new_col = col;
             
