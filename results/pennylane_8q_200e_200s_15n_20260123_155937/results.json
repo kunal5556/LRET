@@ -1,0 +1,15 @@
+{
+  "run_id": "20260123_155937",
+  "config": {
+    "n_qubits": 8,
+    "n_epochs": 200,
+    "n_samples": 200,
+    "noise_rate": 0.15,
+    "learning_rate": 0.1,
+    "seed": 42
+  },
+  "pennylane_version": "0.44.0",
+  "status": "running_lret",
+  "lret": {},
+  "baseline": {}
+}

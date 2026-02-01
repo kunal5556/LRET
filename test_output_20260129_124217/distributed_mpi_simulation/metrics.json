@@ -1,0 +1,12 @@
+{
+  "test_name": "distributed_mpi_simulation",
+  "status": "ERROR",
+  "duration_seconds": 0.0,
+  "return_code": -1,
+  "error_message": "Build failed: CMake configure failed:\nCMake Warning:\n  Ignoring extra path from command line:\n\n   \"Hind\\Downloads\\Kislaya\\Simulator\\NewLRET\\LRET\"\n\n\nCMake Error: The source directory \"C:/Users/Jai\" does not exist.\nSpecify --help for usage, or press the help button on the CMake GUI.\n\n",
+  "metrics": {},
+  "timestamp": "2026-01-29T12:42:18.115488",
+  "hardware_requirements": "MPI (OpenMPI or MPICH)",
+  "build_flags": "-DUSE_MPI=ON",
+  "run_command": "mpirun -np 4 ./quantum_sim -n 12 -d 20 --mode hybrid"
+}

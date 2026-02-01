@@ -1,0 +1,136 @@
+Test: test_distributed_gpu_mpi
+Status: ERROR
+Duration: 0.00s
+Return Code: -1
+Requirements: 2 NVIDIA GPUs + MPI + NCCL
+Build Flags: -DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON
+Command: mpirun -np 2 ./test_distributed_gpu_mpi
+Error: Build failed: CMake configure failed:
+CMake Error at C:/Program Files/CMake/share/cmake-4.2/Modules/CMakeDetermineCompilerId.cmake:928 (message):
+  Compiling the CUDA compiler identification source file
+  "CMakeCUDACompilerId.cu" failed.
+
+  Compiler:
+
+  Build flags:
+
+  Id flags: --keep;--keep-dir;tmp -v
+
+
+
+  The output was:
+
+  1
+
+  MSBuild version 17.14.40+3e7442088 for .NET Framework
+
+  Build started 01-02-2026 15:35:43.
+
+
+
+  Project "C:\Users\Jai
+  Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA.vcxproj"
+  on node 1 (default targets).
+
+  PrepareForBuild:
+
+    Creating directory "Debug\".
+    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
+    Creating directory "Debug\CompilerIdCUDA.tlog\".
+
+  InitializeBuildStatus:
+
+    Creating "Debug\CompilerIdCUDA.tlog\unsuccessfulbuild" because "AlwaysCreate" was specified.
+    Touching "Debug\CompilerIdCUDA.tlog\unsuccessfulbuild".
+
+  AddCudaCompileDeps:
+
+    C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64\cl.exe /E /nologo /showIncludes /TP /D__CUDACC__ /D__CUDACC_VER_MAJOR__=13 /D__CUDACC_VER_MINOR__=1 /D_MBCS /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\include" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\include" /I. /FIcuda_runtime.h /c "C:\Users\Jai Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CMakeCUDACompilerId.cu" 
+
+  Project "C:\Users\Jai
+  Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA.vcxproj"
+  (1) is building "C:\Users\Jai
+  Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA.vcxproj"
+  (1:2) on node 1 (CudaBuildCore target(s)).
+
+  CudaBuildCore:
+
+    Compiling CUDA source file CMakeCUDACompilerId.cu...
+    Creating directory "C:\Users\Jai Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA\x64\Debug".
+    cmd.exe /C "C:\Users\Jai Hind\AppData\Local\Temp\tmp9c64257d9d1045ab9362252687d0b8a5.cmd"
+    "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin\nvcc.exe" -gencode=arch=compute_75,code=\"sm_75,compute_75\" --use-local-env -ccbin "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64" -x cu   -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\include"  -G   --keep-dir CompilerIdCUDA\x64\Debug  -maxrregcount=0    --machine 64 --compile -cudart hybrid -v -allow-unsupported-compiler -g  -D_MBCS -Xcompiler "/EHsc /W0 /nologo /Od /FS /Zi /RTC1 /MDd " -Xcompiler "/FdDebug\vc143.pdb" -o "C:\Users\Jai Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA\x64\Debug\CMakeCUDACompilerId.cu.obj" "C:\Users\Jai Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CMakeCUDACompilerId.cu"
+    
+    C:\Users\Jai Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin\nvcc.exe" -gencode=arch=compute_75,code=\"sm_75,compute_75\" --use-local-env -ccbin "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64" -x cu   -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\include"  -G   --keep-dir CompilerIdCUDA\x64\Debug  -maxrregcount=0    --machine 64 --compile -cudart hybrid -v -allow-unsupported-compiler -g  -D_MBCS -Xcompiler "/EHsc /W0 /nologo /Od /FS /Zi /RTC1 /MDd " -Xcompiler "/FdDebug\vc143.pdb" -o "C:\Users\Jai Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA\x64\Debug\CMakeCUDACompilerId.cu.obj" "C:\Users\Jai Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CMakeCUDACompilerId.cu" 
+    nvcc fatal   : Value 'hybrid' is not defined for option 'cudart'
+
+  C:\Program Files (x86)\Microsoft Visual
+  Studio\2022\BuildTools\MSBuild\Microsoft\VC\v170\BuildCustomizations\CUDA
+  13.1.targets(803,9): error MSB3721: The command ""C:\Program Files\NVIDIA
+  GPU Computing Toolkit\CUDA\v12.6\bin\nvcc.exe"
+  -gencode=arch=compute_75,code=\"sm_75,compute_75\" --use-local-env -ccbin
+  "C:\Program Files (x86)\Microsoft Visual
+  Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64" -x cu
+  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\include"
+  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\include" -G
+  --keep-dir CompilerIdCUDA\x64\Debug -maxrregcount=0 --machine 64 --compile
+  -cudart hybrid -v -allow-unsupported-compiler -g -D_MBCS -Xcompiler "/EHsc
+  /W0 /nologo /Od /FS /Zi /RTC1 /MDd " -Xcompiler "/FdDebug\vc143.pdb" -o
+  "C:\Users\Jai
+  Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA\x64\Debug\CMakeCUDACompilerId.cu.obj"
+  "C:\Users\Jai
+  Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CMakeCUDACompilerId.cu""
+  exited with code 1.  [C:\Users\Jai
+  Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA.vcxproj]
+
+  Done Building Project "C:\Users\Jai
+  Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA.vcxproj"
+  (CudaBuildCore target(s)) -- FAILED.
+
+  Done Building Project "C:\Users\Jai
+  Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA.vcxproj"
+  (default targets) -- FAILED.
+
+
+
+  Build FAILED.
+
+
+
+  "C:\Users\Jai
+  Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA.vcxproj"
+  (default target) (1) ->
+
+  "C:\Users\Jai
+  Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA.vcxproj"
+  (CudaBuildCore target) (1:2) ->
+
+  (CudaBuildCore target) ->
+
+    C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Microsoft\VC\v170\BuildCustomizations\CUDA 13.1.targets(803,9): error MSB3721: The command ""C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin\nvcc.exe" -gencode=arch=compute_75,code=\"sm_75,compute_75\" --use-local-env -ccbin "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64" -x cu   -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\include"  -G   --keep-dir CompilerIdCUDA\x64\Debug  -maxrregcount=0    --machine 64 --compile -cudart hybrid -v -allow-unsupported-compiler -g  -D_MBCS -Xcompiler "/EHsc /W0 /nologo /Od /FS /Zi /RTC1 /MDd " -Xcompiler "/FdDebug\vc143.pdb" -o "C:\Users\Jai Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA\x64\Debug\CMakeCUDACompilerId.cu.obj" "C:\Users\Jai Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CMakeCUDACompilerId.cu"" exited with code 1. [C:\Users\Jai Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA.vcxproj]
+
+
+
+      0 Warning(s)
+      1 Error(s)
+
+
+
+  Time Elapsed 00:00:01.96
+
+
+
+
+
+Call Stack (most recent call first):
+  C:/Program Files/CMake/share/cmake-4.2/Modules/CMakeDetermineCompilerId.cmake:8 (CMAKE_DETERMINE_COMPILER_ID_BUILD)
+  C:/Program Files/CMake/share/cmake-4.2/Modules/CMakeDetermineCompilerId.cmake:53 (__determine_compiler_id_test)
+  C:/Program Files/CMake/share/cmake-4.2/Modules/CMakeDetermineCUDACompiler.cmake:163 (CMAKE_DETERMINE_COMPILER_ID)
+  CMakeLists.txt:11 (project)
+
+
+
+-- The CXX compiler identification is MSVC 19.44.35222.0
+-- Configuring incomplete, errors occurred!
+
+
+Metrics:

@@ -1,0 +1,12 @@
+{
+  "test_name": "test_distributed_gpu",
+  "status": "ERROR",
+  "duration_seconds": 0.0,
+  "return_code": -1,
+  "error_message": "Executable not found: C:\\Users\\Jai Hind\\Downloads\\Kislaya\\Simulator\\NewLRET\\LRET\\build_tests\\gpu_build\\test_distributed_gpu",
+  "metrics": {},
+  "timestamp": "2026-02-01T15:56:34.235135",
+  "hardware_requirements": "Single NVIDIA GPU + CUDA",
+  "build_flags": "-DUSE_GPU=ON",
+  "run_command": "./test_distributed_gpu"
+}

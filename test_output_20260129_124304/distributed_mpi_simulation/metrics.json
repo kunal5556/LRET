@@ -1,0 +1,12 @@
+{
+  "test_name": "distributed_mpi_simulation",
+  "status": "ERROR",
+  "duration_seconds": 0.0,
+  "return_code": -1,
+  "error_message": "Build failed: CMake configure failed:\nCMake Error at C:/Program Files/CMake/share/cmake-4.2/Modules/FindPackageHandleStandardArgs.cmake:290 (message):\n  Could NOT find MPI (missing: MPI_CXX_FOUND)\nCall Stack (most recent call first):\n  C:/Program Files/CMake/share/cmake-4.2/Modules/FindPackageHandleStandardArgs.cmake:654 (_FPHSA_FAILURE_MESSAGE)\n  C:/Program Files/CMake/share/cmake-4.2/Modules/FindMPI.cmake:2006 (find_package_handle_standard_args)\n  CMakeLists.txt:77 (find_package)\n\n\n\n-- Building for: Visual Studio 17 2022\n-- The CXX compiler identification is MSVC 19.44.35222.0\n-- Detecting CXX compiler ABI info\n-- Detecting CXX compiler ABI info - done\n-- Check for working CXX compiler: C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe - skipped\n-- Detecting CXX compile features\n-- Detecting CXX compile features - done\n-- Found Eigen3 at: C:/Users/Jai Hind/eigen-3.4.0\n-- Found OpenMP_CXX: -openmp (found version \"2.0\")\n-- Found OpenMP: TRUE (found version \"2.0\")\n-- Using the multi-header code from C:/Users/Jai Hind/Downloads/Kislaya/Simulator/NewLRET/LRET/build_tests/build_USE_MPI_ON/_deps/json-src/include/\n-- Could NOT find MPI_CXX (missing: MPI_CXX_LIB_NAMES MPI_CXX_HEADER_DIR MPI_CXX_WORKS) \n-- Configuring incomplete, errors occurred!\n",
+  "metrics": {},
+  "timestamp": "2026-01-29T12:43:56.698184",
+  "hardware_requirements": "MPI (OpenMPI or MPICH)",
+  "build_flags": "-DUSE_MPI=ON",
+  "run_command": "mpirun -np 4 ./quantum_sim -n 12 -d 20 --mode hybrid"
+}

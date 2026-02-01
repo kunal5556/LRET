@@ -1,0 +1,2 @@
+Test Name,Category,Status,Duration (s),Return Code,Error Message,Hardware Requirements,Build Flags,Run Command,Timestamp,Pass Count,Fail Count,Fidelity,Speedup
+test_distributed_gpu,GPU,PASSED,0.254,0,,Single NVIDIA GPU + CUDA,-DUSE_GPU=ON,./test_distributed_gpu,2026-02-01T16:08:16.838077,,,,

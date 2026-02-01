@@ -1,0 +1,10 @@
+Test: test_distributed_gpu
+Status: ERROR
+Duration: 0.00s
+Return Code: -1
+Requirements: Single NVIDIA GPU + CUDA
+Build Flags: -DUSE_GPU=ON
+Command: ./test_distributed_gpu
+Error: Executable not found: C:\Users\Jai Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\gpu_build\test_distributed_gpu
+
+Metrics:

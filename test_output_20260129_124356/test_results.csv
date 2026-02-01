@@ -1,0 +1,17 @@
+Test Name,Category,Status,Duration (s),Return Code,Error Message,Hardware Requirements,Build Flags,Run Command,Timestamp,Pass Count,Fail Count,Fidelity,Speedup
+test_distributed_gpu,GPU,ERROR,0.000,-1,"Build failed: CMake configure failed:
+CMake Error at C:/Program Files/CMake/share/cmake-4.2/Modules/",Single NVIDIA GPU + CUDA,-DUSE_GPU=ON,./test_distributed_gpu,2026-01-29T12:44:04.743150,,,,
+test_distributed_gpu_mpi,Multi-GPU,ERROR,0.000,-1,"Build failed: CMake configure failed:
+CMake Error at C:/Program Files/CMake/share/cmake-4.2/Modules/",2 NVIDIA GPUs + MPI + NCCL,-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON,mpirun -np 2 ./test_distributed_gpu_mpi,2026-01-29T12:44:04.750431,,,,
+test_autodiff_multi_gpu,Multi-GPU,ERROR,0.000,-1,"Build failed: CMake configure failed:
+CMake Error at C:/Program Files/CMake/share/cmake-4.2/Modules/",2+ NVIDIA GPUs + MPI + NCCL,-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON,mpirun -np 2 ./test_autodiff_multi_gpu,2026-01-29T12:44:04.756972,,,,
+test_multi_gpu_collectives,Multi-GPU,ERROR,0.000,-1,"Build failed: CMake configure failed:
+CMake Error at C:/Program Files/CMake/share/cmake-4.2/Modules/",2+ NVIDIA GPUs + MPI + NCCL,-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON,mpirun -np 2 ./test_multi_gpu_collectives,2026-01-29T12:44:04.762615,,,,
+test_multi_gpu_load_balance,Multi-GPU,ERROR,0.000,-1,"Build failed: CMake configure failed:
+CMake Error at C:/Program Files/CMake/share/cmake-4.2/Modules/",4 NVIDIA GPUs + MPI + NCCL,-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON,mpirun -np 4 ./test_multi_gpu_load_balance,2026-01-29T12:44:04.766162,,,,
+test_multi_gpu_sync,Multi-GPU,ERROR,0.000,-1,"Build failed: CMake configure failed:
+CMake Error at C:/Program Files/CMake/share/cmake-4.2/Modules/",2+ NVIDIA GPUs + MPI + NCCL,-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON,mpirun -np 2 ./test_multi_gpu_sync,2026-01-29T12:44:04.770001,,,,
+test_fault_tolerance,Multi-GPU,ERROR,0.000,-1,"Build failed: CMake configure failed:
+CMake Error at C:/Program Files/CMake/share/cmake-4.2/Modules/",2+ NVIDIA GPUs + MPI + NCCL,-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON,mpirun -np 2 ./test_fault_tolerance,2026-01-29T12:44:04.773348,,,,
+distributed_mpi_simulation,MPI,ERROR,0.000,-1,"Build failed: CMake configure failed:
+CMake Error at C:/Program Files/CMake/share/cmake-4.2/Modules/",MPI (OpenMPI or MPICH),-DUSE_MPI=ON,mpirun -np 4 ./quantum_sim -n 12 -d 20 --mode hybrid,2026-01-29T12:44:04.776098,,,,

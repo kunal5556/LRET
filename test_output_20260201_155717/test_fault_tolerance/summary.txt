@@ -1,0 +1,10 @@
+Test: test_fault_tolerance
+Status: SKIPPED
+Duration: 0.00s
+Return Code: -1
+Requirements: 2+ NVIDIA GPUs + MPI + NCCL
+Build Flags: -DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON
+Command: mpirun -np 2 ./test_fault_tolerance
+Error: Requires 2 GPUs, but only 1 available
+
+Metrics:

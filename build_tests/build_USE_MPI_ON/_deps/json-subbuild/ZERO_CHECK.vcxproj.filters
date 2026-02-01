@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\Jai Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_USE_MPI_ON\_deps\json-subbuild\CMakeFiles\bc05143a4e8d612675cd892cf02f1923\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{066C4430-F61E-3BAE-909D-2F728F7E7287}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

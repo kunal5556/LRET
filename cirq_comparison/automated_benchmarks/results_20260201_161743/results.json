@@ -1,0 +1,15 @@
+[
+  {
+    "n_qubits": 10,
+    "depth": 20,
+    "noise_prob": 0.0001,
+    "epsilon": 1e-06,
+    "lret_mean": 7135.689766650709,
+    "lret_std": 176.2591054211867,
+    "lret_rank": 24,
+    "lret_status": "success",
+    "cirq_mean": 31346.277133367646,
+    "cirq_std": 53.7981581250543,
+    "speedup": 4.3928867647620145
+  }
+]

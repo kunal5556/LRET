@@ -1,0 +1,20 @@
+Test: distributed_mpi_simulation
+Status: ERROR
+Duration: 0.00s
+Return Code: -1
+Requirements: MPI (OpenMPI or MPICH)
+Build Flags: -DUSE_MPI=ON
+Command: mpirun -np 4 ./quantum_sim -n 12 -d 20 --mode hybrid
+Error: Build failed: CMake configure failed:
+CMake Warning:
+  Ignoring extra path from command line:
+
+   "Hind\Downloads\Kislaya\Simulator\NewLRET\LRET"
+
+
+CMake Error: The source directory "C:/Users/Jai" does not exist.
+Specify --help for usage, or press the help button on the CMake GUI.
+
+
+
+Metrics:

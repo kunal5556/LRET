@@ -1,0 +1,12 @@
+{
+  "test_name": "test_autodiff_multi_gpu",
+  "status": "SKIPPED",
+  "duration_seconds": 0.0,
+  "return_code": -1,
+  "error_message": "Requires 2 GPUs, but only 1 available",
+  "metrics": {},
+  "timestamp": "2026-02-01T15:56:34.250056",
+  "hardware_requirements": "2+ NVIDIA GPUs + MPI + NCCL",
+  "build_flags": "-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON",
+  "run_command": "mpirun -np 2 ./test_autodiff_multi_gpu"
+}

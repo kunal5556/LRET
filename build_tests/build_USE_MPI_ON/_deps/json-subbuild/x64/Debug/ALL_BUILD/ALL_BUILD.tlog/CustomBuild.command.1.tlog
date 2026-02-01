@@ -1,0 +1,10 @@
+^C:\USERS\JAI HIND\DOWNLOADS\KISLAYA\SIMULATOR\NEWLRET\LRET\BUILD_TESTS\BUILD_USE_MPI_ON\_DEPS\JSON-SUBBUILD\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SC:/Users/Jai Hind/Downloads/Kislaya/Simulator/NewLRET/LRET/build_tests/build_USE_MPI_ON/_deps/json-subbuild" "-BC:/Users/Jai Hind/Downloads/Kislaya/Simulator/NewLRET/LRET/build_tests/build_USE_MPI_ON/_deps/json-subbuild" --check-stamp-file "C:/Users/Jai Hind/Downloads/Kislaya/Simulator/NewLRET/LRET/build_tests/build_USE_MPI_ON/_deps/json-subbuild/CMakeFiles/generate.stamp"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

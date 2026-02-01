@@ -1,0 +1,16 @@
+Property,Value
+OS,Windows 10.0.26100
+Kernel,11
+CPU,"Intel64 Family 6 Model 85 Stepping 7, GenuineIntel"
+CPU Cores,96
+Memory (GB),3.7
+GPU Count,1
+GPUs,Quadro P400
+GPU Memory (GB),2.0
+CUDA Version,
+cuDNN Version,
+NCCL Version,
+MPI Implementation,
+MPI Version,
+CMake Version,4.2.1
+GCC Version,

@@ -1,0 +1,12 @@
+{
+  "test_name": "distributed_mpi_simulation",
+  "status": "SKIPPED",
+  "duration_seconds": 0.0,
+  "return_code": -1,
+  "error_message": "MPI not installed",
+  "metrics": {},
+  "timestamp": "2026-02-01T15:57:18.392169",
+  "hardware_requirements": "MPI (OpenMPI or MPICH)",
+  "build_flags": "-DUSE_MPI=ON",
+  "run_command": "mpirun -np 4 ./quantum_sim -n 12 -d 20 --mode hybrid"
+}

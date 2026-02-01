@@ -1,0 +1,10 @@
+Test: distributed_mpi_simulation
+Status: SKIPPED
+Duration: 0.00s
+Return Code: -1
+Requirements: MPI (OpenMPI or MPICH)
+Build Flags: -DUSE_MPI=ON
+Command: mpirun -np 4 ./quantum_sim -n 12 -d 20 --mode hybrid
+Error: MPI not installed
+
+Metrics:

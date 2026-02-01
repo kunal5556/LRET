@@ -1,0 +1,10 @@
+Test: test_distributed_gpu
+Status: PASSED
+Duration: 0.19s
+Return Code: 0
+Requirements: Single NVIDIA GPU + CUDA
+Build Flags: -DUSE_GPU=ON
+Command: ./test_distributed_gpu
+
+Metrics:
+  test_passed: True

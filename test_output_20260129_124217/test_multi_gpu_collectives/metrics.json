@@ -1,0 +1,12 @@
+{
+  "test_name": "test_multi_gpu_collectives",
+  "status": "ERROR",
+  "duration_seconds": 0.0,
+  "return_code": -1,
+  "error_message": "Build failed: CMake configure failed:\nCMake Warning:\n  Ignoring extra path from command line:\n\n   \"Hind\\Downloads\\Kislaya\\Simulator\\NewLRET\\LRET\"\n\n\nCMake Error: The source directory \"C:/Users/Jai\" does not exist.\nSpecify --help for usage, or press the help button on the CMake GUI.\n\n",
+  "metrics": {},
+  "timestamp": "2026-01-29T12:42:18.100808",
+  "hardware_requirements": "2+ NVIDIA GPUs + MPI + NCCL",
+  "build_flags": "-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON",
+  "run_command": "mpirun -np 2 ./test_multi_gpu_collectives"
+}

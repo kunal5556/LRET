@@ -1,0 +1,20 @@
+Test: test_multi_gpu_sync
+Status: ERROR
+Duration: 0.00s
+Return Code: -1
+Requirements: 2+ NVIDIA GPUs + MPI + NCCL
+Build Flags: -DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON
+Command: mpirun -np 2 ./test_multi_gpu_sync
+Error: Build failed: CMake configure failed:
+CMake Warning:
+  Ignoring extra path from command line:
+
+   "Hind\Downloads\Kislaya\Simulator\NewLRET\LRET"
+
+
+CMake Error: The source directory "C:/Users/Jai" does not exist.
+Specify --help for usage, or press the help button on the CMake GUI.
+
+
+
+Metrics:

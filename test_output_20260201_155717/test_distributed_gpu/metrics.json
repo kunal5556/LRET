@@ -1,0 +1,14 @@
+{
+  "test_name": "test_distributed_gpu",
+  "status": "PASSED",
+  "duration_seconds": 0.18536806106567383,
+  "return_code": 0,
+  "error_message": "",
+  "metrics": {
+    "test_passed": true
+  },
+  "timestamp": "2026-02-01T15:57:18.176031",
+  "hardware_requirements": "Single NVIDIA GPU + CUDA",
+  "build_flags": "-DUSE_GPU=ON",
+  "run_command": "./test_distributed_gpu"
+}

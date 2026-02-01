@@ -1,0 +1,101 @@
+Test: test_multi_gpu_sync
+Status: ERROR
+Duration: 0.00s
+Return Code: -1
+Requirements: 2+ NVIDIA GPUs + MPI + NCCL
+Build Flags: -DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON
+Command: mpirun -np 2 ./test_multi_gpu_sync
+Error: Build failed: CMake configure failed:
+CMake Error at C:/Program Files/CMake/share/cmake-4.2/Modules/CMakeDetermineCompilerId.cmake:928 (message):
+  Compiling the CUDA compiler identification source file
+  "CMakeCUDACompilerId.cu" failed.
+
+  Compiler:
+
+  Build flags:
+
+  Id flags: --keep;--keep-dir;tmp -v
+
+
+
+  The output was:
+
+  1
+
+  MSBuild version 17.14.40+3e7442088 for .NET Framework
+
+  Build started 29-01-2026 12:43:10.
+
+
+
+  Project "C:\Users\Jai
+  Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA.vcxproj"
+  on node 1 (default targets).
+
+  PrepareForBuild:
+
+    Creating directory "Debug\".
+    Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
+    Creating directory "Debug\CompilerIdCUDA.tlog\".
+
+  InitializeBuildStatus:
+
+    Creating "Debug\CompilerIdCUDA.tlog\unsuccessfulbuild" because "AlwaysCreate" was specified.
+    Touching "Debug\CompilerIdCUDA.tlog\unsuccessfulbuild".
+
+  AddCudaCompileDeps:
+
+    C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64\cl.exe /E /nologo /showIncludes /TP /D__CUDACC__ /D__CUDACC_VER_MAJOR__=13 /D__CUDACC_VER_MINOR__=1 /D_MBCS /Iinclude /Ibin /Iinclude /I. /FIcuda_runtime.h /c "C:\Users\Jai Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CMakeCUDACompilerId.cu" 
+
+  C:\Program Files (x86)\Microsoft Visual
+  Studio\2022\BuildTools\MSBuild\Microsoft\VC\v170\BuildCustomizations\CUDA
+  13.1.targets(609,9): error : The CUDA Toolkit directory '' does not exist.
+  Please verify the CUDA Toolkit is installed properly or define the
+  CudaToolkitDir property to resolve this error.  [C:\Users\Jai
+  Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA.vcxproj]
+
+  Done Building Project "C:\Users\Jai
+  Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA.vcxproj"
+  (default targets) -- FAILED.
+
+
+
+  Build FAILED.
+
+
+
+  "C:\Users\Jai
+  Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA.vcxproj"
+  (default target) (1) ->
+
+  (ValidateCudaBuild target) ->
+
+    C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Microsoft\VC\v170\BuildCustomizations\CUDA 13.1.targets(609,9): error : The CUDA Toolkit directory '' does not exist.  Please verify the CUDA Toolkit is installed properly or define the CudaToolkitDir property to resolve this error. [C:\Users\Jai Hind\Downloads\Kislaya\Simulator\NewLRET\LRET\build_tests\build_BUILD_MULTI_GPU_TESTS_ON_USE_GPU_ON_USE_MPI_ON_USE_NCCL_ON\CMakeFiles\4.2.1\CompilerIdCUDA\CompilerIdCUDA.vcxproj]
+
+
+
+      0 Warning(s)
+      1 Error(s)
+
+
+
+  Time Elapsed 00:00:00.40
+
+
+
+
+
+Call Stack (most recent call first):
+  C:/Program Files/CMake/share/cmake-4.2/Modules/CMakeDetermineCompilerId.cmake:8 (CMAKE_DETERMINE_COMPILER_ID_BUILD)
+  C:/Program Files/CMake/share/cmake-4.2/Modules/CMakeDetermineCompilerId.cmake:53 (__determine_compiler_id_test)
+  C:/Program Files/CMake/share/cmake-4.2/Modules/CMakeDetermineCUDACompiler.cmake:163 (CMAKE_DETERMINE_COMPILER_ID)
+  CMakeLists.txt:11 (project)
+
+
+
+-- Building for: Visual Studio 17 2022
+-- The CXX compiler identification is MSVC 19.44.35222.0
+-- Configuring incomplete, errors occurred!
+
+
+Metrics:

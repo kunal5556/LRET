@@ -1,0 +1,12 @@
+{
+  "test_name": "test_multi_gpu_load_balance",
+  "status": "SKIPPED",
+  "duration_seconds": 0.0,
+  "return_code": -1,
+  "error_message": "Requires 4 GPUs, but only 1 available",
+  "metrics": {},
+  "timestamp": "2026-02-01T15:57:18.380457",
+  "hardware_requirements": "4 NVIDIA GPUs + MPI + NCCL",
+  "build_flags": "-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON",
+  "run_command": "mpirun -np 4 ./test_multi_gpu_load_balance"
+}

@@ -1,0 +1,41 @@
+Test Name,Category,Status,Duration (s),Return Code,Error Message,Hardware Requirements,Build Flags,Run Command,Timestamp,Pass Count,Fail Count,Fidelity,Speedup
+test_distributed_gpu,GPU,ERROR,0.000,-1,"Build failed: CMake configure failed:
+CMake Warning:
+  Ignoring extra path from command line:
+
+   ""H",Single NVIDIA GPU + CUDA,-DUSE_GPU=ON,./test_distributed_gpu,2026-01-29T12:42:18.088445,,,,
+test_distributed_gpu_mpi,Multi-GPU,ERROR,0.000,-1,"Build failed: CMake configure failed:
+CMake Warning:
+  Ignoring extra path from command line:
+
+   ""H",2 NVIDIA GPUs + MPI + NCCL,-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON,mpirun -np 2 ./test_distributed_gpu_mpi,2026-01-29T12:42:18.094294,,,,
+test_autodiff_multi_gpu,Multi-GPU,ERROR,0.000,-1,"Build failed: CMake configure failed:
+CMake Warning:
+  Ignoring extra path from command line:
+
+   ""H",2+ NVIDIA GPUs + MPI + NCCL,-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON,mpirun -np 2 ./test_autodiff_multi_gpu,2026-01-29T12:42:18.097987,,,,
+test_multi_gpu_collectives,Multi-GPU,ERROR,0.000,-1,"Build failed: CMake configure failed:
+CMake Warning:
+  Ignoring extra path from command line:
+
+   ""H",2+ NVIDIA GPUs + MPI + NCCL,-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON,mpirun -np 2 ./test_multi_gpu_collectives,2026-01-29T12:42:18.100808,,,,
+test_multi_gpu_load_balance,Multi-GPU,ERROR,0.000,-1,"Build failed: CMake configure failed:
+CMake Warning:
+  Ignoring extra path from command line:
+
+   ""H",4 NVIDIA GPUs + MPI + NCCL,-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON,mpirun -np 4 ./test_multi_gpu_load_balance,2026-01-29T12:42:18.104034,,,,
+test_multi_gpu_sync,Multi-GPU,ERROR,0.000,-1,"Build failed: CMake configure failed:
+CMake Warning:
+  Ignoring extra path from command line:
+
+   ""H",2+ NVIDIA GPUs + MPI + NCCL,-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON,mpirun -np 2 ./test_multi_gpu_sync,2026-01-29T12:42:18.110111,,,,
+test_fault_tolerance,Multi-GPU,ERROR,0.000,-1,"Build failed: CMake configure failed:
+CMake Warning:
+  Ignoring extra path from command line:
+
+   ""H",2+ NVIDIA GPUs + MPI + NCCL,-DUSE_GPU=ON -DUSE_MPI=ON -DUSE_NCCL=ON -DBUILD_MULTI_GPU_TESTS=ON,mpirun -np 2 ./test_fault_tolerance,2026-01-29T12:42:18.112822,,,,
+distributed_mpi_simulation,MPI,ERROR,0.000,-1,"Build failed: CMake configure failed:
+CMake Warning:
+  Ignoring extra path from command line:
+
+   ""H",MPI (OpenMPI or MPICH),-DUSE_MPI=ON,mpirun -np 4 ./quantum_sim -n 12 -d 20 --mode hybrid,2026-01-29T12:42:18.115488,,,,
