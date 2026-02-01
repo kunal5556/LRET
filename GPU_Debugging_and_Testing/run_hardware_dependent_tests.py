@@ -78,6 +78,7 @@ class SystemInfo:
     gpu_count: int = 0
     gpu_models: List[str] = field(default_factory=list)
     gpu_memory_gb: List[float] = field(default_factory=list)
+    gpu_compute_caps: List[float] = field(default_factory=list)  # Compute capabilities
     cuda_version: str = ""
     cudnn_version: str = ""
     nccl_version: str = ""
@@ -583,6 +584,16 @@ def get_system_info() -> SystemInfo:
                 if len(parts) >= 2:
                     info.gpu_models.append(parts[0].strip())
                     info.gpu_memory_gb.append(float(parts[1].strip()) / 1024)
+        
+        # Get compute capability for each GPU
+        rc2, stdout2, _ = run_command("nvidia-smi --query-gpu=compute_cap --format=csv,noheader")
+        if rc2 == 0 and stdout2.strip():
+            lines2 = stdout2.strip().split("\n")
+            for line in lines2:
+                try:
+                    info.gpu_compute_caps.append(float(line.strip()))
+                except:
+                    info.gpu_compute_caps.append(0.0)
     except:
         info.gpu_count = 0
     
@@ -1439,21 +1450,62 @@ Examples:
                         help="LRET project root directory")
     parser.add_argument("--tests", type=str, nargs="+", default=None,
                         help="Specific tests to run (default: all)")
-    parser.add_argument("--cuda-12x", action="store_true", default=True,
-                        help="Prefer CUDA 12.x for Pascal GPU compatibility (default: True)")
+    parser.add_argument("--cuda-12x", action="store_true", default=False,
+                        help="Force CUDA 12.x (for older GPUs with compute < 7.5)")
     parser.add_argument("--cuda-13x", action="store_true", default=False,
-                        help="Allow CUDA 13.x (requires compute capability >= 7.5)")
+                        help="Force CUDA 13.x/latest (for newer GPUs with compute >= 7.5)")
+    parser.add_argument("--cuda-auto", action="store_true", default=True,
+                        help="Auto-detect best CUDA version based on GPU compute capability (default)")
     
     args = parser.parse_args()
     
-    # Set global CUDA preference based on CLI arguments
+    # Set global CUDA preference based on CLI arguments or auto-detect
     global _prefer_cuda_12x
-    if args.cuda_13x:
-        _prefer_cuda_12x = False
-        log("Using CUDA 13.x (requires compute >= 7.5)", "INFO")
-    else:
+    
+    # Auto-detect GPU compute capability to determine CUDA version
+    def detect_min_gpu_compute_cap() -> float:
+        """Detect minimum GPU compute capability across all GPUs."""
+        try:
+            rc, stdout, _ = run_command("nvidia-smi --query-gpu=compute_cap --format=csv,noheader")
+            if rc == 0 and stdout.strip():
+                caps = []
+                for line in stdout.strip().split("\n"):
+                    try:
+                        caps.append(float(line.strip()))
+                    except:
+                        pass
+                if caps:
+                    return min(caps)  # Use min to ensure compatibility with oldest GPU
+        except:
+            pass
+        return 0.0  # Unknown
+    
+    if args.cuda_12x:
+        # User explicitly requested CUDA 12.x
         _prefer_cuda_12x = True
-        log("Preferring CUDA 12.x for Pascal GPU compatibility", "INFO")
+        log("Forcing CUDA 12.x (user requested via --cuda-12x)", "INFO")
+    elif args.cuda_13x:
+        # User explicitly requested CUDA 13.x/latest
+        _prefer_cuda_12x = False
+        log("Forcing CUDA 13.x/latest (user requested via --cuda-13x)", "INFO")
+    else:
+        # Auto-detect based on GPU compute capability
+        min_compute = detect_min_gpu_compute_cap()
+        if min_compute > 0:
+            if min_compute < 7.5:
+                # Older GPU (Pascal, Volta before 7.5) - need CUDA 12.x
+                _prefer_cuda_12x = True
+                log(f"Auto-detected GPU compute capability {min_compute} < 7.5", "INFO")
+                log("Using CUDA 12.x for compatibility (CUDA 13.x requires compute >= 7.5)", "INFO")
+            else:
+                # Newer GPU (Turing, Ampere, Ada, Hopper) - use latest CUDA
+                _prefer_cuda_12x = False
+                log(f"Auto-detected GPU compute capability {min_compute} >= 7.5", "INFO")
+                log("Using latest CUDA version for best performance", "INFO")
+        else:
+            # Couldn't detect - default to latest CUDA
+            _prefer_cuda_12x = False
+            log("Could not detect GPU compute capability, using latest CUDA version", "WARNING")
     
     # Determine paths
     script_dir = Path(__file__).parent.resolve()
@@ -1482,8 +1534,10 @@ Examples:
     log(f"  Memory: {system_info.total_memory_gb:.1f} GB")
     log(f"  GPUs: {system_info.gpu_count}")
     for i, (model, mem) in enumerate(zip(system_info.gpu_models, system_info.gpu_memory_gb)):
-        log(f"    GPU {i}: {model} ({mem:.1f} GB)")
+        compute_cap = system_info.gpu_compute_caps[i] if i < len(system_info.gpu_compute_caps) else "?"
+        log(f"    GPU {i}: {model} ({mem:.1f} GB, compute {compute_cap})")
     log(f"  CUDA: {system_info.cuda_version or 'Not found'}")
+    log(f"  CUDA Version Selection: {'CUDA 12.x (Pascal compatible)' if _prefer_cuda_12x else 'Latest CUDA'}")
     log(f"  MPI: {system_info.mpi_implementation} {system_info.mpi_version or 'Not found'}")
     
     # Install dependencies
