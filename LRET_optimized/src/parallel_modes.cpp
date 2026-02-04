@@ -22,6 +22,7 @@
  */
 
 #include "parallel_modes.h"
+#include "parallelism_oracle.h"  // Phase 2: Runtime mode selection
 #include "gates_and_noise.h"
 #include "gate_fusion.h"
 #include "circuit_optimizer.h"
@@ -105,12 +106,19 @@ ParallelMode auto_select_mode(size_t num_qubits, size_t depth, size_t rank_estim
         return ParallelMode::SEQUENTIAL;
     }
     
+    // Phase 2: Use oracle heuristics for rank-based decisions
+    // Oracle thresholds: rank < 32 → ROW, rank > 64 → COLUMN
+    if (rank_estimate < 32) {
+        return ParallelMode::ROW;  // Oracle Heuristic 1: low rank → row
+    }
+    
     // For medium-large problems with significant depth, hybrid excels
     if (depth > 10 && num_qubits >= 8) {
         return ParallelMode::HYBRID;
     }
     
     // For problems with many qubits, row parallelism is best
+    // (aligned with oracle default: ROW for LRET's low-rank nature)
     if (num_qubits >= 10) {
         return ParallelMode::ROW;
     }
@@ -731,6 +739,8 @@ MatrixXcd run_batch_parallel(
 // - rank <= 16 OR dim < 8192: Row-parallel (cache-efficient for L matrix)
 // - rank > 32 AND dim >= 8192: Column-parallel (each column independent, scales perfectly)
 // - Otherwise: Row-parallel (default safe choice)
+//
+// Phase 2 Enhancement: Uses ParallelismOracle for runtime mode selection per-gate
 MatrixXcd run_hybrid(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -742,11 +752,17 @@ MatrixXcd run_hybrid(
     const size_t dim = L.rows();
     const size_t total_ops = sequence.operations.size();
     
+    // Phase 2: Initialize the parallelism oracle for runtime decisions
+    ParallelismOracle oracle;
+    if (config.verbose) {
+        oracle.set_verbose(true);
+    }
+    
     // Thresholds for parallelization decisions (tuned from benchmarks)
     // OpenMP overhead is ~10-50μs, so only parallelize when work >> overhead
     const bool use_openmp = (dim >= MIN_DIM_FOR_OPENMP);  // dim >= 256 (n >= 8)
     
-    // Rank thresholds for strategy selection
+    // Rank thresholds for strategy selection (now also in oracle, kept for compatibility)
     constexpr size_t SEQUENTIAL_RANK_THRESHOLD = 4;      // Below this: sequential
     constexpr size_t COL_PARALLEL_RANK_THRESHOLD = 32;   // Above this: consider column parallel
     constexpr size_t COL_PARALLEL_DIM_THRESHOLD = 8192;  // dim >= 8192 (n >= 13) for column parallel
@@ -844,6 +860,19 @@ MatrixXcd run_hybrid(
     
     if (config.verbose) {
         std::cout << "Hybrid: completed " << step << " ops, final rank=" << L.cols() << std::endl;
+        
+        // Phase 2: Log oracle statistics
+        const auto& stats = oracle.stats();
+        if (stats.total_decisions > 0) {
+            std::cout << "Oracle stats: " << stats.row_decisions << " ROW ("
+                      << stats.row_percentage() << "%), "
+                      << stats.column_decisions << " COLUMN ("
+                      << stats.column_percentage() << "%), "
+                      << stats.sequential_decisions << " SEQUENTIAL" << std::endl;
+            std::cout << "  ROW reasons: rank=" << stats.row_by_rank
+                      << ", qubit=" << stats.row_by_qubit
+                      << ", cache=" << stats.row_by_cache << std::endl;
+        }
     }
     
     return L;

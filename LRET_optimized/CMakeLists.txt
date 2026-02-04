@@ -172,6 +172,7 @@ set(LIB_SOURCES
     src/cli_parser.cpp
     src/output_formatter.cpp
     src/parallel_modes.cpp
+    src/parallelism_oracle.cpp  # Phase 2: Runtime mode selection oracle
     src/fdm_simulator.cpp
     src/resource_monitor.cpp
     src/progressive_csv.cpp
