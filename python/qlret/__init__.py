@@ -40,6 +40,30 @@ Batch Parallelism (for VQE, QAOA, QNN workloads):
     
     # Auto-tune: Intelligently adapts to C++ parallelism mode
     dev = QLRETDevice(wires=4, max_batch_workers=-1)  # Auto-detect best strategy
+
+Error Mitigation (for noisy circuits):
+    from qlret.error_mitigation import zero_noise_extrapolation, MitigatedExecutor
+    
+    # Zero-Noise Extrapolation (ZNE)
+    mitigated_result = zero_noise_extrapolation(
+        circuit_fn, params,
+        noise_factors=[1.0, 1.5, 2.0],
+        extrapolation="linear"
+    )
+    
+    # High-level API with MitigatedExecutor
+    executor = MitigatedExecutor(dev, mitigation="zne")
+    @executor.qnode
+    def mitigated_circuit(params):
+        ...
+        return qml.expval(qml.PauliZ(0))
+
+Advanced Measurements:
+    # Purity (decoherence analysis)
+    purity = dev.compute_purity(tape)
+    
+    # Entanglement entropy
+    entropy = dev.compute_entanglement_entropy(tape, subsystem=[0, 1])
 """
 
 from .api import (
@@ -50,7 +74,18 @@ from .api import (
 )
 from .pennylane_device import QLRETDevice, QLRETDeviceError
 
-__version__ = "1.0.0"
+# Error mitigation (optional import - may not be needed by all users)
+try:
+    from .error_mitigation import (
+        zero_noise_extrapolation,
+        richardson_extrapolation,
+        MitigatedExecutor,
+    )
+    _HAS_ERROR_MITIGATION = True
+except ImportError:
+    _HAS_ERROR_MITIGATION = False
+
+__version__ = "1.1.0"
 __all__ = [
     "simulate_json",
     "load_json_file",
@@ -58,4 +93,8 @@ __all__ = [
     "QLRETError",
     "QLRETDevice",
     "QLRETDeviceError",
+    # Error mitigation
+    "zero_noise_extrapolation",
+    "richardson_extrapolation",
+    "MitigatedExecutor",
 ]

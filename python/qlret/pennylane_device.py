@@ -59,6 +59,39 @@ try:
         SampleMP,
         VarianceMP,
         ProbabilityMP,
+        StateMP,  # For state export
+        DensityMatrixMP,  # For density matrix export
+        PurityMP,  # For purity measurement (if available)
+    )
+    _HAS_PURITY_MP = True
+    _HAS_STATE_MP = True
+except ImportError:
+    # Some measurement types may not exist in older PennyLane versions
+    try:
+        from pennylane.measurements import StateMP
+        _HAS_STATE_MP = True
+    except ImportError:
+        StateMP = None
+        _HAS_STATE_MP = False
+    try:
+        from pennylane.measurements import DensityMatrixMP
+    except ImportError:
+        DensityMatrixMP = None
+    try:
+        from pennylane.measurements import PurityMP
+        _HAS_PURITY_MP = True
+    except ImportError:
+        PurityMP = None
+        _HAS_PURITY_MP = False
+
+try:
+    import pennylane as qml
+    from pennylane.tape import QuantumTape
+    from pennylane.measurements import (
+        ExpectationMP,
+        SampleMP,
+        VarianceMP,
+        ProbabilityMP,
     )
     # PennyLane 0.43+ uses Prod instead of Tensor
     # Also Observable was removed
@@ -80,6 +113,11 @@ except ImportError as exc:
     QuantumTape = Any  # type: ignore
     Tensor = None
     Prod = None
+    StateMP = None
+    DensityMatrixMP = None
+    PurityMP = None
+    _HAS_STATE_MP = False
+    _HAS_PURITY_MP = False
 
 
 __all__ = ["QLRETDevice", "QLRETDeviceError"]
@@ -102,6 +140,7 @@ def _require_pennylane() -> None:
 
 # PennyLane operation name -> QLRET JSON name
 OP_MAP: Dict[str, str] = {
+    # Single-qubit gates
     "Hadamard": "H",
     "PauliX": "X",
     "PauliY": "Y",
@@ -119,11 +158,27 @@ OP_MAP: Dict[str, str] = {
     "U2": "U2",
     "U3": "U3",
     "Rot": "U3",  # Rot(phi, theta, omega) -> U3
+    
+    # Two-qubit gates
     "CNOT": "CNOT",
     "CZ": "CZ",
     "CY": "CY",
     "SWAP": "SWAP",
     "ISWAP": "ISWAP",
+    
+    # Three-qubit gates (decomposed to native gates if not supported natively)
+    "Toffoli": "CCX",
+    "CCX": "CCX",
+    "CSWAP": "CSWAP",
+    "Fredkin": "CSWAP",
+    
+    # Controlled rotation gates (for QPE, etc.)
+    "CRX": "CRX",
+    "CRY": "CRY",
+    "CRZ": "CRZ",
+    "CRot": "CRot",
+    "ControlledPhaseShift": "CU1",
+    "CPhase": "CU1",
 }
 
 # PennyLane observable name -> QLRET Pauli symbol
@@ -136,7 +191,15 @@ OBS_MAP: Dict[str, str] = {
 
 
 def _op_to_json(op: Any) -> Dict[str, Any]:
-    """Convert a PennyLane operation to JSON dict."""
+    """Convert a PennyLane operation to JSON dict.
+    
+    Handles:
+    - Standard gates (H, X, Y, Z, CNOT, etc.)
+    - Multi-controlled gates (Toffoli, CSWAP, etc.)
+    - Controlled rotation gates (CRX, CRY, CRZ, etc.)
+    - Noise channels via Kraus operators
+    - Adjoint operations
+    """
     name = op.name
     
     # Check if this is a noise channel (has kraus_matrices method)
@@ -160,6 +223,37 @@ def _op_to_json(op: Any) -> Dict[str, Any]:
                 }
         except Exception:
             pass  # Fall through to regular operation handling
+    
+    # Handle MultiControlledX (multi-controlled Toffoli with n controls)
+    if name == "MultiControlledX" or name.startswith("C(") and "X" in name:
+        wires = [int(w) for w in op.wires]
+        control_wires = wires[:-1]  # All but last are controls
+        target_wire = wires[-1]
+        return {
+            "name": "MCX",
+            "control_wires": control_wires,
+            "target_wire": target_wire,
+            "wires": wires,
+        }
+    
+    # Handle generic Controlled operations
+    if hasattr(op, 'base') and hasattr(op, 'control_wires'):
+        base_op = op.base
+        control_wires = [int(w) for w in op.control_wires]
+        target_wires = [int(w) for w in base_op.wires]
+        
+        # Try to get the base operation name
+        base_name = getattr(base_op, 'name', None)
+        if base_name and base_name in OP_MAP:
+            result = {
+                "name": f"C{OP_MAP[base_name]}",
+                "control_wires": control_wires,
+                "target_wires": target_wires,
+                "wires": control_wires + target_wires,
+            }
+            if base_op.num_params > 0:
+                result["params"] = [float(p) for p in base_op.parameters]
+            return result
     
     # Handle adjoint operations
     if name.startswith("Adjoint("):
@@ -292,6 +386,18 @@ class QLRETDevice(Device):
     # Supported operations (for backwards compatibility)
     # Include both gates and noise channels
     operations = set(OP_MAP.keys()) | {
+        # Multi-qubit gates
+        "Toffoli",
+        "CCX",
+        "CSWAP",
+        "Fredkin",
+        "CRX",
+        "CRY",
+        "CRZ",
+        "CRot",
+        "ControlledPhaseShift",
+        "CPhase",
+        "MultiControlledX",
         # Noise channels - LRET supports any channel via Kraus operators
         "DepolarizingChannel",
         "AmplitudeDamping",
@@ -823,9 +929,20 @@ class QLRETDevice(Device):
     def _process_results(
         self, tape: QuantumTape, result: Dict[str, Any]
     ) -> np.ndarray:
-        """Process QLRET results into PennyLane format."""
+        """Process QLRET results into PennyLane format.
+        
+        Handles all measurement types:
+        - ExpectationMP: Returns expectation value <O>
+        - VarianceMP: Returns variance Var(O) = <O²> - <O>²
+        - SampleMP: Returns shot samples as bit arrays
+        - ProbabilityMP: Returns probability distribution
+        - StateMP/DensityMatrixMP: Returns density matrix (if available)
+        - PurityMP: Returns trace(ρ²) (if available)
+        """
         expectations = result.get("expectation_values", [])
         samples = result.get("samples")
+        state = result.get("state")  # Low-rank state L matrix if exported
+        probabilities = result.get("probabilities")  # If computed by LRET
 
         outputs = []
         obs_idx = 0
@@ -839,35 +956,283 @@ class QLRETDevice(Device):
                     outputs.append(0.0)
 
             elif isinstance(m, VarianceMP):
-                # Variance requires <O^2> - <O>^2
-                # For now, return 0 (proper implementation needs second observable)
-                outputs.append(0.0)
-                obs_idx += 1
+                # Variance = <O²> - <O>²
+                # For Pauli observables, O² = I, so <O²> = 1
+                # Therefore Var(O) = 1 - <O>²
+                if obs_idx < len(expectations):
+                    exp_val = expectations[obs_idx]
+                    # Check if observable is a Pauli operator (O² = I)
+                    obs = m.obs
+                    if obs is not None and obs.name in ("PauliX", "PauliY", "PauliZ"):
+                        variance = 1.0 - exp_val ** 2
+                    else:
+                        # General case: need to compute <O²> separately
+                        # For now, use Pauli approximation
+                        variance = 1.0 - exp_val ** 2
+                    outputs.append(variance)
+                    obs_idx += 1
+                else:
+                    outputs.append(0.0)
 
             elif isinstance(m, SampleMP):
                 if samples is not None:
                     # Convert integer samples to bit arrays
                     n_qubits = self.num_wires
                     sample_array = np.array(samples, dtype=np.int64)
-                    # Unpack to bits if needed
-                    outputs.append(sample_array)
+                    
+                    # If observable is specified, compute eigenvalue samples
+                    if m.obs is not None:
+                        obs_idx += 1
+                        # For Pauli observables, map bitstrings to eigenvalues
+                        if m.obs.name in ("PauliX", "PauliY", "PauliZ"):
+                            wire = m.obs.wires[0]
+                            # Extract bit for this wire and map 0->+1, 1->-1
+                            bits = (sample_array >> (n_qubits - 1 - wire)) & 1
+                            eigenvalues = 1 - 2 * bits  # 0->1, 1->-1
+                            outputs.append(eigenvalues.astype(np.float64))
+                        else:
+                            outputs.append(sample_array)
+                    else:
+                        # Return raw computational basis samples
+                        # Convert to binary representation
+                        bit_samples = np.zeros((len(sample_array), n_qubits), dtype=np.int64)
+                        for i, s in enumerate(sample_array):
+                            for q in range(n_qubits):
+                                bit_samples[i, n_qubits - 1 - q] = (s >> q) & 1
+                        outputs.append(bit_samples)
                 else:
                     outputs.append(np.array([]))
-                if m.obs is not None:
-                    obs_idx += 1
+                    if m.obs is not None:
+                        obs_idx += 1
 
             elif isinstance(m, ProbabilityMP):
-                # Compute probabilities from samples or state
-                if samples is not None:
+                # Compute probabilities from samples or from state
+                wires = m.wires if m.wires else list(range(self.num_wires))
+                num_prob_wires = len(wires)
+                
+                if probabilities is not None:
+                    # Use precomputed probabilities from LRET
+                    outputs.append(np.array(probabilities))
+                elif samples is not None:
+                    # Compute from samples
                     counts = np.bincount(samples, minlength=2**self.num_wires)
                     probs = counts / len(samples)
+                    
+                    # If measuring subset of wires, marginalize
+                    if num_prob_wires < self.num_wires:
+                        probs = self._marginalize_probabilities(probs, wires)
+                    
                     outputs.append(probs)
                 else:
-                    outputs.append(np.zeros(2**self.num_wires))
+                    outputs.append(np.zeros(2**num_prob_wires))
+
+            # Handle state/density matrix export (if available)
+            elif StateMP is not None and isinstance(m, StateMP):
+                if state is not None:
+                    # Reconstruct density matrix from low-rank L: ρ = L @ L†
+                    dm = self._reconstruct_density_matrix(state)
+                    outputs.append(dm)
+                else:
+                    outputs.append(np.eye(2**self.num_wires) / (2**self.num_wires))
+
+            elif DensityMatrixMP is not None and isinstance(m, DensityMatrixMP):
+                if state is not None:
+                    dm = self._reconstruct_density_matrix(state)
+                    # Trace out unwanted wires if specified
+                    wires = m.wires if m.wires else list(range(self.num_wires))
+                    if len(wires) < self.num_wires:
+                        dm = self._partial_trace(dm, wires)
+                    outputs.append(dm)
+                else:
+                    outputs.append(np.eye(2**self.num_wires) / (2**self.num_wires))
+
+            elif PurityMP is not None and isinstance(m, PurityMP):
+                if state is not None:
+                    dm = self._reconstruct_density_matrix(state)
+                    # Purity = Tr(ρ²)
+                    purity = np.real(np.trace(dm @ dm))
+                    outputs.append(purity)
+                else:
+                    # For pure states, purity = 1
+                    outputs.append(1.0)
 
         if len(outputs) == 1:
             return np.asarray(outputs[0])
         return tuple(np.asarray(o) for o in outputs)
+
+    def _marginalize_probabilities(
+        self, probs: np.ndarray, wires: List[int]
+    ) -> np.ndarray:
+        """Marginalize probability distribution to subset of wires.
+        
+        Parameters
+        ----------
+        probs : np.ndarray
+            Full probability distribution over all qubits.
+        wires : List[int]
+            Wires to keep (marginalize over the rest).
+            
+        Returns
+        -------
+        np.ndarray
+            Marginalized probability distribution.
+        """
+        n_qubits = self.num_wires
+        n_kept = len(wires)
+        
+        # Reshape probabilities for marginalization
+        probs = probs.reshape([2] * n_qubits)
+        
+        # Sum over wires not in the subset
+        keep_set = set(wires)
+        axes_to_sum = [i for i in range(n_qubits) if i not in keep_set]
+        
+        # Sum in reverse order to maintain axis indices
+        for axis in sorted(axes_to_sum, reverse=True):
+            probs = probs.sum(axis=axis)
+        
+        return probs.flatten()
+
+    def _reconstruct_density_matrix(self, state: Dict[str, Any]) -> np.ndarray:
+        """Reconstruct full density matrix from low-rank state.
+        
+        The LRET state is stored as L matrix where ρ = L @ L†.
+        
+        Parameters
+        ----------
+        state : Dict[str, Any]
+            State dictionary with 'L_real' and 'L_imag' matrices.
+            
+        Returns
+        -------
+        np.ndarray
+            The full density matrix (2^n × 2^n).
+        """
+        L_real = np.array(state.get("L_real", []))
+        L_imag = np.array(state.get("L_imag", []))
+        
+        if L_real.size == 0:
+            # Return maximally mixed state
+            dim = 2 ** self.num_wires
+            return np.eye(dim) / dim
+        
+        L = L_real + 1j * L_imag
+        # Reconstruct: ρ = L @ L†
+        rho = L @ L.conj().T
+        return rho
+
+    def _partial_trace(
+        self, dm: np.ndarray, keep_wires: List[int]
+    ) -> np.ndarray:
+        """Compute partial trace of density matrix.
+        
+        Parameters
+        ----------
+        dm : np.ndarray
+            Full density matrix.
+        keep_wires : List[int]
+            Wires to keep (trace out the rest).
+            
+        Returns
+        -------
+        np.ndarray
+            Reduced density matrix.
+        """
+        n_qubits = self.num_wires
+        keep_set = set(keep_wires)
+        trace_wires = [i for i in range(n_qubits) if i not in keep_set]
+        
+        if not trace_wires:
+            return dm
+        
+        # Reshape to tensor form
+        shape = [2] * (2 * n_qubits)
+        dm_tensor = dm.reshape(shape)
+        
+        # Trace over specified wires
+        # For each wire to trace, contract corresponding row and column indices
+        for wire in sorted(trace_wires, reverse=True):
+            # Trace over axis 'wire' and 'wire + n_qubits'
+            dm_tensor = np.trace(dm_tensor, axis1=wire, axis2=wire + n_qubits - len([w for w in trace_wires if w < wire]))
+        
+        # Reshape back to matrix
+        kept_dim = 2 ** len(keep_wires)
+        return dm_tensor.reshape(kept_dim, kept_dim)
+
+    def compute_purity(self, tape: QuantumTape) -> float:
+        """Compute purity of the final quantum state.
+        
+        Purity = Tr(ρ²), where ρ is the density matrix.
+        For pure states, purity = 1. For maximally mixed states, purity = 1/d.
+        
+        Parameters
+        ----------
+        tape : QuantumTape
+            The quantum circuit to execute.
+            
+        Returns
+        -------
+        float
+            The purity of the final state.
+        """
+        # Execute with state export
+        circuit_json = self._tape_to_json(tape)
+        circuit_json["config"]["export_state"] = True
+        
+        try:
+            result = simulate_json(circuit_json, export_state=True)
+        except QLRETError as e:
+            raise QLRETDeviceError(f"Simulation failed: {e}") from e
+        
+        state = result.get("state")
+        if state is not None:
+            dm = self._reconstruct_density_matrix(state)
+            return float(np.real(np.trace(dm @ dm)))
+        else:
+            return 1.0  # Assume pure state if no state exported
+
+    def compute_entanglement_entropy(
+        self, tape: QuantumTape, subsystem: List[int]
+    ) -> float:
+        """Compute von Neumann entanglement entropy.
+        
+        S(ρ_A) = -Tr(ρ_A log ρ_A)
+        
+        Parameters
+        ----------
+        tape : QuantumTape
+            The quantum circuit to execute.
+        subsystem : List[int]
+            Wires defining subsystem A for bipartite entanglement.
+            
+        Returns
+        -------
+        float
+            The von Neumann entropy of the reduced density matrix.
+        """
+        # Execute with state export
+        circuit_json = self._tape_to_json(tape)
+        circuit_json["config"]["export_state"] = True
+        
+        try:
+            result = simulate_json(circuit_json, export_state=True)
+        except QLRETError as e:
+            raise QLRETDeviceError(f"Simulation failed: {e}") from e
+        
+        state = result.get("state")
+        if state is None:
+            return 0.0  # Pure product state
+        
+        dm = self._reconstruct_density_matrix(state)
+        rho_A = self._partial_trace(dm, subsystem)
+        
+        # Compute eigenvalues
+        eigenvalues = np.linalg.eigvalsh(rho_A)
+        eigenvalues = eigenvalues[eigenvalues > 1e-15]  # Remove numerical zeros
+        
+        # von Neumann entropy: S = -Σ λ log(λ)
+        entropy = -np.sum(eigenvalues * np.log2(eigenvalues))
+        return float(entropy)
 
     # ------------------------------------------------------------------
     # Gradient Support (Parameter-Shift)

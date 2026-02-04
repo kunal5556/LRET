@@ -34,6 +34,23 @@ CY = { properties = ["invertible"] }
 SWAP = { properties = ["invertible"] }
 ISWAP = { properties = ["invertible"] }
 
+# Controlled rotation gates (for QPE, etc.)
+CRX = { properties = ["invertible", "differentiable"] }
+CRY = { properties = ["invertible", "differentiable"] }
+CRZ = { properties = ["invertible", "differentiable"] }
+CRot = { properties = ["invertible", "differentiable"] }
+ControlledPhaseShift = { properties = ["invertible", "differentiable"] }
+CPhase = { properties = ["invertible", "differentiable"] }
+
+# Three qubit gates (for Grover, arithmetic, etc.)
+Toffoli = { properties = ["invertible"] }
+CCX = { properties = ["invertible"] }
+CSWAP = { properties = ["invertible"] }
+Fredkin = { properties = ["invertible"] }
+
+# Multi-controlled gates
+MultiControlledX = { properties = ["invertible"] }
+
 # Noise channels (Kraus operator support)
 [operators.channels]
 
@@ -66,6 +83,9 @@ ExpectationMP = { }
 SampleMP = { conditions = ["finiteshots"] }
 VarianceMP = { }
 ProbabilityMP = { }
+StateMP = { }
+DensityMatrixMP = { }
+PurityMP = { }
 
 # Compilation/execution configuration
 [compilation]
