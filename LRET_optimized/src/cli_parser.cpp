@@ -1,0 +1,974 @@
+#include "cli_parser.h"
+#include <iostream>
+#include <algorithm>
+#include <cstring>
+#include <sstream>
+
+namespace qlret {
+
+//==============================================================================
+// BenchmarkSpec parsing
+//==============================================================================
+
+// Parse a compound spec string like "range=1e-7:1e-2:6,n=12,d=20,noise=0.01"
+// or simpler "1e-7:1e-2:6" (just range, use global defaults for fixed params)
+BenchmarkSpec BenchmarkSpec::parse(const std::string& spec_str, SweepType type) {
+    BenchmarkSpec spec;
+    spec.type = type;
+    
+    // Check if it's a compound format (contains '=')
+    if (spec_str.find('=') != std::string::npos) {
+        // Parse key=value pairs separated by commas
+        // Also collect tokens without '=' at the start as discrete range values
+        std::stringstream ss(spec_str);
+        std::string token;
+        std::vector<std::string> discrete_values;
+        
+        while (std::getline(ss, token, ',')) {
+            // Trim whitespace
+            size_t start = token.find_first_not_of(" \t");
+            size_t end = token.find_last_not_of(" \t");
+            if (start == std::string::npos) continue;
+            token = token.substr(start, end - start + 1);
+            
+            size_t eq_pos = token.find('=');
+            if (eq_pos == std::string::npos) {
+                // No '=' - this is a discrete value for the range
+                discrete_values.push_back(token);
+                continue;
+            }
+            
+            std::string key = token.substr(0, eq_pos);
+            std::string value = token.substr(eq_pos + 1);
+            
+            // Normalize key
+            std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+            
+            if (key == "range" || key == "r") {
+                spec.range_str = value;
+            } else if (key == "n" || key == "qubits") {
+                spec.fixed_qubits = std::stoul(value);
+            } else if (key == "d" || key == "depth") {
+                spec.fixed_depth = std::stoul(value);
+            } else if (key == "noise" || key == "p") {
+                spec.fixed_noise = std::stod(value);
+            } else if (key == "epsilon" || key == "eps" || key == "e" || key == "t") {
+                spec.fixed_epsilon = std::stod(value);
+            } else if (key == "rank") {
+                spec.fixed_rank = std::stoul(value);
+            } else if (key == "trials" || key == "tr") {
+                spec.trials = std::stoul(value);
+            }
+        }
+        
+        // If we collected discrete values and no range= was specified, use them
+        if (!discrete_values.empty() && spec.range_str.empty()) {
+            // Join discrete values with commas to form the range string
+            for (size_t i = 0; i < discrete_values.size(); ++i) {
+                if (i > 0) spec.range_str += ",";
+                spec.range_str += discrete_values[i];
+            }
+        }
+    } else {
+        // Simple format: just the range string
+        spec.range_str = spec_str;
+    }
+    
+    return spec;
+}
+
+std::string parallel_mode_to_string(ParallelMode mode) {
+    switch (mode) {
+        case ParallelMode::AUTO:       return "auto";
+        case ParallelMode::SEQUENTIAL: return "sequential";
+        case ParallelMode::ROW:        return "row";
+        case ParallelMode::COLUMN:     return "column";
+        case ParallelMode::BATCH:      return "batch";
+        case ParallelMode::HYBRID:     return "hybrid";
+        case ParallelMode::COMPARE:    return "compare";
+        case ParallelMode::MPI_ROW:    return "mpi-row";
+        case ParallelMode::MPI_COLUMN: return "mpi-column";
+        case ParallelMode::MPI_HYBRID: return "mpi-hybrid";
+        case ParallelMode::GPU_DISTRIBUTED: return "distributed-gpu";
+        default:                       return "unknown";
+    }
+}
+
+ParallelMode string_to_parallel_mode(const std::string& str) {
+    std::string lower = str;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+    
+    if (lower == "auto")       return ParallelMode::AUTO;
+    if (lower == "sequential") return ParallelMode::SEQUENTIAL;
+    if (lower == "row")        return ParallelMode::ROW;
+    if (lower == "column")     return ParallelMode::COLUMN;
+    if (lower == "batch")      return ParallelMode::BATCH;
+    if (lower == "hybrid")     return ParallelMode::HYBRID;
+    if (lower == "compare")    return ParallelMode::COMPARE;
+    if (lower == "mpi-row" || lower == "mpi_row")       return ParallelMode::MPI_ROW;
+    if (lower == "mpi-column" || lower == "mpi_column") return ParallelMode::MPI_COLUMN;
+    if (lower == "mpi-hybrid" || lower == "mpi_hybrid") return ParallelMode::MPI_HYBRID;
+    if (lower == "distributed-gpu" || lower == "gpu-distributed" || lower == "multi-gpu") return ParallelMode::GPU_DISTRIBUTED;
+    
+    return ParallelMode::AUTO;  // Default fallback
+}
+
+std::string noise_selection_to_string(NoiseSelection sel) {
+    switch (sel) {
+        case NoiseSelection::ALL:          return "all";
+        case NoiseSelection::DEPOLARIZING: return "depolarizing";
+        case NoiseSelection::AMPLITUDE:    return "amplitude";
+        case NoiseSelection::PHASE:        return "phase";
+        case NoiseSelection::REALISTIC:    return "realistic";
+        case NoiseSelection::NONE:         return "none";
+        default:                           return "unknown";
+    }
+}
+
+NoiseSelection string_to_noise_selection(const std::string& str) {
+    std::string lower = str;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+    
+    if (lower == "all")          return NoiseSelection::ALL;
+    if (lower == "depolarizing") return NoiseSelection::DEPOLARIZING;
+    if (lower == "amplitude")    return NoiseSelection::AMPLITUDE;
+    if (lower == "phase")        return NoiseSelection::PHASE;
+    if (lower == "realistic")    return NoiseSelection::REALISTIC;
+    if (lower == "none")         return NoiseSelection::NONE;
+    
+    return NoiseSelection::ALL;  // Default fallback
+}
+
+void print_help() {
+    std::cout << R"(
+QuantumLRET-Sim - Low-Rank Exact Tensor Quantum Simulator
+Version 1.0.0
+
+USAGE:
+    quantum_sim [OPTIONS]
+
+SIMULATION OPTIONS:
+    -n, --qubits N        Number of qubits (1-20, default: 11)
+    -d, --depth N         Circuit depth (default: 13)
+    -b, --batch N         Batch size for parallel processing (0=auto, default: 0)
+    -t, --threshold F     Truncation threshold for rank control (default: 1e-4)
+    --threads N           Limit OpenMP thread count (0=all cores, default: 0)
+
+NOISE OPTIONS:
+    --noise F             Noise probability per gate (0.0-1.0, default: 0.01)
+    --noise-type TYPE     Type of noise to apply:
+                          all         - All noise types randomly (default)
+                          depolarizing - Depolarizing channel only
+                          amplitude   - Amplitude damping only
+                          phase       - Phase damping only
+                          realistic   - Realistic mix with varied rates
+                          none        - No noise (pure unitary evolution)
+
+CIRCUIT OPTIMIZATION OPTIONS:
+    --fuse-gates          Enable gate fusion optimization (default: ON)
+    --no-fuse             Disable gate fusion
+    --min-fusion N        Minimum consecutive gates to fuse (default: 2)
+    --max-fusion-depth N  Maximum gates per fusion group (default: 50)
+    --stratify            Enable circuit stratification (default: ON)
+    --no-stratify         Disable circuit stratification
+    --greedy-layers       Use greedy layer assignment (default)
+    --asap-layers         Use ASAP (as-soon-as-possible) scheduling
+    --min-layer-size N    Minimum gates per layer to parallelize (default: 1)
+
+PARALLELIZATION OPTIONS:
+    --mode MODE           Parallelization strategy:
+                          auto       - Auto-select best mode (default)
+                          sequential - No parallelization (baseline)
+                          row        - Parallelize over matrix rows
+                          column     - Parallelize over matrix columns
+                          batch      - Batch gate application
+                          hybrid     - Combined row/column strategy
+                          compare    - Run all modes and compare performance
+    --threads N           Set OpenMP thread count (0=all cores, default: 0)
+    --omp-threads N       Alias for --threads
+
+TIMING OPTIONS:
+    --show-timing         Display detailed timing breakdown after simulation
+
+GPU OPTIONS (Phase 2):
+    --device DEVICE       Device selection:
+                          auto       - Auto-select GPU if available (default)
+                          gpu        - Force GPU execution
+                          cpu        - Force CPU execution
+    --gpu                 Shorthand for --device=gpu
+    --gpu-id N            GPU device ID to use (default: 0)
+    --gpus N              World size for distributed GPUs (Phase 8.1)
+    --world-size N        Alias for --gpus
+    --cuquantum           Use cuQuantum library if available (default)
+    --no-cuquantum        Use custom CUDA kernels instead
+    --gpu-memory-limit N  Maximum GPU memory in GB (0=no limit)
+    --nccl / --no-nccl    Enable/disable NCCL collectives (default: on)
+    --overlap-comm        Overlap communication with compute (default on)
+    --no-overlap          Disable overlap/prefetch
+    --gpu-info            Print GPU information and exit
+
+NOISE MODEL OPTIONS (Phase 4.1 - Real Device Simulation):
+    --noise-model PATH    Load Qiskit Aer noise model from JSON file.
+                          Use scripts/download_ibm_noise.py to fetch real device
+                          noise profiles from IBM Quantum backends.
+                          
+                          Example:
+                            # Download IBM device noise
+                            python scripts/download_ibm_noise.py --backend ibmq_quito -o quito.json
+                            
+                            # Simulate with real device noise
+                            ./quantum_sim -n 5 -d 20 --noise-model quito.json
+    
+    --validate-noise      Validate noise model on load (default)
+    --no-validate-noise   Skip noise model validation
+    --print-noise-summary Print detailed noise model summary before simulation
+    --enable-correlated-errors Enable correlated Pauli noise (Phase 4.3)
+    --enable-time-dependent    Enable time-varying noise rates (Phase 4.3)
+    --enable-memory-effects    Enable non-Markovian memory rules (Phase 4.3)
+    --max-memory-depth N       History length for memory rules (default: 2)
+    --enable-leakage           Enable leakage channels (Phase 4.4)
+    --enable-measurement-errors Enable measurement confusion matrices (Phase 4.5)
+    --enable-conditional-measurement Allow conditional execution on measured outcomes (Phase 4.5)
+
+JSON / PENNYLANE OPTIONS (Phase 5):
+    --input-json PATH      Run circuit specified in JSON (bypasses most CLI options)
+    --output-json PATH     Write JSON results to PATH (default: stdout)
+    --export-json-state    Include low-rank state (L matrix) in JSON output
+
+MPI OPTIONS (Phase 3 - Distributed Computing):
+    NOTE: MPI modes require a special MPI-enabled build (USE_MPI=ON).
+    The standard Docker image does NOT include MPI support.
+    MPI is intended for multi-node HPC clusters, not single-machine Docker.
+
+    --mpi                 Enable MPI distributed simulation
+    --mode mpi-row        Use row-wise MPI distribution (default MPI mode)
+    --mode mpi-column     Use column-wise MPI distribution
+    --mode mpi-hybrid     MPI + OpenMP hybrid (distributed + threaded)
+    --mpi-verbose         Print MPI communication statistics
+    --mpi-validate        Validate MPI results against local simulation
+    --mpi-info            Print MPI topology information
+
+    Building with MPI:
+        cmake .. -DUSE_MPI=ON   # Requires MPI installation (OpenMPI, MPICH)
+        make -j$(nproc)
+
+    Running with MPI (requires MPI build):
+        mpirun -np 4 ./quantum_sim -n 14 -d 100 --mode mpi-row
+        mpirun -np 8 ./quantum_sim -n 16 -d 200 --mpi-verbose
+
+    On standard Docker image (no MPI):
+        MPI modes will throw an error. Use CPU modes instead:
+        --mode sequential, --mode row, --mode column, --mode batch, --mode hybrid
+
+INITIAL STATE OPTIONS:
+    --initial-rank N      Start with random mixed state of rank N (default: 1)
+                          Rank=1 is pure state |0...0>.
+                          Higher rank enables meaningful parallel benchmarking.
+    --seed N              Random seed for mixed state generation (0=time-based)
+
+FDM (FULL DENSITY MATRIX) OPTIONS:
+    --fdm                 Enable FDM comparison (if memory permits)
+    --fdm-force           Force FDM even with insufficient memory (test limits)
+
+PARAMETER SWEEP OPTIONS (LRET Paper Benchmarking):
+    When running a sweep, the parameter being swept varies while other parameters
+    stay FIXED at values set by -n, -d, --noise, and -t options.
+    
+    Example: To sweep epsilon with fixed n=15, d=20, noise=0.05:
+             quantum_sim -n 15 -d 20 --noise 0.05 --sweep-epsilon "1e-7:1e-2:6"
+
+    --benchmark-all       Run ALL paper benchmarks with default settings.
+                          Includes: epsilon sweep, noise sweep, qubit sweep,
+                          crossover analysis, and rank tracking. Output saved
+                          to benchmark_results.csv (or use -o to specify).
+    --sweep-epsilon STR   Sweep truncation threshold (epsilon).
+                          Fixed: -n (qubits), -d (depth), --noise (noise prob)
+                          Format: "1e-7,1e-6,1e-5,1e-4" or "1e-7:1e-2:6" (log-spaced)
+    --sweep-noise STR     Sweep noise probability.
+                          Fixed: -n (qubits), -d (depth), -t (epsilon)
+                          Format: "0.0,0.01,0.05,0.1,0.2" or "0.0:0.2:11"
+    --sweep-qubits STR    Sweep number of qubits.
+                          Fixed: -d (depth), --noise (noise prob), -t (epsilon)
+                          Format: "5,8,10,12,15" or "5:20:1" (step=1)
+    --sweep-depth STR     Sweep circuit depth.
+                          Fixed: -n (qubits), --noise (noise prob), -t (epsilon)
+                          Format: "10,20,50,100" or "10:100:10"
+    --sweep-rank STR      Sweep initial rank for parallel benchmarking.
+                          Fixed: -n (qubits), -d (depth), --noise, -t (epsilon)
+                          Format: "1,2,4,8,16,32" or "1:64:2" (powers)
+    --sweep-crossover STR LRET vs FDM crossover analysis.
+                          Fixed: -d (depth), --noise (noise prob), -t (epsilon)
+                          Format: "5:15" (min:max qubits) or "5:15:1" (min:max:step)
+                          Default: "5:15:1" if no argument given
+    --track-rank          Track rank evolution after each operation
+    --sweep-trials N      Number of trials per sweep point (for statistics)
+    --sweep-all-modes     Run all LRET modes (seq, row, col, hybrid, adaptive)
+                          for each benchmark point (5x slower but comprehensive)
+
+COMPOUND BENCHMARK OPTIONS (Run multiple benchmarks with individual settings):
+    These options allow running multiple benchmarks in a single command, each
+    with its OWN range AND fixed parameters. Can be combined freely.
+    
+    Format: --bench-TYPE "range=START:END:STEP,n=N,d=D,noise=P,epsilon=E,trials=T"
+    Short:  --bench-TYPE "START:END:STEP" (uses global -n, -d, --sweep-trials)
+    Values: --bench-TYPE "val1,val2,val3" (explicit discrete values)
+    
+    Parameters:
+      range=STR     Sweep range or explicit values (required)
+      n=N           Fixed number of qubits
+      d=N           Fixed circuit depth
+      noise=F       Fixed noise probability
+      epsilon=F     Fixed truncation threshold
+      rank=N        Fixed initial rank
+      trials=N      Number of trials for THIS benchmark (default: --sweep-trials)
+    
+    --bench-epsilon STR   Epsilon sweep with custom fixed params.
+                          Example: --bench-epsilon "range=1e-7:1e-2:6,n=12,d=20,trials=3"
+    --bench-noise STR     Noise sweep with custom fixed params.
+                          Example: --bench-noise "range=0:0.2:11,n=10,d=15,trials=5"
+    --bench-qubits STR    Qubit sweep with custom fixed params.
+                          Example: --bench-qubits "3,5,8,12,17,d=20,noise=0.02"
+    --bench-depth STR     Depth sweep with custom fixed params.
+                          Example: --bench-depth "range=10:100:10,n=12,noise=0.01"
+    --bench-crossover STR Crossover analysis with custom fixed params.
+                          Example: --bench-crossover "range=5:15:1,d=25,noise=0.01"
+    --bench-rank STR      Rank sweep with custom fixed params.
+                          Example: --bench-rank "range=1:32:2,n=10,d=20"
+
+RESOURCE MANAGEMENT OPTIONS:
+    --allow-swap          Continue even if system is using swap memory
+    --timeout TIME        Timeout for simulation. Formats supported:
+                          60        - 60 seconds
+                          5m        - 5 minutes
+                          2h        - 2 hours
+                          1d        - 1 day
+    --non-interactive     Skip all prompts (for scripted/automated runs)
+
+OUTPUT OPTIONS:
+    -o, --output FILE     Export results to CSV file. Features:
+                          - Progressive: writes after each operation
+                          - Absolute path shown at start for monitoring
+                          - Can use 'tail -f FILE' to watch progress
+    -v, --verbose         Show detailed step-by-step output
+
+HELP OPTIONS:
+    -h, --help            Show this help message
+    --version             Show version information
+
+EXAMPLES:
+    # Basic simulation with 11 qubits and depth 13
+    quantum_sim -n 11 -d 13
+
+    # Compare all parallelization modes with FDM validation
+    quantum_sim -n 10 --mode compare --fdm
+
+    # Force FDM at memory limit for testing
+    quantum_sim -n 14 --fdm-force
+
+    # Detailed output with CSV export
+    quantum_sim -n 8 --mode row -v --output results.csv
+
+    # Specific noise model with custom probability
+    quantum_sim -n 10 --noise-type depolarizing --noise 0.05
+
+    # Long-running simulation with 2 hour timeout
+    quantum_sim -n 20 --timeout 2h -o long_run.csv
+
+    # Automated/scripted run (no prompts)
+    quantum_sim -n 15 --allow-swap --non-interactive
+
+    # High-rank initial state for parallel benchmarking
+    quantum_sim -n 12 --initial-rank 16 --mode compare
+
+    # ============ LRET Paper Benchmarking Examples ============
+    # For all sweeps, use -n, -d, --noise, -t to set FIXED parameters
+
+    # Run ALL paper benchmarks at once (comprehensive analysis)
+    quantum_sim --benchmark-all -o paper_benchmarks.csv
+
+    # Sweep truncation threshold with FIXED n=15, d=20, noise=0.05
+    quantum_sim -n 15 -d 20 --noise 0.05 --sweep-epsilon "1e-7:1e-2:6" -o eps.csv
+
+    # Sweep noise probability with FIXED n=12, d=25, epsilon=1e-5
+    quantum_sim -n 12 -d 25 -t 1e-5 --sweep-noise "0.0:0.2:11" -o noise.csv
+
+    # Sweep qubit count with FIXED d=20, noise=0.02, epsilon=1e-4
+    quantum_sim -d 20 --noise 0.02 -t 1e-4 --sweep-qubits "8:18:1" --fdm -o qubits.csv
+
+    # Sweep depth with FIXED n=12, noise=0.01, epsilon=1e-4
+    quantum_sim -n 12 --noise 0.01 -t 1e-4 --sweep-depth "10:100:10" -o depth.csv
+
+    # LRET vs FDM crossover analysis with FIXED d=20, noise=0.01
+    quantum_sim -d 20 --noise 0.01 --sweep-crossover "8:20:1" --fdm -o crossover.csv
+
+    # Track rank evolution through circuit (Figure: rank vs depth)
+    quantum_sim -n 12 -d 50 --track-rank -o rank_evolution.csv
+
+    # ============ Compound Benchmarks (Multiple with Individual Settings) ============
+    
+    # Run BOTH epsilon AND noise sweeps with DIFFERENT fixed params AND trials
+    quantum_sim --bench-epsilon "range=1e-7:1e-2:6,n=12,d=20,noise=0.01,trials=3" \
+                --bench-noise "range=0:0.2:11,n=10,d=15,epsilon=1e-4,trials=5" \
+                -o combined.csv
+
+    # Sweep over explicit discrete values (not ranges)
+    quantum_sim --bench-qubits "3,5,8,12,17,d=20,noise=0.02" \
+                --bench-epsilon "1e-7,1e-5,1e-3,n=12,d=20" \
+                -o discrete.csv
+
+    # Run comprehensive suite: epsilon, noise, qubits, crossover - each customized
+    quantum_sim --bench-epsilon "range=1e-7:1e-2:6,n=15,d=25,trials=3" \
+                --bench-noise "range=0:0.2:11,n=12,d=20,trials=5" \
+                --bench-qubits "range=8:20:1,d=20,noise=0.02" \
+                --bench-crossover "range=6:14:1,d=25" \
+                -o full_custom.csv
+
+    # Simple compound (uses global -n, -d, --sweep-trials for defaults)
+    quantum_sim -n 12 -d 20 --sweep-trials 3 \
+                --bench-epsilon "1e-7:1e-2:6" \
+                --bench-noise "0:0.2:11" -o both.csv
+
+For more information, see: https://github.com/kunal5556/LRET
+
+)";
+}
+
+void print_version() {
+    std::cout << "QuantumLRET-Sim v1.0.0\n";
+    std::cout << "Low-Rank Exact Tensor Quantum Circuit Simulator\n";
+}
+
+CLIOptions parse_arguments(int argc, char* argv[]) {
+    CLIOptions opts;
+    
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        
+        // Help
+        if (arg == "-h" || arg == "--help") {
+            opts.show_help = true;
+            return opts;
+        }
+        
+        // Version
+        if (arg == "--version") {
+            opts.show_version = true;
+            return opts;
+        }
+
+        // JSON / PennyLane bridge
+        if ((arg == "--input-json") && i + 1 < argc) {
+            opts.input_json_path = argv[++i];
+            continue;
+        }
+        if (arg == "--output-json" && i + 1 < argc) {
+            opts.output_json_path = argv[++i];
+            continue;
+        }
+        if (arg == "--export-json-state") {
+            opts.json_export_state = true;
+            continue;
+        }
+        
+        // Qubits
+        if ((arg == "-n" || arg == "--qubits") && i + 1 < argc) {
+            opts.num_qubits = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // Depth
+        if ((arg == "-d" || arg == "--depth") && i + 1 < argc) {
+            opts.depth = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // Batch size
+        if ((arg == "-b" || arg == "--batch") && i + 1 < argc) {
+            opts.batch_size = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // Truncation threshold
+        if ((arg == "-t" || arg == "--threshold") && i + 1 < argc) {
+            opts.truncation_threshold = std::stod(argv[++i]);
+            continue;
+        }
+        
+        // Noise probability
+        if (arg == "--noise" && i + 1 < argc) {
+            opts.noise_prob = std::stod(argv[++i]);
+            continue;
+        }
+        
+        // Initial rank (for high-rank testing)
+        if (arg == "--initial-rank" && i + 1 < argc) {
+            opts.initial_rank = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // Random seed
+        if (arg == "--seed" && i + 1 < argc) {
+            opts.random_seed = static_cast<unsigned int>(std::stoul(argv[++i]));
+            continue;
+        }
+        
+        // Parallel mode
+        if (arg == "--mode" && i + 1 < argc) {
+            opts.parallel_mode = string_to_parallel_mode(argv[++i]);
+            continue;
+        }
+        
+        // Noise type
+        if (arg == "--noise-type" && i + 1 < argc) {
+            opts.noise_selection = string_to_noise_selection(argv[++i]);
+            continue;
+        }
+        
+        // Gate fusion options (Phase 1.1 optimization)
+        if (arg == "--fuse-gates") {
+            opts.enable_fusion = true;
+            continue;
+        }
+        if (arg == "--no-fuse") {
+            opts.enable_fusion = false;
+            continue;
+        }
+        if (arg == "--min-fusion" && i + 1 < argc) {
+            opts.min_fusion_gates = std::stoul(argv[++i]);
+            continue;
+        }
+        if (arg == "--max-fusion-depth" && i + 1 < argc) {
+            opts.max_fusion_depth = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // Circuit stratification options (Phase 1.3 optimization)
+        if (arg == "--stratify") {
+            opts.enable_stratify = true;
+            continue;
+        }
+        if (arg == "--no-stratify") {
+            opts.enable_stratify = false;
+            continue;
+        }
+        if (arg == "--greedy-layers") {
+            opts.greedy_layers = true;
+            continue;
+        }
+        if (arg == "--asap-layers") {
+            opts.greedy_layers = false;
+            continue;
+        }
+        if (arg == "--min-layer-size" && i + 1 < argc) {
+            opts.min_layer_size = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // GPU options (Phase 2)
+        if (arg == "--gpu") {
+            opts.enable_gpu = true;
+            opts.auto_device = false;
+            continue;
+        }
+        if (arg == "--device" && i + 1 < argc) {
+            std::string device = argv[++i];
+            if (device == "gpu") {
+                opts.enable_gpu = true;
+                opts.auto_device = false;
+            } else if (device == "cpu") {
+                opts.enable_gpu = false;
+                opts.auto_device = false;
+            } else if (device == "auto") {
+                opts.auto_device = true;
+            }
+            continue;
+        }
+        if (arg == "--gpu-id" && i + 1 < argc) {
+            opts.gpu_device_id = std::stoi(argv[++i]);
+            continue;
+        }
+        if (arg == "--cuquantum") {
+            opts.use_cuquantum = true;
+            continue;
+        }
+        if (arg == "--no-cuquantum") {
+            opts.use_cuquantum = false;
+            continue;
+        }
+        if (arg == "--gpu-memory-limit" && i + 1 < argc) {
+            opts.gpu_memory_limit = std::stoul(argv[++i]);
+            continue;
+        }
+        if ((arg == "--gpus" || arg == "--world-size") && i + 1 < argc) {
+            opts.gpu_world_size = std::stoul(argv[++i]);
+            opts.enable_gpu = true;
+            opts.enable_distributed_gpu = (opts.gpu_world_size > 1);
+            continue;
+        }
+        if (arg == "--nccl") {
+            opts.enable_nccl = true;
+            continue;
+        }
+        if (arg == "--no-nccl") {
+            opts.enable_nccl = false;
+            continue;
+        }
+        if (arg == "--overlap-comm") {
+            opts.overlap_comm_compute = true;
+            continue;
+        }
+        if (arg == "--no-overlap") {
+            opts.overlap_comm_compute = false;
+            continue;
+        }
+        if (arg == "--gpu-info") {
+            // This will be handled in main.cpp
+            opts.show_version = true;  // Reuse version flag for now
+            continue;
+        }
+        
+        // Noise model options (Phase 4.1)
+        if (arg == "--noise-model" && i + 1 < argc) {
+            opts.noise_model_path = argv[++i];
+            continue;
+        }
+        if (arg == "--validate-noise") {
+            opts.validate_noise_model = true;
+            continue;
+        }
+        if (arg == "--no-validate-noise") {
+            opts.validate_noise_model = false;
+            continue;
+        }
+        if (arg == "--print-noise-summary") {
+            opts.print_noise_summary = true;
+            continue;
+        }
+        if (arg == "--enable-correlated-errors") {
+            opts.enable_correlated_errors = true;
+            continue;
+        }
+        if (arg == "--enable-time-dependent") {
+            opts.enable_time_dependent_noise = true;
+            continue;
+        }
+        if (arg == "--enable-memory-effects") {
+            opts.enable_memory_effects = true;
+            continue;
+        }
+        if (arg == "--max-memory-depth" && i + 1 < argc) {
+            opts.max_memory_depth = std::stoul(argv[++i]);
+            continue;
+        }
+        if (arg == "--enable-leakage") {
+            opts.enable_leakage = true;
+            continue;
+        }
+        if (arg == "--enable-measurement-errors") {
+            opts.enable_measurement_errors = true;
+            continue;
+        }
+        if (arg == "--enable-conditional-measurement") {
+            opts.enable_conditional_measurement = true;
+            continue;
+        }
+        
+        // MPI options (Phase 3)
+        if (arg == "--mpi") {
+            opts.enable_mpi = true;
+            continue;
+        }
+        if (arg == "--mpi-verbose") {
+            opts.mpi_verbose = true;
+            continue;
+        }
+        if (arg == "--mpi-validate") {
+            opts.mpi_validate = true;
+            continue;
+        }
+        if (arg == "--mpi-info") {
+            opts.show_version = true;  // Will print MPI info
+            continue;
+        }
+        // Handle mpi-row and mpi-column in --mode parsing above
+        
+        // FDM enable
+        if (arg == "--fdm") {
+            opts.enable_fdm = true;
+            continue;
+        }
+        
+        // FDM force (bypass memory check)
+        if (arg == "--fdm-force") {
+            opts.enable_fdm = true;
+            opts.fdm_force = true;
+            continue;
+        }
+        
+        // Output file
+        // -o or --output: enables output generation
+        // -o filename: uses custom filename
+        // -o (alone or followed by another flag): uses default filename
+        if (arg == "-o" || arg == "--output") {
+            opts.generate_output = true;
+            
+            // Check if next argument exists and is not a flag (doesn't start with -)
+            if (i + 1 < argc && argv[i + 1][0] != '-') {
+                opts.output_file = argv[++i];
+            }
+            // If no filename provided, output_file stays empty (will use default)
+            continue;
+        }
+        
+        // Verbose
+        if (arg == "-v" || arg == "--verbose") {
+            opts.verbose = true;
+            continue;
+        }
+        
+        // Show timing breakdown
+        if (arg == "--show-timing") {
+            opts.show_timing = true;
+            continue;
+        }
+        
+        // Thread count (supports both --threads and --omp-threads)
+        if ((arg == "--threads" || arg == "--omp-threads") && i + 1 < argc) {
+            opts.num_threads = std::stoul(argv[++i]);
+            continue;
+        }
+        
+        // Allow swap memory (skip swap warning)
+        if (arg == "--allow-swap") {
+            opts.allow_swap = true;
+            continue;
+        }
+        
+        // Timeout for simulation
+        if (arg == "--timeout" && i + 1 < argc) {
+            opts.timeout_str = argv[++i];
+            continue;
+        }
+        
+        // Non-interactive mode (skip all prompts)
+        if (arg == "--non-interactive") {
+            opts.non_interactive = true;
+            continue;
+        }
+        
+        //======================================================================
+        // Parameter Sweep Options (LRET Paper Benchmarking)
+        //======================================================================
+        
+        // Run ALL paper benchmarks
+        if (arg == "--benchmark-all") {
+            opts.benchmark_all = true;
+            // This sets up a special mode that runs all sweeps sequentially
+            // Individual sweep values will be set up later in main.cpp
+            continue;
+        }
+        
+        // Sweep truncation threshold (epsilon)
+        if (arg == "--sweep-epsilon" && i + 1 < argc) {
+            opts.sweep_epsilon_str = argv[++i];
+            opts.sweep_config.type = SweepType::EPSILON;
+            opts.sweep_config.epsilon_values = SweepConfig::parse_double_sweep(opts.sweep_epsilon_str);
+            continue;
+        }
+        
+        // Sweep noise probability
+        if (arg == "--sweep-noise" && i + 1 < argc) {
+            opts.sweep_noise_str = argv[++i];
+            opts.sweep_config.type = SweepType::NOISE_PROB;
+            opts.sweep_config.noise_values = SweepConfig::parse_double_sweep(opts.sweep_noise_str);
+            continue;
+        }
+        
+        // Sweep qubit count
+        if (arg == "--sweep-qubits" && i + 1 < argc) {
+            opts.sweep_qubits_str = argv[++i];
+            opts.sweep_config.type = SweepType::QUBITS;
+            opts.sweep_config.qubit_values = SweepConfig::parse_size_sweep(opts.sweep_qubits_str);
+            continue;
+        }
+        
+        // Sweep circuit depth
+        if (arg == "--sweep-depth" && i + 1 < argc) {
+            opts.sweep_depth_str = argv[++i];
+            opts.sweep_config.type = SweepType::DEPTH;
+            opts.sweep_config.depth_values = SweepConfig::parse_size_sweep(opts.sweep_depth_str);
+            continue;
+        }
+        
+        // Sweep initial rank
+        if (arg == "--sweep-rank" && i + 1 < argc) {
+            opts.sweep_rank_str = argv[++i];
+            opts.sweep_config.type = SweepType::INITIAL_RANK;
+            opts.sweep_config.rank_values = SweepConfig::parse_size_sweep(opts.sweep_rank_str);
+            continue;
+        }
+        
+        // LRET vs FDM crossover analysis
+        if (arg == "--sweep-crossover") {
+            opts.sweep_crossover = true;
+            opts.sweep_config.type = SweepType::CROSSOVER;
+            opts.sweep_config.include_fdm = true;
+            
+            // Check if next argument is a range specification (not another flag)
+            if (i + 1 < argc && argv[i + 1][0] != '-') {
+                std::string range_str = argv[++i];
+                // Parse range: "min:max" or "min:max:step"
+                auto values = SweepConfig::parse_size_sweep(range_str);
+                if (!values.empty()) {
+                    opts.sweep_config.qubit_values = values;
+                    opts.sweep_config.crossover_min_qubits = values.front();
+                    opts.sweep_config.crossover_max_qubits = values.back();
+                }
+            } else {
+                // Default crossover range: 5-15 qubits with step 1
+                opts.sweep_config.qubit_values.clear();
+                for (size_t n = opts.sweep_config.crossover_min_qubits; 
+                     n <= opts.sweep_config.crossover_max_qubits; ++n) {
+                    opts.sweep_config.qubit_values.push_back(n);
+                }
+            }
+            continue;
+        }
+        
+        // Track rank evolution
+        if (arg == "--track-rank") {
+            opts.track_rank_evolution = true;
+            opts.sweep_config.track_rank_evolution = true;
+            continue;
+        }
+        
+        // Number of trials per sweep point
+        if (arg == "--sweep-trials" && i + 1 < argc) {
+            opts.sweep_trials = std::stoul(argv[++i]);
+            opts.sweep_config.num_trials = opts.sweep_trials;
+            continue;
+        }
+        
+        // Run all LRET modes for each benchmark point
+        if (arg == "--sweep-all-modes") {
+            opts.sweep_config.run_all_modes = true;
+            continue;
+        }
+        
+        //======================================================================
+        // Compound Benchmark Options (--bench-* with custom ranges + params)
+        //======================================================================
+        
+        // Compound epsilon benchmark
+        if (arg == "--bench-epsilon" && i + 1 < argc) {
+            auto spec = BenchmarkSpec::parse(argv[++i], SweepType::EPSILON);
+            opts.benchmark_specs.push_back(spec);
+            continue;
+        }
+        
+        // Compound noise benchmark
+        if (arg == "--bench-noise" && i + 1 < argc) {
+            auto spec = BenchmarkSpec::parse(argv[++i], SweepType::NOISE_PROB);
+            opts.benchmark_specs.push_back(spec);
+            continue;
+        }
+        
+        // Compound qubits benchmark
+        if (arg == "--bench-qubits" && i + 1 < argc) {
+            auto spec = BenchmarkSpec::parse(argv[++i], SweepType::QUBITS);
+            opts.benchmark_specs.push_back(spec);
+            continue;
+        }
+        
+        // Compound depth benchmark
+        if (arg == "--bench-depth" && i + 1 < argc) {
+            auto spec = BenchmarkSpec::parse(argv[++i], SweepType::DEPTH);
+            opts.benchmark_specs.push_back(spec);
+            continue;
+        }
+        
+        // Compound crossover benchmark
+        if (arg == "--bench-crossover" && i + 1 < argc) {
+            auto spec = BenchmarkSpec::parse(argv[++i], SweepType::CROSSOVER);
+            opts.benchmark_specs.push_back(spec);
+            continue;
+        }
+        
+        // Compound rank benchmark
+        if (arg == "--bench-rank" && i + 1 < argc) {
+            auto spec = BenchmarkSpec::parse(argv[++i], SweepType::INITIAL_RANK);
+            opts.benchmark_specs.push_back(spec);
+            continue;
+        }
+        
+        // Unknown option
+        std::cerr << "Warning: Unknown option '" << arg << "'\n";
+    }
+    
+    // Post-processing: if FDM is enabled and sweep is active, propagate flag
+    if (opts.enable_fdm && opts.sweep_config.is_active()) {
+        opts.sweep_config.include_fdm = true;
+    }
+
+    // Distributed GPU derivation
+    if (opts.gpu_world_size > 1 && opts.enable_gpu) {
+        opts.enable_distributed_gpu = true;
+    }
+    
+    return opts;
+}
+
+bool validate_options(const CLIOptions& opts, std::string& error_msg) {
+    // In JSON mode we defer validation to the JSON parser
+    if (!opts.input_json_path.empty()) {
+        return true;
+    }
+
+    if (opts.num_qubits < 1) {
+        error_msg = "Qubits must be at least 1";
+        return false;
+    }
+    
+    // Warning for large qubit counts (memory scales as 2^n)
+    if (opts.num_qubits > 20) {
+        std::cerr << "Warning: " << opts.num_qubits << " qubits requires ~" 
+                  << (1ULL << opts.num_qubits) * sizeof(std::complex<double>) / (1024*1024) 
+                  << " MB for state vector. Ensure sufficient memory.\n";
+    }
+    
+    if (opts.depth < 1) {
+        error_msg = "Depth must be at least 1";
+        return false;
+    }
+    
+    if (opts.noise_prob < 0.0 || opts.noise_prob > 1.0) {
+        error_msg = "Noise probability must be between 0 and 1";
+        return false;
+    }
+    
+    if (opts.truncation_threshold <= 0.0) {
+        error_msg = "Truncation threshold must be positive";
+        return false;
+    }
+
+    if (opts.gpu_world_size == 0) {
+        error_msg = "GPU world size must be at least 1";
+        return false;
+    }
+
+    if (opts.enable_distributed_gpu && opts.gpu_world_size > 1 && !opts.enable_gpu) {
+        error_msg = "Distributed GPU requested but GPU is disabled";
+        return false;
+    }
+    
+    // Initial rank validation
+    size_t dim = 1ULL << opts.num_qubits;
+    if (opts.initial_rank < 1 || opts.initial_rank > dim) {
+        error_msg = "Initial rank must be between 1 and 2^n (n=num_qubits)";
+        return false;
+    }
+    
+    return true;
+}
+
+}  // namespace qlret

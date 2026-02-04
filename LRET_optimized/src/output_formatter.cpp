@@ -1,0 +1,333 @@
+#include "output_formatter.h"
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <algorithm>
+
+namespace qlret {
+
+void print_separator(size_t width, char c) {
+    std::cout << std::string(width, c) << "\n";
+}
+
+void print_noise_stats(const NoiseStats& stats) {
+    std::cout << "\nNoise Statistics:\n";
+    std::cout << "  Total Channels: " << stats.total_count() << "\n";
+    std::cout << "  Total Probability: " << std::scientific << std::setprecision(4) 
+              << stats.total_probability() << "\n";
+    
+    if (stats.depolarizing_count > 0) {
+        std::cout << "  Depolarizing:      " << std::setw(4) << stats.depolarizing_count 
+                  << " ops, total p = " << stats.total_depolarizing_prob << "\n";
+    }
+    if (stats.amplitude_damping_count > 0) {
+        std::cout << "  Amplitude Damping: " << std::setw(4) << stats.amplitude_damping_count 
+                  << " ops, total γ = " << stats.total_amplitude_prob << "\n";
+    }
+    if (stats.phase_damping_count > 0) {
+        std::cout << "  Phase Damping:     " << std::setw(4) << stats.phase_damping_count 
+                  << " ops, total λ = " << stats.total_phase_prob << "\n";
+    }
+    if (stats.bit_flip_count > 0) {
+        std::cout << "  Bit Flip:          " << std::setw(4) << stats.bit_flip_count 
+                  << " ops, total p = " << stats.total_bit_flip_prob << "\n";
+    }
+    if (stats.phase_flip_count > 0) {
+        std::cout << "  Phase Flip:        " << std::setw(4) << stats.phase_flip_count 
+                  << " ops, total p = " << stats.total_phase_flip_prob << "\n";
+    }
+    if (stats.other_count > 0) {
+        std::cout << "  Other:             " << std::setw(4) << stats.other_count 
+                  << " ops, total p = " << stats.total_other_prob << "\n";
+    }
+}
+
+void print_config_header(const CLIOptions& opts, double noise_in_circuit, 
+                         const NoiseStats& noise_stats, bool fdm_enabled) {
+    std::cout << "Configuration:\n";
+    std::cout << "  Qubits: " << opts.num_qubits 
+              << " | Depth: " << opts.depth
+              << " | Noise: " << std::fixed << std::setprecision(6) << noise_in_circuit
+              << " | Mode: " << parallel_mode_to_string(opts.parallel_mode)
+              << " | FDM: " << (fdm_enabled ? "ENABLED" : "DISABLED") << "\n";
+    std::cout << "  Noise Selection: " << noise_selection_to_string(opts.noise_selection)
+              << " | Channels Applied: " << noise_stats.total_count() << "\n";
+}
+
+void print_standard_output(
+    const CLIOptions& opts,
+    const ModeResult& result,
+    const MetricsResult& metrics,
+    double noise_in_circuit,
+    const NoiseStats& noise_stats,
+    const std::optional<FDMResult>& fdm_result,
+    const std::optional<MetricsResult>& fdm_metrics,
+    const std::optional<StateMetrics>& state_metrics
+) {
+    print_separator(80, '=');
+    std::cout << "                    QuantumLRET-Sim Results\n";
+    print_separator(80, '=');
+    
+    bool fdm_enabled = fdm_result.has_value() && fdm_result->was_run;
+    print_config_header(opts, noise_in_circuit, noise_stats, fdm_enabled);
+    
+    // Print noise breakdown if verbose
+    if (opts.verbose && noise_stats.total_count() > 0) {
+        print_noise_stats(noise_stats);
+    }
+    
+    print_separator(80, '-');
+    
+    // LRET results
+    std::cout << "\nLRET Simulation:\n";
+    std::cout << std::fixed;
+    std::cout << "  Time:        " << std::setprecision(6) << result.time_seconds << " s\n";
+    std::cout << "  Final Rank:  " << result.final_rank << "\n";
+    std::cout << "  Final Trace: " << std::setprecision(5) << result.trace_value << "\n";
+    
+    // Show speedup if computed (for non-sequential modes)
+    if (result.speedup != 1.0 && result.mode != ParallelMode::SEQUENTIAL) {
+        std::cout << "  Speedup:     " << std::setprecision(2) << result.speedup 
+                  << "x vs sequential\n";
+        if (result.distortion > 0) {
+            std::cout << "  Distortion:  " << std::scientific << std::setprecision(2) 
+                      << result.distortion << " (vs sequential)\n";
+        }
+    }
+    
+    // State metrics (properties of final state)
+    if (state_metrics.has_value()) {
+        std::cout << "\nFinal State Properties:\n";
+        std::cout << std::fixed;
+        std::cout << "  Purity:         " << std::setprecision(6) << state_metrics->purity << "\n";
+        std::cout << "  Entropy:        " << std::setprecision(4) << state_metrics->entropy << " bits\n";
+        std::cout << "  Linear Entropy: " << std::setprecision(6) << state_metrics->linear_entropy << "\n";
+        if (state_metrics->concurrence >= 0) {
+            std::cout << "  Concurrence:    " << std::setprecision(6) << state_metrics->concurrence 
+                      << " (2-qubit entanglement)\n";
+        }
+        if (state_metrics->negativity >= 0) {
+            std::cout << "  Negativity:     " << std::setprecision(6) << state_metrics->negativity 
+                      << " (bipartite entanglement)\n";
+        }
+    }
+    
+    // Metrics vs initial state
+    std::cout << "\nMetrics (vs initial state):\n";
+    std::cout << "  Fidelity:              " << std::setprecision(6) << metrics.fidelity << "\n";
+    std::cout << "  Trace Distance:        " << std::scientific << std::setprecision(2) 
+              << metrics.trace_distance << "\n";
+    std::cout << "  Frobenius Distance:    " << metrics.frobenius_distance << "\n";
+    std::cout << "  Variational Distance:  " << metrics.variational_distance << "\n";
+    
+    // FDM comparison if available
+    if (fdm_result.has_value()) {
+        std::cout << "\nFDM Comparison:\n";
+        if (fdm_result->was_run) {
+            std::cout << "  FDM Time:     " << std::fixed << std::setprecision(6) 
+                      << fdm_result->time_seconds << " s\n";
+            std::cout << "  FDM Trace:    " << std::setprecision(5) 
+                      << fdm_result->trace_value << "\n";
+            
+            double speedup = fdm_result->time_seconds / result.time_seconds;
+            std::cout << "  LRET Speedup: " << std::setprecision(2) << speedup << "x\n";
+            
+            if (fdm_metrics.has_value()) {
+                std::cout << "\n  Accuracy (LRET vs FDM):\n";
+                std::cout << "    Fidelity:           " << std::fixed << std::setprecision(6) 
+                          << fdm_metrics->fidelity << "\n";
+                std::cout << "    Trace Distance:     " << std::scientific << std::setprecision(2) 
+                          << fdm_metrics->trace_distance << "\n";
+                std::cout << "    Frobenius Distance: " << fdm_metrics->frobenius_distance << "\n";
+                std::cout << "    Variational Dist:   " << fdm_metrics->variational_distance << "\n";
+            }
+        } else {
+            std::cout << "  Status: NOT RUN\n";
+            std::cout << "  Reason: " << fdm_result->skip_reason << "\n";
+        }
+    }
+    
+    print_separator(80, '=');
+}
+
+void print_comparison_output(
+    const CLIOptions& opts,
+    const std::vector<ModeResult>& results,
+    double noise_in_circuit,
+    const NoiseStats& noise_stats,
+    const std::optional<FDMResult>& fdm_result,
+    const std::optional<MetricsResult>& fdm_metrics
+) {
+    print_separator(80, '=');
+    std::cout << "               Parallelization Strategy Comparison\n";
+    print_separator(80, '=');
+    
+    bool fdm_enabled = fdm_result.has_value() && fdm_result->was_run;
+    print_config_header(opts, noise_in_circuit, noise_stats, fdm_enabled);
+    
+    // Print noise breakdown if verbose
+    if (opts.verbose && noise_stats.total_count() > 0) {
+        print_noise_stats(noise_stats);
+    }
+    
+    print_separator(80, '-');
+    
+    // Find sequential time for speedup calculation
+    double seq_time = 1.0;
+    for (const auto& r : results) {
+        if (r.mode == ParallelMode::SEQUENTIAL) {
+            seq_time = r.time_seconds;
+            break;
+        }
+    }
+    
+    // Find fastest mode
+    auto fastest = std::min_element(results.begin(), results.end(),
+        [](const auto& a, const auto& b) { return a.time_seconds < b.time_seconds; });
+    
+    // Print comparison table with metrics
+    std::cout << "\nPerformance Results:\n";
+    std::cout << "+--------------+------------+----------+------+------------+-------------+-------------+-------------+\n";
+    std::cout << "| Strategy     | Time (s)   | Speedup  | Rank | Fidelity   | Trace Dist  | Frobenius   | Distortion  |\n";
+    std::cout << "+--------------+------------+----------+------+------------+-------------+-------------+-------------+\n";
+    
+    for (const auto& r : results) {
+        double speedup = seq_time / r.time_seconds;
+        std::cout << "| " << std::left << std::setw(12) << r.mode_name()
+                  << " | " << std::right << std::fixed << std::setprecision(4) 
+                  << std::setw(10) << r.time_seconds
+                  << " | " << std::setw(7) << std::setprecision(2) << speedup << "x"
+                  << " | " << std::setw(4) << r.final_rank;
+        
+        // Show metrics vs sequential baseline
+        if (r.mode == ParallelMode::SEQUENTIAL) {
+            std::cout << " | " << std::setw(10) << "1.000000" 
+                      << " | " << std::setw(11) << "0.000e+00"
+                      << " | " << std::setw(11) << "0.000e+00"
+                      << " | " << std::setw(11) << "0.000e+00" << " |\n";
+        } else {
+            std::cout << " | " << std::setw(10) << std::fixed << std::setprecision(6) << r.fidelity
+                      << " | " << std::setw(11) << std::scientific << std::setprecision(3) << r.trace_distance
+                      << " | " << std::setw(11) << std::scientific << std::setprecision(3) << r.frobenius_distance
+                      << " | " << std::setw(11) << std::scientific << std::setprecision(3) << r.distortion << " |\n";
+        }
+    }
+    std::cout << "+--------------+------------+----------+------+------------+-------------+-------------+-------------+\n";
+    
+    std::cout << "\nWinner: " << fastest->mode_name() 
+              << " (" << std::fixed << std::setprecision(2) 
+              << seq_time / fastest->time_seconds << "x speedup)\n";
+    
+    // Row vs Column analysis
+    double row_time = 0, col_time = 0;
+    for (const auto& r : results) {
+        if (r.mode == ParallelMode::ROW) row_time = r.time_seconds;
+        if (r.mode == ParallelMode::COLUMN) col_time = r.time_seconds;
+    }
+    
+    if (row_time > 0 && col_time > 0) {
+        std::cout << "\nRow vs Column Analysis:\n";
+        if (row_time < col_time) {
+            std::cout << "  Row is " << std::setprecision(2) << col_time / row_time 
+                      << "x faster than Column\n";
+            std::cout << "  Recommendation: ROW parallelization\n";
+        } else {
+            std::cout << "  Column is " << std::setprecision(2) << row_time / col_time 
+                      << "x faster than Row\n";
+            std::cout << "  Recommendation: COLUMN parallelization\n";
+        }
+    }
+    
+    // FDM comparison if available
+    if (fdm_result.has_value()) {
+        std::cout << "\n";
+        print_separator(80, '-');
+        std::cout << "LRET vs FDM Comparison:\n";
+        
+        if (fdm_result->was_run) {
+            std::cout << "+-----------------------+----------------+----------------+\n";
+            std::cout << "| Metric                | LRET (best)    | FDM            |\n";
+            std::cout << "+-----------------------+----------------+----------------+\n";
+            
+            std::cout << "| Time (s)              | " << std::right << std::setw(14) 
+                      << std::fixed << std::setprecision(4) << fastest->time_seconds
+                      << " | " << std::setw(14) << fdm_result->time_seconds << " |\n";
+            
+            std::cout << "| Final Trace           | " << std::setw(14) 
+                      << std::setprecision(5) << fastest->trace_value
+                      << " | " << std::setw(14) << fdm_result->trace_value << " |\n";
+            
+            std::cout << "+-----------------------+----------------+----------------+\n";
+            
+            double speedup = fdm_result->time_seconds / fastest->time_seconds;
+            std::cout << "\nLRET Speedup over FDM: " << std::setprecision(2) << speedup << "x\n";
+            
+            if (fdm_metrics.has_value()) {
+                std::cout << "\nAccuracy (LRET vs FDM):\n";
+                std::cout << "  Fidelity:             " << std::fixed << std::setprecision(6) 
+                          << fdm_metrics->fidelity << "\n";
+                std::cout << "  Trace Distance:       " << std::scientific << std::setprecision(2) 
+                          << fdm_metrics->trace_distance << "\n";
+                std::cout << "  Frobenius Distance:   " << fdm_metrics->frobenius_distance << "\n";
+                std::cout << "  Variational Distance: " << fdm_metrics->variational_distance << "\n";
+            }
+        } else {
+            std::cout << "  Status: NOT RUN\n";
+            std::cout << "  Reason: " << fdm_result->skip_reason << "\n";
+        }
+    }
+    
+    print_separator(80, '=');
+}
+
+void export_to_csv(
+    const std::string& filename,
+    const CLIOptions& opts,
+    const std::vector<ModeResult>& results,
+    double noise_in_circuit,
+    const NoiseStats& noise_stats,
+    const std::optional<FDMResult>& fdm_result
+) {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file " << filename << "\n";
+        return;
+    }
+    
+    // Header with noise stats columns
+    file << "mode,qubits,depth,noise_total,depolarizing_count,amplitude_count,phase_count,"
+         << "time_seconds,final_rank,trace\n";
+    
+    // Results
+    for (const auto& r : results) {
+        file << r.mode_name() << ","
+             << opts.num_qubits << ","
+             << opts.depth << ","
+             << std::fixed << std::setprecision(6) << noise_in_circuit << ","
+             << noise_stats.depolarizing_count << ","
+             << noise_stats.amplitude_damping_count << ","
+             << noise_stats.phase_damping_count << ","
+             << std::setprecision(6) << r.time_seconds << ","
+             << r.final_rank << ","
+             << std::setprecision(5) << r.trace_value << "\n";
+    }
+    
+    // FDM result
+    if (fdm_result.has_value() && fdm_result->was_run) {
+        file << "fdm,"
+             << opts.num_qubits << ","
+             << opts.depth << ","
+             << noise_in_circuit << ","
+             << noise_stats.depolarizing_count << ","
+             << noise_stats.amplitude_damping_count << ","
+             << noise_stats.phase_damping_count << ","
+             << fdm_result->time_seconds << ","
+             << "N/A,"
+             << fdm_result->trace_value << "\n";
+    }
+    
+    file.close();
+    std::cout << "Results exported to: " << filename << "\n";
+}
+
+}  // namespace qlret
