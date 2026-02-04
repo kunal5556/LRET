@@ -304,15 +304,26 @@ def _obs_to_json(obs: Any, coeff: float = 1.0) -> Dict[str, Any]:
         }
     
     # Handle Hamiltonian (Sum type, has multiple terms with different wires)
-    # Check for Hamiltonian by looking for 'terms' method (newer) or checking if it's a Sum
+    # We mark this as HAMILTONIAN type for detection, but it will be 
+    # decomposed and handled in Python layer
     if hasattr(obs, "terms") and callable(obs.terms):
         try:
             coeffs, ops = obs.terms()
-            # If there's more than one term with different structure, it's a Hamiltonian
-            if len(coeffs) > 1:
-                raise QLRETDeviceError(
-                    "Hamiltonian observables not yet supported. Use individual terms."
-                )
+            if len(coeffs) >= 1:
+                # Build Hamiltonian as list of terms for Python-level processing
+                terms = []
+                for c, op in zip(coeffs, ops):
+                    term = _obs_to_json(op, coeff=float(c) * coeff)
+                    terms.append(term)
+                return {
+                    "type": "HAMILTONIAN",
+                    "terms": terms,
+                    "coefficient": coeff,
+                    # Store original obs for Python-level decomposition
+                    "_pennylane_obs": obs,
+                    "_coefficients": [float(c) for c in coeffs],
+                    "_operators": ops,
+                }
         except Exception:
             pass  # Not a Hamiltonian, continue to single observable handling
     
@@ -410,7 +421,7 @@ class QLRETDevice(Device):
         "PauliError",
         "QubitChannel",  # Generic Kraus channel
     }
-    observables = {"PauliX", "PauliY", "PauliZ", "Identity", "Hermitian"}
+    observables = {"PauliX", "PauliY", "PauliZ", "Identity", "Hermitian", "Prod", "Hamiltonian"}
     
     # Valid parallelization modes (C++ level)
     PARALLEL_MODES = {"auto", "sequential", "row", "column", "batch", "hybrid"}
@@ -555,8 +566,48 @@ class QLRETDevice(Device):
             return False
         
         def observable_stopping_condition(obs) -> bool:
-            """Check if an observable is supported."""
-            return obs.name in self.observables
+            """Check if an observable is supported.
+            
+            Supports:
+            - Single Pauli: PauliX, PauliY, PauliZ, Identity
+            - Hermitian: Custom Hermitian matrix
+            - Prod: Tensor products like Z(0) @ Z(1)
+            - Hamiltonian: Linear combinations of Pauli terms
+            """
+            # Direct match for single observables
+            if obs.name in self.observables:
+                return True
+            
+            # Check if it's a Prod (tensor product) - all operands must be Pauli
+            if Prod is not None and isinstance(obs, Prod):
+                return all(
+                    o.name in ("PauliX", "PauliY", "PauliZ", "Identity")
+                    for o in obs.operands
+                )
+            
+            # Check old Tensor type
+            if Tensor is not None and isinstance(obs, Tensor):
+                return all(
+                    o.name in ("PauliX", "PauliY", "PauliZ", "Identity")
+                    for o in obs.obs
+                )
+            
+            # Check Hamiltonian (has terms() method returning coeffs and ops)
+            if hasattr(obs, 'terms') and callable(obs.terms):
+                try:
+                    coeffs, ops = obs.terms()
+                    # All terms must be valid Pauli/tensor products
+                    for op in ops:
+                        if Prod is not None and isinstance(op, Prod):
+                            if not all(o.name in ("PauliX", "PauliY", "PauliZ", "Identity") for o in op.operands):
+                                return False
+                        elif op.name not in ("PauliX", "PauliY", "PauliZ", "Identity"):
+                            return False
+                    return True
+                except Exception:
+                    pass
+            
+            return False
         
         program = TransformProgram()
         program.add_transform(decompose, stopping_condition=stopping_condition, name=self.name)
@@ -800,34 +851,241 @@ class QLRETDevice(Device):
     # Internal Execution
     # ------------------------------------------------------------------
 
+    def _needs_state_export(self, tape: QuantumTape) -> bool:
+        """Check if tape requires state export for probability computation."""
+        # Check if there are ProbabilityMP measurements without shots
+        has_prob_measurement = any(isinstance(m, ProbabilityMP) for m in tape.measurements)
+        tape_shots = tape.shots if hasattr(tape, 'shots') else self.shots
+        
+        # Check if shots are specified and > 0
+        has_shots = False
+        if tape_shots is not None:
+            if hasattr(tape_shots, 'total_shots'):
+                total = tape_shots.total_shots
+                has_shots = total is not None and total > 0
+            elif isinstance(tape_shots, int):
+                has_shots = tape_shots > 0
+        
+        return has_prob_measurement and not has_shots
+
+    def _has_hamiltonian(self, tape: QuantumTape) -> bool:
+        """Check if tape contains any Hamiltonian observables."""
+        for m in tape.measurements:
+            if isinstance(m, ExpectationMP) and m.obs is not None:
+                if hasattr(m.obs, 'terms') and callable(m.obs.terms):
+                    try:
+                        coeffs, _ = m.obs.terms()
+                        if len(coeffs) > 1:
+                            return True
+                    except Exception:
+                        pass
+        return False
+
     def _execute_tape(self, tape: QuantumTape) -> np.ndarray:
-        """Execute a single quantum tape with default thread settings."""
+        """Execute a single quantum tape with default thread settings.
+        
+        Handles special cases:
+        - Hamiltonians: Decomposed into individual Pauli terms
+        - Probabilities without shots: State export + density matrix computation
+        """
+        # Check if we need special handling
+        needs_export = self._needs_state_export(tape)
+        has_hamiltonian = self._has_hamiltonian(tape)
+        
+        if has_hamiltonian:
+            return self._execute_tape_with_hamiltonian(tape)
+        
         # Build JSON circuit
-        circuit_json = self._tape_to_json(tape)
+        circuit_json = self._tape_to_json(tape, export_state=needs_export)
         
         # Run simulation
         try:
-            result = simulate_json(circuit_json, export_state=False)
+            result = simulate_json(circuit_json, export_state=needs_export)
         except QLRETError as e:
             raise QLRETDeviceError(f"Simulation failed: {e}") from e
 
         # Extract results based on measurement types
         return self._process_results(tape, result)
 
-    def _tape_to_json(self, tape: QuantumTape) -> Dict[str, Any]:
-        """Convert a PennyLane tape to QLRET JSON format."""
+    def _execute_tape_with_hamiltonian(self, tape: QuantumTape) -> np.ndarray:
+        """Execute tape with Hamiltonian by decomposing into individual terms.
+        
+        For H = Σ c_i * P_i where P_i are Pauli products:
+        <H> = Σ c_i * <P_i>
+        """
+        # Get operations JSON (same for all term evaluations)
+        operations = [_op_to_json(op) for op in tape.operations]
+        
+        outputs = []
+        
+        for m in tape.measurements:
+            if isinstance(m, ExpectationMP) and m.obs is not None:
+                obs = m.obs
+                # Check if it's a Hamiltonian
+                if hasattr(obs, 'terms') and callable(obs.terms):
+                    try:
+                        coeffs, ops = obs.terms()
+                        if len(coeffs) > 1:
+                            # Compute expectation of each term
+                            total = 0.0
+                            for coeff, op in zip(coeffs, ops):
+                                # Build circuit for this term
+                                term_obs = _obs_to_json(op)
+                                circuit_json = {
+                                    "circuit": {
+                                        "num_qubits": self.num_wires,
+                                        "operations": operations,
+                                        "observables": [term_obs],
+                                    },
+                                    "config": {
+                                        "epsilon": self.epsilon,
+                                        "initial_rank": 1,
+                                        "export_state": False,
+                                        "num_threads": self._effective_threads,
+                                        "parallel_mode": self.parallel_mode,
+                                    },
+                                }
+                                result = simulate_json(circuit_json, export_state=False)
+                                exp_val = result.get("expectation_values", [0.0])[0]
+                                total += float(coeff) * exp_val
+                            outputs.append(total)
+                            continue
+                    except Exception:
+                        pass
+                
+                # Single observable - evaluate directly
+                obs_json = _obs_to_json(obs)
+                circuit_json = {
+                    "circuit": {
+                        "num_qubits": self.num_wires,
+                        "operations": operations,
+                        "observables": [obs_json],
+                    },
+                    "config": {
+                        "epsilon": self.epsilon,
+                        "initial_rank": 1,
+                        "export_state": False,
+                        "num_threads": self._effective_threads,
+                        "parallel_mode": self.parallel_mode,
+                    },
+                }
+                result = simulate_json(circuit_json, export_state=False)
+                exp_val = result.get("expectation_values", [0.0])[0]
+                outputs.append(exp_val)
+                
+            elif isinstance(m, ProbabilityMP):
+                # For probability, we need state export
+                circuit_json = {
+                    "circuit": {
+                        "num_qubits": self.num_wires,
+                        "operations": operations,
+                        "observables": [],
+                    },
+                    "config": {
+                        "epsilon": self.epsilon,
+                        "initial_rank": 1,
+                        "export_state": True,
+                        "num_threads": self._effective_threads,
+                        "parallel_mode": self.parallel_mode,
+                    },
+                }
+                result = simulate_json(circuit_json, export_state=True)
+                probs = self._compute_probabilities_from_state(result, m.wires)
+                outputs.append(probs)
+            else:
+                outputs.append(0.0)
+        
+        # Return single value if only one measurement
+        if len(outputs) == 1:
+            return np.asarray(outputs[0])
+        return tuple(np.asarray(o) for o in outputs)
+
+    def _compute_probabilities_from_state(
+        self, result: Dict[str, Any], wires: Optional[Any] = None
+    ) -> np.ndarray:
+        """Compute probability distribution from low-rank state.
+        
+        For density matrix ρ = L @ L†, probabilities are diag(ρ).
+        
+        Notes
+        -----
+        LRET uses little-endian qubit ordering (qubit 0 = LSB), while
+        PennyLane uses big-endian (qubit 0 = MSB). We convert the output
+        to match PennyLane's convention.
+        """
+        state = result.get("state")
+        if state is None:
+            # Return uniform distribution
+            num_wires = len(wires) if wires else self.num_wires
+            return np.ones(2**num_wires) / (2**num_wires)
+        
+        # Reconstruct density matrix diagonal (for probabilities we only need diagonal)
+        L_real = np.array(state.get("L_real", []))
+        L_imag = np.array(state.get("L_imag", []))
+        
+        if L_real.size == 0:
+            num_wires = len(wires) if wires else self.num_wires
+            return np.ones(2**num_wires) / (2**num_wires)
+        
+        # Reshape L to matrix form
+        rows = state.get("rows", len(L_real))
+        cols = state.get("cols", 1)
+        L = (L_real + 1j * L_imag).reshape(rows, cols)
+        
+        # Probabilities are diagonal elements of ρ = L @ L†
+        # For efficiency, compute row-wise: probs[i] = ||L[i, :]||²
+        probs = np.sum(np.abs(L)**2, axis=1).real
+        
+        # Convert from LRET's little-endian to PennyLane's big-endian ordering
+        # In little-endian: index = q_0 + 2*q_1 + 4*q_2 + ...
+        # In big-endian: index = q_{n-1} + 2*q_{n-2} + ... + 2^{n-1}*q_0
+        probs = self._convert_endianness(probs, self.num_wires)
+        
+        # Marginalize if measuring subset of wires
+        target_wires = list(wires) if wires else list(range(self.num_wires))
+        if len(target_wires) < self.num_wires:
+            probs = self._marginalize_probabilities(probs, target_wires)
+        
+        return probs
+
+    def _convert_endianness(self, probs: np.ndarray, n_qubits: int) -> np.ndarray:
+        """Convert probability array between little-endian and big-endian qubit ordering.
+        
+        This swaps the bit ordering in the indices, e.g., for 2 qubits:
+        little-endian index 1 (01) -> big-endian index 2 (10)
+        little-endian index 2 (10) -> big-endian index 1 (01)
+        """
+        # Reshape to [2, 2, ..., 2] tensor
+        probs = probs.reshape([2] * n_qubits)
+        # Reverse the axes to swap bit ordering
+        probs = np.transpose(probs, axes=list(range(n_qubits - 1, -1, -1)))
+        return probs.flatten()
+
+    def _tape_to_json(self, tape: QuantumTape, export_state: bool = False) -> Dict[str, Any]:
+        """Convert a PennyLane tape to QLRET JSON format.
+        
+        Parameters
+        ----------
+        tape : QuantumTape
+            The quantum tape to convert.
+        export_state : bool
+            If True, request state export for probability computation.
+        """
         # Operations
         operations = []
         for op in tape.operations:
             operations.append(_op_to_json(op))
 
-        # Observables from measurements
+        # Observables from measurements - skip Hamiltonians (handled separately)
         observables = []
         for m in tape.measurements:
             if isinstance(m, (ExpectationMP, VarianceMP, SampleMP)):
                 obs = m.obs
                 if obs is not None:
-                    observables.append(_obs_to_json(obs))
+                    obs_json = _obs_to_json(obs)
+                    # Skip HAMILTONIAN type - handled in Python layer
+                    if obs_json.get("type") != "HAMILTONIAN":
+                        observables.append(obs_json)
             elif isinstance(m, ProbabilityMP):
                 # Probability doesn't need an observable
                 pass
@@ -836,7 +1094,7 @@ class QLRETDevice(Device):
         config: Dict[str, Any] = {
             "epsilon": self.epsilon,
             "initial_rank": 1,
-            "export_state": False,
+            "export_state": export_state,
             "num_threads": self._effective_threads,
             "parallel_mode": self.parallel_mode,
         }
@@ -1006,7 +1264,7 @@ class QLRETDevice(Device):
                         obs_idx += 1
 
             elif isinstance(m, ProbabilityMP):
-                # Compute probabilities from samples or from state
+                # Compute probabilities from samples, state, or return zeros
                 wires = m.wires if m.wires else list(range(self.num_wires))
                 num_prob_wires = len(wires)
                 
@@ -1022,6 +1280,10 @@ class QLRETDevice(Device):
                     if num_prob_wires < self.num_wires:
                         probs = self._marginalize_probabilities(probs, wires)
                     
+                    outputs.append(probs)
+                elif state is not None:
+                    # Compute from low-rank state
+                    probs = self._compute_probabilities_from_state(result, wires)
                     outputs.append(probs)
                 else:
                     outputs.append(np.zeros(2**num_prob_wires))
@@ -1076,16 +1338,25 @@ class QLRETDevice(Device):
         -------
         np.ndarray
             Marginalized probability distribution.
+            
+        Notes
+        -----
+        The probability array is indexed in little-endian order:
+        index = q_0 + 2*q_1 + 4*q_2 + ...
+        
+        When reshaped to [2, 2, ..., 2], the shape is [q_{n-1}, ..., q_1, q_0].
+        Wire i corresponds to axis (n-1-i).
         """
         n_qubits = self.num_wires
         n_kept = len(wires)
         
-        # Reshape probabilities for marginalization
+        # Reshape probabilities: shape [q_{n-1}, ..., q_1, q_0]
         probs = probs.reshape([2] * n_qubits)
         
-        # Sum over wires not in the subset
-        keep_set = set(wires)
-        axes_to_sum = [i for i in range(n_qubits) if i not in keep_set]
+        # Map wire indices to array axes
+        # Wire i corresponds to axis (n-1-i) in the reshaped array
+        keep_axes = set(n_qubits - 1 - w for w in wires)
+        axes_to_sum = [i for i in range(n_qubits) if i not in keep_axes]
         
         # Sum in reverse order to maintain axis indices
         for axis in sorted(axes_to_sum, reverse=True):
