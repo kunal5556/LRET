@@ -22,16 +22,24 @@ PennyLane Usage:
     grad = qml.grad(circuit)(0.5)
 
 Batch Parallelism (for VQE, QAOA, QNN workloads):
-    # Enable Python-level parallelism for batch execution
+    # Parallel C++ mode (default): Balance workers and threads
     dev = QLRETDevice(
         wires=4,
-        num_threads=2,        # C++ threads per circuit (OpenMP)
-        max_batch_workers=4,  # Python workers for parallel circuit execution
+        num_threads=8,        # C++ threads for within-circuit parallelism
+        max_batch_workers=4,  # Python workers for cross-circuit parallelism
     )
-    # 4 workers × 2 threads = 8 total threads (optimal for 8-core CPU)
+    # Result: 4 workers × 2 threads = 8 total (optimal for parallel C++)
     
-    # Or use auto-tuning:
-    dev = QLRETDevice(wires=4, max_batch_workers=-1)  # Auto-tune parallelism
+    # Sequential C++ mode: Maximize Python workers
+    dev = QLRETDevice(
+        wires=4,
+        num_threads=1,          # Sequential C++ (single-threaded per circuit)
+        max_batch_workers='max' # Use all CPU cores as Python workers
+    )
+    # Result: 8 workers × 1 thread = 8 total (optimal for sequential C++)
+    
+    # Auto-tune: Intelligently adapts to C++ parallelism mode
+    dev = QLRETDevice(wires=4, max_batch_workers=-1)  # Auto-detect best strategy
 """
 
 from .api import (

@@ -16,13 +16,21 @@ Usage:
     grad = qml.grad(circuit)(0.5)  # parameter-shift gradient
 
 Batch Parallelism:
-    # Enable Python-level parallelism for batch execution
+    # Parallel C++ mode: Balance workers and threads
     dev = QLRETDevice(
         wires=4,
-        num_threads=2,        # C++ threads per circuit
-        max_batch_workers=4,  # Python workers for parallel circuit execution
+        num_threads=8,        # C++ threads when running single circuit
+        max_batch_workers=4,  # Python workers for parallel batch execution
     )
-    # 4 workers × 2 threads = 8 total threads (matches 8-core CPU)
+    # Result: 4 workers × 2 threads = 8 total threads (matches 8-core CPU)
+    
+    # Sequential C++ mode: Maximize Python workers
+    dev = QLRETDevice(
+        wires=4,
+        num_threads=1,          # Sequential C++ (1 thread per circuit)
+        max_batch_workers='max' # Use all CPU cores as Python workers
+    )
+    # Result: 8 workers × 1 thread = 8 total threads (optimal for sequential)
 """
 
 from __future__ import annotations
@@ -304,6 +312,7 @@ class QLRETDevice(Device):
     # Valid batch worker modes (Python level)
     BATCH_WORKER_AUTO = -1
     BATCH_WORKER_DISABLED = 0
+    BATCH_WORKER_MAX = 'max'  # Maximum Python workers (1 per core)
 
     def __init__(
         self,
@@ -336,18 +345,21 @@ class QLRETDevice(Device):
             - "column": Column-wise parallel
             - "batch": Gate batching
             - "sequential": No parallelism (single-threaded)
-        max_batch_workers : int
+        max_batch_workers : int or str
             Python-level parallelism for executing multiple circuits concurrently.
             - 0 (default): Disabled - circuits execute sequentially (current behavior)
             - 1: Explicitly sequential (same as 0)
             - N > 1: Use N Python workers for parallel batch execution
             - -1: Auto-tune based on CPU cores and batch size
+            - 'max': Maximum parallelism - use cpu_count workers with 1 thread each
+                    (optimal for sequential C++ mode: num_threads=1)
             
-            When enabled (N > 1 or -1), the effective thread count per circuit is
-            automatically reduced to (num_threads // max_batch_workers) to prevent
-            CPU oversubscription. For example, on an 8-core machine:
-            - num_threads=8, max_batch_workers=4 → each circuit gets 2 C++ threads
-            - This gives: 4 workers × 2 threads = 8 total threads (optimal)
+            When enabled (N > 1, -1, or 'max'), the effective thread count per circuit
+            is automatically reduced to prevent CPU oversubscription. Examples:
+            - 8-core machine, num_threads=8, max_batch_workers=4:
+              → 4 workers × 2 threads = 8 total (optimal for parallel C++)
+            - 8-core machine, num_threads=1, max_batch_workers='max':
+              → 8 workers × 1 thread = 8 total (optimal for sequential C++)
             
         Notes
         -----
@@ -381,7 +393,11 @@ class QLRETDevice(Device):
             self._effective_threads = self.num_threads
         
         # Python-level batch parallelism settings
-        self.max_batch_workers = max_batch_workers
+        # Support both int and 'max' string
+        if isinstance(max_batch_workers, str) and max_batch_workers.lower() == 'max':
+            self.max_batch_workers = self.BATCH_WORKER_MAX
+        else:
+            self.max_batch_workers = max_batch_workers
         
         self._kwargs = kwargs
         self._num_wires = len(self.wires) if hasattr(self.wires, '__len__') else self.wires
@@ -541,6 +557,13 @@ class QLRETDevice(Device):
     def _compute_execution_strategy(self, batch_size: int) -> Tuple[int, int]:
         """Determine optimal worker count and threads per circuit.
         
+        This method intelligently detects whether LRET is running in sequential
+        C++ mode (num_threads=1 or parallel_mode='sequential') and adjusts the
+        strategy to maximize CPU utilization:
+        
+        - Sequential C++ mode: Maximize Python workers (1 thread per circuit)
+        - Parallel C++ mode: Balance workers and threads per circuit
+        
         Parameters
         ----------
         batch_size : int
@@ -553,6 +576,12 @@ class QLRETDevice(Device):
             - num_workers: Number of Python workers (1 = sequential)
             - threads_per_circuit: C++ threads to allocate per circuit
         """
+        # Detect if C++ is running in sequential mode
+        is_cpp_sequential = (
+            self.num_threads == 1 or 
+            self.parallel_mode == 'sequential'
+        )
+        
         # Single circuit always runs sequentially with full threads
         if batch_size == 1:
             return 1, self._effective_threads
@@ -566,24 +595,43 @@ class QLRETDevice(Device):
             # Explicitly sequential
             return 1, self._effective_threads
         
+        # Handle 'max' mode: maximum Python parallelism
+        if self.max_batch_workers == self.BATCH_WORKER_MAX:
+            # Use cpu_count workers, each with 1 thread
+            # This is optimal for sequential C++ mode
+            workers = min(self._cpu_count, batch_size)
+            return workers, 1
+        
+        # Auto-tune mode
         if self.max_batch_workers == self.BATCH_WORKER_AUTO:
-            # Auto-tune: use parallelism for larger batches
             # Heuristic: parallelize if batch_size >= 4
             if batch_size < 4:
                 return 1, self._effective_threads
             
-            # Use up to half the CPU cores as workers (leave room for OpenMP)
-            # Each worker gets at least 1-2 C++ threads
-            max_workers = max(1, self._cpu_count // 2)
-            workers = min(max_workers, batch_size)
-            threads_per_circuit = max(1, self._effective_threads // workers)
-            return workers, threads_per_circuit
+            # Strategy depends on whether C++ is sequential or parallel
+            if is_cpp_sequential:
+                # Sequential C++: maximize Python workers (1 thread each)
+                # Use up to cpu_count workers since each only needs 1 thread
+                workers = min(self._cpu_count, batch_size)
+                return workers, 1
+            else:
+                # Parallel C++: balance workers and threads
+                # Use up to half the CPU cores as workers (leave room for OpenMP)
+                max_workers = max(1, self._cpu_count // 2)
+                workers = min(max_workers, batch_size)
+                threads_per_circuit = max(1, self._effective_threads // workers)
+                return workers, threads_per_circuit
         
-        # Explicit worker count specified
+        # Explicit worker count specified (N > 1)
         if self.max_batch_workers > 1:
             workers = min(self.max_batch_workers, batch_size)
-            threads_per_circuit = max(1, self._effective_threads // workers)
-            return workers, threads_per_circuit
+            
+            # If C++ is sequential, don't waste threads
+            if is_cpp_sequential:
+                return workers, 1
+            else:
+                threads_per_circuit = max(1, self._effective_threads // workers)
+                return workers, threads_per_circuit
         
         # Fallback: sequential
         return 1, self._effective_threads
