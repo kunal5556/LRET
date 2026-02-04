@@ -20,6 +20,18 @@ PennyLane Usage:
 
     result = circuit(0.5)
     grad = qml.grad(circuit)(0.5)
+
+Batch Parallelism (for VQE, QAOA, QNN workloads):
+    # Enable Python-level parallelism for batch execution
+    dev = QLRETDevice(
+        wires=4,
+        num_threads=2,        # C++ threads per circuit (OpenMP)
+        max_batch_workers=4,  # Python workers for parallel circuit execution
+    )
+    # 4 workers × 2 threads = 8 total threads (optimal for 8-core CPU)
+    
+    # Or use auto-tuning:
+    dev = QLRETDevice(wires=4, max_batch_workers=-1)  # Auto-tune parallelism
 """
 
 from .api import (
