@@ -14,12 +14,23 @@ Usage:
 
     result = circuit(0.5)
     grad = qml.grad(circuit)(0.5)  # parameter-shift gradient
+
+Batch Parallelism:
+    # Enable Python-level parallelism for batch execution
+    dev = QLRETDevice(
+        wires=4,
+        num_threads=2,        # C++ threads per circuit
+        max_batch_workers=4,  # Python workers for parallel circuit execution
+    )
+    # 4 workers × 2 threads = 8 total threads (matches 8-core CPU)
 """
 
 from __future__ import annotations
 
+import os
 import numpy as np
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from concurrent.futures import ThreadPoolExecutor
 
 from .api import simulate_json, QLRETError
 
@@ -287,8 +298,12 @@ class QLRETDevice(Device):
     }
     observables = {"PauliX", "PauliY", "PauliZ", "Identity", "Hermitian"}
     
-    # Valid parallelization modes
+    # Valid parallelization modes (C++ level)
     PARALLEL_MODES = {"auto", "sequential", "row", "column", "batch", "hybrid"}
+    
+    # Valid batch worker modes (Python level)
+    BATCH_WORKER_AUTO = -1
+    BATCH_WORKER_DISABLED = 0
 
     def __init__(
         self,
@@ -297,6 +312,7 @@ class QLRETDevice(Device):
         epsilon: float = 1e-4,
         num_threads: int = 0,
         parallel_mode: str = "hybrid",
+        max_batch_workers: int = 0,
         **kwargs: Any,
     ) -> None:
         """Initialize QLRET PennyLane device.
@@ -310,23 +326,42 @@ class QLRETDevice(Device):
         epsilon : float
             Truncation threshold for low-rank compression (default: 1e-4).
         num_threads : int
-            Number of threads to use for parallel execution.
-            0 = auto (use all available CPU cores). Default: 0.
+            Number of C++ threads to use for OpenMP parallel execution within
+            each circuit. 0 = auto (use all available CPU cores). Default: 0.
         parallel_mode : str
-            Parallelization strategy. Options:
+            C++ parallelization strategy for operations within a circuit. Options:
             - "hybrid" (default): Row + batch combined - best for most cases
             - "auto": Automatically select best strategy
             - "row": Row-wise parallel
             - "column": Column-wise parallel
             - "batch": Gate batching
             - "sequential": No parallelism (single-threaded)
+        max_batch_workers : int
+            Python-level parallelism for executing multiple circuits concurrently.
+            - 0 (default): Disabled - circuits execute sequentially (current behavior)
+            - 1: Explicitly sequential (same as 0)
+            - N > 1: Use N Python workers for parallel batch execution
+            - -1: Auto-tune based on CPU cores and batch size
+            
+            When enabled (N > 1 or -1), the effective thread count per circuit is
+            automatically reduced to (num_threads // max_batch_workers) to prevent
+            CPU oversubscription. For example, on an 8-core machine:
+            - num_threads=8, max_batch_workers=4 → each circuit gets 2 C++ threads
+            - This gives: 4 workers × 2 threads = 8 total threads (optimal)
+            
+        Notes
+        -----
+        Thread allocation strategy:
+        - Single circuit: Uses all num_threads for maximum within-circuit parallelism
+        - Batch with max_batch_workers > 1: Divides threads among workers
+        - This prevents thread oversubscription which can degrade performance
         """
         _require_pennylane()
         # PennyLane 0.43+ has different Device initialization
         super().__init__(wires=wires, shots=shots)
         self.epsilon = epsilon
         
-        # Parallelization settings
+        # C++ parallelization settings
         self.num_threads = num_threads  # 0 = auto (all cores)
         parallel_mode_lower = parallel_mode.lower()
         if parallel_mode_lower not in self.PARALLEL_MODES:
@@ -336,12 +371,17 @@ class QLRETDevice(Device):
             )
         self.parallel_mode = parallel_mode_lower
         
+        # Auto-detect CPU count
+        self._cpu_count = os.cpu_count() or 1
+        
         # Auto-detect thread count if num_threads=0
         if self.num_threads == 0:
-            import os
-            self._effective_threads = os.cpu_count() or 1
+            self._effective_threads = self._cpu_count
         else:
             self._effective_threads = self.num_threads
+        
+        # Python-level batch parallelism settings
+        self.max_batch_workers = max_batch_workers
         
         self._kwargs = kwargs
         self._num_wires = len(self.wires) if hasattr(self.wires, '__len__') else self.wires
@@ -468,25 +508,146 @@ class QLRETDevice(Device):
         Returns
         -------
         Results for each circuit.
+        
+        Notes
+        -----
+        Execution strategy depends on max_batch_workers setting:
+        - max_batch_workers <= 1: Sequential execution (default)
+        - max_batch_workers > 1: Parallel execution using ThreadPoolExecutor
+        - max_batch_workers == -1: Auto-tune based on batch size
+        
+        When parallel execution is enabled, the C++ thread count per circuit
+        is automatically reduced to prevent CPU oversubscription.
         """
         # Modern API: circuits is QuantumTape (QuantumScript) or list of tapes
         is_single = isinstance(circuits, QuantumTape)
         if is_single:
             circuits = [circuits]
 
-        results = []
-        for tape in circuits:
-            result = self._execute_tape(tape)
-            results.append(result)
+        batch_size = len(circuits)
+        
+        # Determine execution strategy
+        workers, threads_per_circuit = self._compute_execution_strategy(batch_size)
+        
+        if workers <= 1:
+            # Sequential execution - use full thread count for each circuit
+            results = [self._execute_tape(tape) for tape in circuits]
+        else:
+            # Parallel execution with reduced threads per circuit
+            results = self._execute_batch_parallel(circuits, workers, threads_per_circuit)
 
         return results[0] if is_single else tuple(results)
+
+    def _compute_execution_strategy(self, batch_size: int) -> Tuple[int, int]:
+        """Determine optimal worker count and threads per circuit.
+        
+        Parameters
+        ----------
+        batch_size : int
+            Number of circuits in the batch.
+            
+        Returns
+        -------
+        Tuple[int, int]
+            (num_workers, threads_per_circuit)
+            - num_workers: Number of Python workers (1 = sequential)
+            - threads_per_circuit: C++ threads to allocate per circuit
+        """
+        # Single circuit always runs sequentially with full threads
+        if batch_size == 1:
+            return 1, self._effective_threads
+        
+        # Check max_batch_workers setting
+        if self.max_batch_workers == self.BATCH_WORKER_DISABLED:
+            # Disabled: sequential execution
+            return 1, self._effective_threads
+        
+        if self.max_batch_workers == 1:
+            # Explicitly sequential
+            return 1, self._effective_threads
+        
+        if self.max_batch_workers == self.BATCH_WORKER_AUTO:
+            # Auto-tune: use parallelism for larger batches
+            # Heuristic: parallelize if batch_size >= 4
+            if batch_size < 4:
+                return 1, self._effective_threads
+            
+            # Use up to half the CPU cores as workers (leave room for OpenMP)
+            # Each worker gets at least 1-2 C++ threads
+            max_workers = max(1, self._cpu_count // 2)
+            workers = min(max_workers, batch_size)
+            threads_per_circuit = max(1, self._effective_threads // workers)
+            return workers, threads_per_circuit
+        
+        # Explicit worker count specified
+        if self.max_batch_workers > 1:
+            workers = min(self.max_batch_workers, batch_size)
+            threads_per_circuit = max(1, self._effective_threads // workers)
+            return workers, threads_per_circuit
+        
+        # Fallback: sequential
+        return 1, self._effective_threads
+
+    def _execute_batch_parallel(
+        self,
+        circuits: List[QuantumTape],
+        workers: int,
+        threads_per_circuit: int,
+    ) -> List[np.ndarray]:
+        """Execute a batch of circuits in parallel using ThreadPoolExecutor.
+        
+        Parameters
+        ----------
+        circuits : List[QuantumTape]
+            Circuits to execute.
+        workers : int
+            Number of parallel workers.
+        threads_per_circuit : int
+            C++ threads to allocate per circuit.
+            
+        Returns
+        -------
+        List[np.ndarray]
+            Results in order matching input circuits.
+        """
+        def execute_single(tape: QuantumTape) -> np.ndarray:
+            """Execute a single tape with specified thread count."""
+            return self._execute_tape_with_threads(tape, threads_per_circuit)
+        
+        # Use ThreadPoolExecutor for parallel execution
+        # ThreadPool works well here because the actual work happens in C++ (releases GIL)
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            results = list(executor.map(execute_single, circuits))
+        
+        return results
+
+    def _execute_tape_with_threads(
+        self,
+        tape: QuantumTape,
+        num_threads: int,
+    ) -> np.ndarray:
+        """Execute a single tape with a specific thread count.
+        
+        This is used by parallel batch execution to override the thread count.
+        """
+        # Build JSON circuit with custom thread count
+        circuit_json = self._tape_to_json_with_threads(tape, num_threads)
+        
+        # Run simulation
+        try:
+            result = simulate_json(circuit_json, export_state=False)
+        except QLRETError as e:
+            raise QLRETDeviceError(f"Simulation failed: {e}") from e
+
+        # Extract results based on measurement types
+        return self._process_results(tape, result)
 
     # ------------------------------------------------------------------
     # Internal Execution
     # ------------------------------------------------------------------
 
     def _execute_tape(self, tape: QuantumTape) -> np.ndarray:
-        """Execute a single quantum tape."""
+        """Execute a single quantum tape with default thread settings."""
         # Build JSON circuit
         circuit_json = self._tape_to_json(tape)
         
@@ -523,6 +684,71 @@ class QLRETDevice(Device):
             "initial_rank": 1,
             "export_state": False,
             "num_threads": self._effective_threads,
+            "parallel_mode": self.parallel_mode,
+        }
+        
+        # Handle shots - can be Shots object or int or None
+        tape_shots = tape.shots if hasattr(tape, 'shots') else self.shots
+        if tape_shots is not None:
+            # PennyLane 0.43+ uses Shots object, get total_shots
+            if hasattr(tape_shots, 'total_shots'):
+                shots_val = tape_shots.total_shots
+            else:
+                shots_val = int(tape_shots) if tape_shots else None
+            if shots_val is not None and shots_val > 0:
+                config["shots"] = shots_val
+
+        return {
+            "circuit": {
+                "num_qubits": self.num_wires,
+                "operations": operations,
+                "observables": observables,
+            },
+            "config": config,
+        }
+
+    def _tape_to_json_with_threads(
+        self, tape: QuantumTape, num_threads: int
+    ) -> Dict[str, Any]:
+        """Convert a PennyLane tape to QLRET JSON format with custom thread count.
+        
+        This method is used by parallel batch execution to override the
+        thread count for each circuit.
+        
+        Parameters
+        ----------
+        tape : QuantumTape
+            The quantum tape to convert.
+        num_threads : int
+            Number of C++ threads to use for this circuit.
+            
+        Returns
+        -------
+        Dict[str, Any]
+            QLRET JSON circuit specification.
+        """
+        # Operations
+        operations = []
+        for op in tape.operations:
+            operations.append(_op_to_json(op))
+
+        # Observables from measurements
+        observables = []
+        for m in tape.measurements:
+            if isinstance(m, (ExpectationMP, VarianceMP, SampleMP)):
+                obs = m.obs
+                if obs is not None:
+                    observables.append(_obs_to_json(obs))
+            elif isinstance(m, ProbabilityMP):
+                # Probability doesn't need an observable
+                pass
+
+        # Build config with custom thread count
+        config: Dict[str, Any] = {
+            "epsilon": self.epsilon,
+            "initial_rank": 1,
+            "export_state": False,
+            "num_threads": num_threads,  # Use provided thread count
             "parallel_mode": self.parallel_mode,
         }
         
