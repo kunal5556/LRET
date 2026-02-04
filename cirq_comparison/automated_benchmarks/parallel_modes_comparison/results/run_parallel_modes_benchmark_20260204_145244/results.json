@@ -1,0 +1,42 @@
+[
+  {
+    "mode": "sequential",
+    "n_qubits": 8,
+    "depth": 25,
+    "noise_prob": 0.01,
+    "epsilon": 1e-06,
+    "time_mean": 509664.7250666667,
+    "time_std": 4976.817329662004,
+    "times": [
+      509078.0416,
+      516032.1855000002,
+      503883.9481
+    ],
+    "rank": 256,
+    "status": "success",
+    "memory_mb": 1.048576,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 508925.9259
+  },
+  {
+    "mode": "row",
+    "n_qubits": 8,
+    "depth": 25,
+    "noise_prob": 0.01,
+    "epsilon": 1e-06,
+    "time_mean": null,
+    "time_std": null,
+    "times": [
+      505258.6355000003,
+      501354.9742
+    ],
+    "rank": null,
+    "status": "FAILED: Non-zero exit code: 3221225786",
+    "memory_mb": null,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": null,
+    "error": "Non-zero exit code: 3221225786"
+  }
+]

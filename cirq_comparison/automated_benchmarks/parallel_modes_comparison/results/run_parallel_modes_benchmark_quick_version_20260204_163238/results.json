@@ -1,0 +1,116 @@
+[
+  {
+    "mode": "sequential",
+    "n_qubits": 8,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 41070.57780000014,
+    "time_std": 96.79429999960121,
+    "times": [
+      41167.37209999974,
+      40973.783500000536
+    ],
+    "rank": 107,
+    "status": "success",
+    "memory_mb": 0.438272,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 41076.5214
+  },
+  {
+    "mode": "row",
+    "n_qubits": 8,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 41020.48874999992,
+    "time_std": 138.18004999984623,
+    "times": [
+      41158.66879999976,
+      40882.30870000007
+    ],
+    "rank": 107,
+    "status": "success",
+    "memory_mb": 0.438272,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 41066.0639
+  },
+  {
+    "mode": "column",
+    "n_qubits": 8,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 41103.52909999983,
+    "time_std": 85.26750000055472,
+    "times": [
+      41018.26159999928,
+      41188.79660000039
+    ],
+    "rank": 107,
+    "status": "success",
+    "memory_mb": 0.438272,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 40929.7671
+  },
+  {
+    "mode": "batch",
+    "n_qubits": 8,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 40951.2145499998,
+    "time_std": 5.189049999444251,
+    "times": [
+      40956.40359999925,
+      40946.02550000036
+    ],
+    "rank": 107,
+    "status": "success",
+    "memory_mb": 0.438272,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 40863.8888
+  },
+  {
+    "mode": "hybrid",
+    "n_qubits": 8,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 40731.23554999984,
+    "time_std": 140.94255000054545,
+    "times": [
+      40590.29299999929,
+      40872.17810000038
+    ],
+    "rank": 107,
+    "status": "success",
+    "memory_mb": 0.438272,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 40495.6864
+  },
+  {
+    "mode": "cirq",
+    "n_qubits": 8,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 855.6594999995468,
+    "time_std": 13.9126999997643,
+    "times": [
+      869.5721999993111,
+      841.7467999997825
+    ],
+    "rank": 256,
+    "status": "completed",
+    "memory_mb": 1.048576,
+    "trace": "1.0",
+    "purity": "0.33629996",
+    "execution_time_ms": null
+  }
+]
