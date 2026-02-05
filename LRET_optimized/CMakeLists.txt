@@ -173,6 +173,7 @@ set(LIB_SOURCES
     src/output_formatter.cpp
     src/parallel_modes.cpp
     src/parallelism_oracle.cpp  # Phase 2: Runtime mode selection oracle
+    src/advanced_optimizations.cpp  # Phase 3: Cholesky QR, qubit reordering
     src/fdm_simulator.cpp
     src/resource_monitor.cpp
     src/progressive_csv.cpp
