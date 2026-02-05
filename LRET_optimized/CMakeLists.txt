@@ -175,6 +175,7 @@ set(LIB_SOURCES
     src/parallelism_oracle.cpp  # Phase 2: Runtime mode selection oracle
     src/advanced_optimizations.cpp  # Phase 3: Cholesky QR, qubit reordering
     src/gpu_mpi_optimizations.cpp  # Phase 4: GPU Kraus batching, MPI HALO pipelining
+    src/phase5_optimizations.cpp  # Phase 5: Community detection, ML rank prediction, Hybrid TTN
     src/fdm_simulator.cpp
     src/resource_monitor.cpp
     src/progressive_csv.cpp
