@@ -179,4 +179,37 @@ MatrixXcd apply_gate_sequential(
 
 }  // namespace parallel_ops
 
+//==============================================================================
+// Row-Parallel Metrics (from pseudocode Strategy 3)
+//==============================================================================
+
+/**
+ * @brief Compute Frobenius norm using row parallelism
+ * ||L||_F = sqrt(∑_rows ∑_cols |L[i,j]|^2)
+ */
+double row_parallel_frobenius_norm(const MatrixXcd& L);
+
+/**
+ * @brief Compute trace of density matrix using row parallelism
+ * Tr[ρ] = ||L||_F^2
+ */
+double row_parallel_trace(const MatrixXcd& L);
+
+/**
+ * @brief Check if row parallelism is cache-efficient for given stride/rank
+ * @param stride The row stride (2^target)
+ * @param rank Current rank of L matrix
+ * @return true if row parallelism is cache-friendly
+ */
+bool is_row_parallel_cache_friendly(size_t stride, size_t rank);
+
+/**
+ * @brief Select optimal parallelism mode for a gate
+ * @param dim Hilbert space dimension (2^n)
+ * @param rank Current rank of L matrix
+ * @param target Target qubit index
+ * @return "row", "column", or "sequential"
+ */
+std::string select_gate_parallelism(size_t dim, size_t rank, size_t target);
+
 }  // namespace qlret

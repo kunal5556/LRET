@@ -59,6 +59,132 @@ constexpr size_t MIN_DIM_FOR_OPENMP = 256;  // 2^8, so n >= 8 qubits
 // Minimum rank for column parallelism to be beneficial
 constexpr size_t MIN_RANK_FOR_COL_PARALLEL = 4;
 
+// Cache size thresholds for stride-aware parallelism (from pseudocode Strategy 1)
+// L2 cache typically 256KB-1MB; use conservative 256KB
+constexpr size_t L2_CACHE_SIZE_BYTES = 256 * 1024;
+
+// Maximum rank for row parallelism (pseudocode: rank < 32 for row mode)
+constexpr size_t ROW_PARALLEL_MAX_RANK = 32;
+
+// Maximum qubit index for "low-t" noise optimization (pseudocode Strategy 2)
+constexpr size_t LOW_QUBIT_INDEX_THRESHOLD = 5;
+
+//==============================================================================
+// Cache-Aware Parallelism Heuristics (inspired by pseudocode)
+//==============================================================================
+
+/**
+ * @brief Check if row parallelism is cache-efficient for given stride/rank
+ * 
+ * From pseudocode Strategy 1:
+ * "if (stride * row_size_bytes > L2_cache_size) return ColumnParallelFallback"
+ * 
+ * @param stride The row stride (2^target for single-qubit gates)
+ * @param rank Current rank of L matrix
+ * @return true if row parallelism is cache-friendly
+ */
+inline bool is_row_parallel_cache_friendly(size_t stride, size_t rank) {
+    // Row size in bytes (complex<double> = 16 bytes)
+    size_t row_size_bytes = rank * 16;
+    
+    // Stride access pattern: we access row[i] and row[i+stride]
+    // If stride * row_size fits in L2, row pairs will be cache-resident
+    size_t stride_bytes = stride * row_size_bytes;
+    
+    return stride_bytes <= L2_CACHE_SIZE_BYTES;
+}
+
+/**
+ * @brief Determine optimal parallelism mode for a gate
+ * 
+ * Combines pseudocode heuristics:
+ * - Strategy 1: Low rank → row parallel (stride fits in cache)
+ * - Strategy 2: Low-t qubit → row parallel (small stride = cache-friendly)
+ * 
+ * @param dim Hilbert space dimension (2^n)
+ * @param rank Current rank of L matrix
+ * @param target Target qubit index (for single-qubit gates)
+ * @return "row", "column", or "sequential"
+ */
+inline std::string select_gate_parallelism(size_t dim, size_t rank, size_t target) {
+    // Too small for any parallelism
+    if (dim < MIN_DIM_FOR_OPENMP) {
+        return "sequential";
+    }
+    
+    size_t stride = 1ULL << target;
+    
+    // Strategy 1: Very low rank → row parallel is always good
+    if (rank <= ROW_PARALLEL_MAX_RANK) {
+        // Check if stride access is cache-friendly
+        if (is_row_parallel_cache_friendly(stride, rank)) {
+            return "row";
+        }
+    }
+    
+    // Strategy 2: Low qubit index → small stride → row parallel
+    if (target < LOW_QUBIT_INDEX_THRESHOLD) {
+        // stride < 32, very cache-friendly for row access
+        return "row";
+    }
+    
+    // High rank, high qubit index → column parallel may be better
+    if (rank >= MIN_RANK_FOR_COL_PARALLEL) {
+        return "column";
+    }
+    
+    return "row";  // Default: row parallel
+}
+
+//==============================================================================
+// Row-Parallel Metrics (pseudocode Strategy 3)
+//==============================================================================
+
+/**
+ * @brief Compute Frobenius norm using row parallelism
+ * 
+ * From pseudocode Strategy 3:
+ * "Parallelize independent row computations like Frobenius norm"
+ * 
+ * ||L||_F = sqrt(∑_rows ∑_cols |L[i,j]|^2)
+ * 
+ * @param L The L matrix
+ * @return Frobenius norm
+ */
+double row_parallel_frobenius_norm(const MatrixXcd& L) {
+    size_t dim = static_cast<size_t>(L.rows());
+    size_t rank = static_cast<size_t>(L.cols());
+    
+    double total_norm_sq = 0.0;
+    
+#ifdef _OPENMP
+    #pragma omp parallel for reduction(+:total_norm_sq) schedule(dynamic) if(dim >= MIN_DIM_FOR_OPENMP)
+#endif
+    for (int64_t i = 0; i < static_cast<int64_t>(dim); ++i) {
+        double row_norm_sq = 0.0;
+        for (size_t j = 0; j < rank; ++j) {
+            row_norm_sq += std::norm(L(i, j));  // |z|^2 = z * conj(z)
+        }
+        total_norm_sq += row_norm_sq;
+    }
+    
+    return std::sqrt(total_norm_sq);
+}
+
+/**
+ * @brief Compute trace of density matrix using row parallelism
+ * 
+ * Tr[ρ] = Tr[L L†] = ∑_i (L L†)_{ii} = ∑_i ∑_r |L_{i,r}|^2
+ *       = ||L||_F^2 (for normalized L)
+ * 
+ * @param L The L matrix
+ * @return Trace value
+ */
+double row_parallel_trace(const MatrixXcd& L) {
+    double norm_sq = row_parallel_frobenius_norm(L);
+    return norm_sq * norm_sq;
+}
+
 //==============================================================================
 // Batch Size and Mode Selection Heuristics
 //==============================================================================
@@ -259,14 +385,12 @@ std::vector<std::vector<FusedGate>> build_fused_parallel_layers(const std::vecto
 
 //==============================================================================
 // Optimized Direct Gate Application (for row-parallel mode)
-// KEY INSIGHT: For low-rank LRET (rank=1 typical), the base functions are optimal.
-// Parallelization only helps when:
-// 1. rank > num_threads (column parallel)
-// 2. dim >> 4096 AND rank > 4 (row parallel)
 // 
-// For most LRET cases, BATCH/SEQUENTIAL is optimal because:
-// - Memory allocation overhead exceeds computation
-// - OpenMP thread synchronization overhead exceeds work
+// KEY INSIGHTS (aligned with pseudocode strategies):
+// 1. Row parallelism when rank < 32 AND stride fits in L2 cache (Strategy 1)
+// 2. Row parallelism for low qubit indices (t < 5) where stride is small (Strategy 2)
+// 3. Column parallelism for high rank with large dimensions
+// 4. Skip OpenMP overhead for small problems
 //==============================================================================
 
 namespace parallel_ops {
@@ -279,10 +403,12 @@ inline MatrixXcd apply_fused_single_gate(const MatrixXcd& L, const MatrixXcd& U,
     return apply_single_qubit_simd(L, U, target, num_qubits);
 }
 
-// Apply two-qubit gate - NO vector allocation version
-// Uses direct iteration instead of pre-computed indices
-// Two-qubit gate parallel application
+// Apply two-qubit gate with cache-aware row parallelism
 // Gate matrix convention: row/col index = (q1_bit << 1) | q2_bit
+// 
+// Enhanced with pseudocode Strategy 1 heuristics:
+// - Check if stride access is cache-friendly before parallelizing
+// - Use row parallelism for low rank (< 32) when stride fits in L2
 MatrixXcd apply_two_qubit_gate_parallel(const MatrixXcd& L, const MatrixXcd& U,
                                          size_t q1, size_t q2, size_t num_qubits) {
     size_t dim = L.rows();
@@ -299,11 +425,19 @@ MatrixXcd apply_two_qubit_gate_parallel(const MatrixXcd& L, const MatrixXcd& U,
     size_t step_min = 1ULL << qmin;
     size_t step_max = 1ULL << qmax;
     
+    // Cache-aware parallelism decision (pseudocode Strategy 1)
+    // Row parallel is beneficial when:
+    // - dim >= 4096 (enough work to offset OpenMP overhead)
+    // - Either: rank <= 32 (low rank) OR qmax < 5 (small stride)
+    // - Stride access pattern fits in L2 cache
+    bool use_row_parallel = (dim >= 4096) && 
+                            ((rank <= ROW_PARALLEL_MAX_RANK && is_row_parallel_cache_friendly(step_max, rank)) ||
+                             (qmax < LOW_QUBIT_INDEX_THRESHOLD));
+    
     // Direct iteration - no vector allocation needed
-    // Only parallelize for large problems with meaningful rank
     int64_t idim = static_cast<int64_t>(dim);
 #ifdef _OPENMP
-    #pragma omp parallel for schedule(static) if(dim > 4096 && rank > 2)
+    #pragma omp parallel for schedule(static) if(use_row_parallel)
 #endif
     for (int64_t base = 0; base < idim; ++base) {
         // Skip if either qubit bit is set
