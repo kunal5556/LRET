@@ -1,0 +1,393 @@
+{
+  "circuit": {
+    "num_qubits": 6,
+    "operations": [
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          0
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.753269811280082
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          1
+        ],
+        "params": [
+          3.8916888052573713
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          4
+        ],
+        "params": [
+          5.872932625138335
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          1,
+          2
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          5
+        ],
+        "params": [
+          1.9865999140805495
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "S",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          1
+        ],
+        "params": [
+          5.524617868619111
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "S",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          4
+        ],
+        "params": [
+          3.3234323881279773
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          0
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          5
+        ],
+        "params": [
+          1.7703268650299444
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          1,
+          2
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.5799283762078361
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "Y",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          5
+        ],
+        "params": [
+          4.657291152559098
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.4727711160709698
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.05
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          1
+        ],
+        "params": [
+          3.660015549460224
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.05
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.0001,
+    "initial_rank": 1,
+    "export_state": true
+  },
+  "metadata": {
+    "type": "noisy",
+    "subtype": "random",
+    "noise_type": "AMPLITUDE_DAMP",
+    "noise_prob": 0.05,
+    "n_qubits": 6,
+    "depth": 20
+  }
+}

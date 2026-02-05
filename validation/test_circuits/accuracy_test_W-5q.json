@@ -1,0 +1,111 @@
+{
+  "circuit": {
+    "num_qubits": 5,
+    "operations": [
+      {
+        "name": "RY",
+        "wires": [
+          0
+        ],
+        "params": [
+          2.214297435588181
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          1
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          1
+        ],
+        "params": [
+          2.0943951023931957
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          2
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          2
+        ],
+        "params": [
+          1.9106332362490186
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          3
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          3
+        ],
+        "params": [
+          1.5707963267948966
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          3,
+          4
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.0
+        ]
+      }
+    ],
+    "observables": [
+      {
+        "type": "PAULI",
+        "operator": "Z",
+        "wires": [
+          0
+        ],
+        "coefficient": 1.0
+      },
+      {
+        "type": "PAULI",
+        "operator": "Z",
+        "wires": [
+          1
+        ],
+        "coefficient": 1.0
+      },
+      {
+        "type": "PAULI",
+        "operator": "Z",
+        "wires": [
+          2
+        ],
+        "coefficient": 1.0
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.0001,
+    "initial_rank": 1,
+    "export_state": true
+  }
+}

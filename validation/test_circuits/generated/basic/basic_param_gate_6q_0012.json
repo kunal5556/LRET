@@ -1,0 +1,72 @@
+{
+  "circuit": {
+    "num_qubits": 6,
+    "operations": [
+      {
+        "name": "RY",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.7853981633974483
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.7853981633974483
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.7853981633974483
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.7853981633974483
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.7853981633974483
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.7853981633974483
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.0001,
+    "initial_rank": 1,
+    "export_state": true
+  },
+  "metadata": {
+    "type": "basic",
+    "subtype": "param_gate",
+    "gate": "RY",
+    "angle": 0.7853981633974483
+  }
+}

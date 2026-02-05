@@ -1,0 +1,85 @@
+{
+  "basic_test": {
+    "success": true,
+    "error": "",
+    "time": 0.005864143371582031
+  },
+  "mode_tests": {
+    "sequential": {
+      "success": true,
+      "total_time": 0.058480262756347656,
+      "avg_time": 0.002924013137817383,
+      "error": ""
+    },
+    "batched": {
+      "success": true,
+      "total_time": 0.05022859573364258,
+      "avg_time": 0.002511429786682129,
+      "error": ""
+    },
+    "openmp": {
+      "success": true,
+      "total_time": 0.04782867431640625,
+      "avg_time": 0.0023914337158203124,
+      "error": ""
+    }
+  },
+  "algorithm_compatibility": {
+    "VQE": {
+      "compatible": false,
+      "error": "Tensor product observables not supported",
+      "time_seconds": 0.008020639419555664,
+      "notes": "Need to decompose to single-qubit measurements"
+    },
+    "QFT": {
+      "compatible": true,
+      "error": "",
+      "time_seconds": 0.008160114288330078,
+      "notes": "QFT works with probability measurements"
+    },
+    "QPE": {
+      "compatible": true,
+      "error": "",
+      "time_seconds": 0.003068685531616211,
+      "notes": "QPE works with probability measurements"
+    },
+    "Grover": {
+      "compatible": true,
+      "error": "",
+      "time_seconds": 0.0041429996490478516,
+      "notes": "Grover works with probability measurements"
+    },
+    "QNN": {
+      "compatible": true,
+      "error": "",
+      "time_seconds": 0.006397247314453125,
+      "notes": "QNN works with single PauliZ measurement"
+    },
+    "QAOA": {
+      "compatible": false,
+      "error": "Tensor products not supported",
+      "time_seconds": 0.006264209747314453,
+      "notes": "Need decomposition to single qubit"
+    }
+  },
+  "performance_comparison": {
+    "4": {
+      "lret_time": 0.0029291152954101563,
+      "default_time": 0.005295312404632569,
+      "speedup": 1.8078197239044085,
+      "success": true
+    },
+    "6": {
+      "lret_time": 0.002893984317779541,
+      "default_time": 0.025183677673339844,
+      "speedup": 8.702078141412477,
+      "success": true
+    },
+    "8": {
+      "lret_time": 0.0030732512474060058,
+      "default_time": 0.3474151134490967,
+      "speedup": 113.04481328766539,
+      "success": true
+    }
+  }
+}

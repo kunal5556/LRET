@@ -1,0 +1,53 @@
+{
+  "circuit": {
+    "num_qubits": 6,
+    "operations": [
+      {
+        "name": "Y",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "Y",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "Y",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "Y",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "Y",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "Y",
+        "wires": [
+          5
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.0001,
+    "initial_rank": 1,
+    "export_state": true
+  },
+  "metadata": {
+    "type": "basic",
+    "subtype": "single_qubit",
+    "gate": "Y"
+  }
+}

@@ -1,0 +1,624 @@
+{
+  "circuit": {
+    "num_qubits": 8,
+    "operations": [
+      {
+        "name": "RX",
+        "wires": [
+          0
+        ],
+        "params": [
+          1.402474430341393
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.18722145136808954
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          3,
+          5
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "S",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          6
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          5
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "Y",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          1,
+          2
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          4
+        ],
+        "params": [
+          2.8866516537068705
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          1,
+          4
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          3,
+          5
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          4,
+          0
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "Z",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "Y",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          1,
+          4
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "Z",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          5,
+          6
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          6
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          6
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "Z",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          7
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          6,
+          4
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          6
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          3
+        ],
+        "params": [
+          3.2014481220496327
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          7
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          7
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          6
+        ],
+        "params": [
+          2.397784693914229
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          6
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          4
+        ],
+        "params": [
+          4.274346728041779
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          5,
+          0
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          7,
+          0
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          7
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          4
+        ],
+        "params": [
+          3.189858038598224
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          3,
+          1
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          2
+        ],
+        "params": [
+          5.771064828727112
+        ]
+      },
+      {
+        "name": "DEPOLARIZE",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.0001,
+    "initial_rank": 1,
+    "export_state": true
+  },
+  "metadata": {
+    "type": "noisy",
+    "subtype": "random",
+    "noise_type": "DEPOLARIZE",
+    "noise_prob": 0.01,
+    "n_qubits": 8,
+    "depth": 30
+  }
+}

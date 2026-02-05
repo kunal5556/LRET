@@ -1,0 +1,151 @@
+{
+  "circuit": {
+    "num_qubits": 4,
+    "operations": [
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "PHASE",
+        "wires": [
+          1
+        ],
+        "params": [
+          1.5707963267948966
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          1
+        ]
+      },
+      {
+        "name": "PHASE",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.7853981633974483
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          2
+        ]
+      },
+      {
+        "name": "PHASE",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.39269908169872414
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          3
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "PHASE",
+        "wires": [
+          2
+        ],
+        "params": [
+          1.5707963267948966
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          2
+        ]
+      },
+      {
+        "name": "PHASE",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.7853981633974483
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          3
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "PHASE",
+        "wires": [
+          3
+        ],
+        "params": [
+          1.5707963267948966
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          3
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "SWAP",
+        "wires": [
+          0,
+          3
+        ]
+      },
+      {
+        "name": "SWAP",
+        "wires": [
+          1,
+          2
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.0001,
+    "initial_rank": 1,
+    "export_state": true
+  },
+  "metadata": {
+    "type": "algorithm",
+    "subtype": "qft",
+    "n_qubits": 4
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "circuit": {
+    "num_qubits": 9,
+    "operations": [
+      {
+        "name": "Y",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          5
+        ],
+        "params": [
+          1.8378039152117047
+        ]
+      },
+      {
+        "name": "Z",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          1
+        ],
+        "params": [
+          5.4460937793659925
+        ]
+      },
+      {
+        "name": "Z",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "S",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          5,
+          4
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          0,
+          4
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          0
+        ],
+        "params": [
+          1.417377891288641
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          6
+        ],
+        "params": [
+          4.58603201221287
+        ]
+      },
+      {
+        "name": "S",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          5,
+          7
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          3
+        ],
+        "params": [
+          3.401426410855739
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "S",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          5
+        ],
+        "params": [
+          6.039373760872756
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.0001,
+    "initial_rank": 1,
+    "export_state": true
+  },
+  "metadata": {
+    "type": "random",
+    "n_qubits": 9,
+    "depth": 20,
+    "two_qubit_prob": 0.3,
+    "instance": 0
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "circuit": {
+    "num_qubits": 9,
+    "operations": [
+      {
+        "name": "RZ",
+        "wires": [
+          6
+        ],
+        "params": [
+          3.6144328455945423
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          4,
+          6
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          1,
+          7
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.5345670440101328
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          2
+        ],
+        "params": [
+          3.514161523658145
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          3
+        ],
+        "params": [
+          3.293945962923778
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          6,
+          5
+        ]
+      },
+      {
+        "name": "Z",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "Y",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          0
+        ],
+        "params": [
+          6.205600013274256
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.0001,
+    "initial_rank": 1,
+    "export_state": true
+  },
+  "metadata": {
+    "type": "random",
+    "n_qubits": 9,
+    "depth": 10,
+    "two_qubit_prob": 0.3,
+    "instance": 1
+  }
+}

@@ -1,0 +1,2 @@
+"Qubits","InitialRank","Depth","BaselineMean_s","OptimizedMean_s","Speedup","Trials"
+"8","8","10","0.5552","0.6272","0.89","2"

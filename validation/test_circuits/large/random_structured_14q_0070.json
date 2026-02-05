@@ -1,0 +1,457 @@
+{
+  "circuit": {
+    "num_qubits": 14,
+    "operations": [
+      {
+        "name": "RZ",
+        "wires": [
+          0
+        ],
+        "params": [
+          3.1046320433849837
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          2
+        ],
+        "params": [
+          1.7107313077784545
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          4
+        ],
+        "params": [
+          5.61840203272076
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          5
+        ],
+        "params": [
+          6.275201752857506
+        ]
+      },
+      {
+        "name": "Z",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "S",
+        "wires": [
+          12
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          13
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          8,
+          9
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          10,
+          11
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          12,
+          13
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          4
+        ],
+        "params": [
+          4.27412732077589
+        ]
+      },
+      {
+        "name": "Z",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          6
+        ],
+        "params": [
+          1.0322324187592198
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          7
+        ],
+        "params": [
+          1.5965580671290132
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          9
+        ],
+        "params": [
+          3.2718041687860175
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          13
+        ],
+        "params": [
+          5.387909670531965
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          2
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          7,
+          8
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          0
+        ],
+        "params": [
+          5.693478562335199
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          1
+        ],
+        "params": [
+          5.282676711756472
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "Z",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          10
+        ],
+        "params": [
+          3.779302917579363
+        ]
+      },
+      {
+        "name": "Y",
+        "wires": [
+          12
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          13
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          2,
+          3
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          8,
+          9
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          12,
+          13
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.08444772056750548
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          3
+        ],
+        "params": [
+          1.9551234532871697
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          4
+        ],
+        "params": [
+          4.09325152883927
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          7
+        ],
+        "params": [
+          4.125852823480133
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          8
+        ],
+        "params": [
+          1.8297244019721308
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          9
+        ],
+        "params": [
+          1.4092304884946398
+        ]
+      },
+      {
+        "name": "Z",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          13
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          1,
+          2
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          3,
+          4
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          7,
+          8
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          9,
+          10
+        ]
+      },
+      {
+        "name": "Z",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          5
+        ],
+        "params": [
+          2.4417879451510736
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          6
+        ],
+        "params": [
+          1.524650029838803
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          7
+        ],
+        "params": [
+          5.305308882466338
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          9
+        ],
+        "params": [
+          0.46659311243463
+        ]
+      },
+      {
+        "name": "S",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          12
+        ],
+        "params": [
+          6.1394667482102285
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          13
+        ],
+        "params": [
+          2.990804577003753
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          3
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          4,
+          5
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          8,
+          9
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          12,
+          13
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.001,
+    "initial_rank": 1,
+    "export_state": true
+  },
+  "metadata": {
+    "type": "large",
+    "subtype": "random_structured",
+    "n_qubits": 14,
+    "depth": 58,
+    "two_qubit_ratio": 0.4,
+    "cnot_count": 16,
+    "instance": 0
+  }
+}

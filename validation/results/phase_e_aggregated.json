@@ -1,0 +1,94 @@
+{
+  "total_circuits": 114,
+  "phase_d_count": 102,
+  "phase_e_count": 12,
+  "all_ranks_match": true,
+  "overall_avg_speedup": 1.0670379614499008,
+  "overall_median_speedup": 1.0299390041419887,
+  "overall_std_speedup": 0.25542861840592773,
+  "above_1x_pct": 60.526315789473685,
+  "by_qubits": {
+    "6": {
+      "count": 34,
+      "avg_speedup": 1.0817083907195615,
+      "median_speedup": 1.047025603864386,
+      "min_speedup": 0.7988170701696324,
+      "max_speedup": 1.9654524820985608,
+      "avg_rank": 19.441176470588236,
+      "max_rank": 56,
+      "all_match": true,
+      "above_1x_pct": 67.6470588235294
+    },
+    "8": {
+      "count": 34,
+      "avg_speedup": 1.1239530638686126,
+      "median_speedup": 1.0427349932038648,
+      "min_speedup": 0.500122626633151,
+      "max_speedup": 1.9391224715276976,
+      "avg_rank": 27.11764705882353,
+      "max_rank": 98,
+      "all_match": true,
+      "above_1x_pct": 70.58823529411765
+    },
+    "10": {
+      "count": 34,
+      "avg_speedup": 1.0215140365211575,
+      "median_speedup": 0.9880775633842662,
+      "min_speedup": 0.4899328547561201,
+      "max_speedup": 1.4499382375477534,
+      "avg_rank": 34.088235294117645,
+      "max_rank": 109,
+      "all_match": true,
+      "above_1x_pct": 47.05882352941177
+    },
+    "11": {
+      "count": 6,
+      "avg_speedup": 1.0069035357659057,
+      "median_speedup": 0.9972142881784378,
+      "min_speedup": 0.9157829743026834,
+      "max_speedup": 1.1170270517981655,
+      "avg_rank": 21.833333333333332,
+      "max_rank": 42,
+      "all_match": true,
+      "above_1x_pct": 50.0
+    },
+    "12": {
+      "count": 6,
+      "avg_speedup": 0.9794899488293289,
+      "median_speedup": 1.002984715505362,
+      "min_speedup": 0.6751701298664974,
+      "max_speedup": 1.126517151702642,
+      "avg_rank": 23.833333333333332,
+      "max_rank": 46,
+      "all_match": true,
+      "above_1x_pct": 50.0
+    }
+  },
+  "by_rank": {
+    "2-10": {
+      "count": 13,
+      "avg_speedup": 1.0110659030270284,
+      "median_speedup": 1.017291331340538
+    },
+    "10-25": {
+      "count": 55,
+      "avg_speedup": 1.1465128205360857,
+      "median_speedup": 1.077220152719522
+    },
+    "25-40": {
+      "count": 17,
+      "avg_speedup": 0.9789659673972987,
+      "median_speedup": 1.0031837787896687
+    },
+    "40-60": {
+      "count": 21,
+      "avg_speedup": 0.9858080868324857,
+      "median_speedup": 0.9995309450115555
+    },
+    "40+": {
+      "count": 29,
+      "avg_speedup": 0.9930291134723627,
+      "median_speedup": 0.9995309450115555
+    }
+  }
+}

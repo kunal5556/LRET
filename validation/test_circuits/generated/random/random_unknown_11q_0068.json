@@ -1,0 +1,164 @@
+{
+  "circuit": {
+    "num_qubits": 11,
+    "operations": [
+      {
+        "name": "RZ",
+        "wires": [
+          7
+        ],
+        "params": [
+          4.593501984269029
+        ]
+      },
+      {
+        "name": "Z",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          9
+        ],
+        "params": [
+          1.4571070275876254
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          6,
+          9
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "S",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "Z",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          3,
+          7
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          3
+        ],
+        "params": [
+          5.711856235860834
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          9
+        ],
+        "params": [
+          4.127789710516767
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          6,
+          10
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          10
+        ],
+        "params": [
+          5.001243745495293
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          2
+        ],
+        "params": [
+          4.339780690987486
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          2,
+          10
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          1,
+          6
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "Y",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "S",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          5,
+          6
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          8
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.001,
+    "initial_rank": 1,
+    "export_state": true
+  },
+  "metadata": {
+    "type": "random",
+    "n_qubits": 11,
+    "depth": 20,
+    "two_qubit_prob": 0.3,
+    "instance": 2
+  }
+}

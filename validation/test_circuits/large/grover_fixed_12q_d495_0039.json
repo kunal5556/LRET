@@ -1,0 +1,3100 @@
+{
+  "circuit": {
+    "num_qubits": 12,
+    "operations": [
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          3,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          4,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          5,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          6,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          7,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          8,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          9,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          10,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          3,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          4,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          5,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          6,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          7,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          8,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          9,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          10,
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          3,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          4,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          5,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          6,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          7,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          8,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          9,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          10,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          3,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          4,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          5,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          6,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          7,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          8,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          9,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          10,
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          3,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          4,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          5,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          6,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          7,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          8,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          9,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          10,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          3,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          4,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          5,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          6,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          7,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          8,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          9,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          10,
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          3,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          4,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          5,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          6,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          7,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          8,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          9,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          10,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          3,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          4,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          5,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          6,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          7,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          8,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          9,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          10,
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          3,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          4,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          5,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          6,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          7,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          8,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          9,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          10,
+          11
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          3,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          4,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          5,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          6,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          7,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          8,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          9,
+          11
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          10,
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          6
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          7
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          8
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          9
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          10
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          11
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          11
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.001,
+    "initial_rank": 1,
+    "export_state": true
+  },
+  "metadata": {
+    "type": "large",
+    "subtype": "grover_fixed",
+    "n_qubits": 12,
+    "iterations": 5,
+    "depth": 495,
+    "cnot_count": 110
+  }
+}

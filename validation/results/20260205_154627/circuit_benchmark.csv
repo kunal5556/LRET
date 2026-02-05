@@ -1,0 +1,11 @@
+file,category,subtype,n_qubits,n_operations,baseline_time,optimized_time,speedup,baseline_rank,optimized_rank,trials
+random\random_unknown_4q_0002.json,random,unknown,4,10,0.0949,0.0542,1.751,,,1
+random\random_unknown_4q_0004.json,random,unknown,4,20,0.0935,0.0522,1.79,,,1
+random\random_unknown_5q_0010.json,random,unknown,5,10,0.091,0.0477,1.908,,,1
+random\random_unknown_5q_0013.json,random,unknown,5,20,0.1139,0.036,3.159,,,1
+random\random_unknown_5q_0014.json,random,unknown,5,20,0.0507,0.0295,1.72,,,1
+random\random_unknown_6q_0018.json,random,unknown,6,10,0.0565,0.0277,2.043,,,1
+random\random_unknown_6q_0020.json,random,unknown,6,10,0.0769,0.0477,1.613,,,1
+random\random_unknown_7q_0027.json,random,unknown,7,10,0.0872,0.0542,1.608,,,1
+random\random_unknown_7q_0028.json,random,unknown,7,10,0.0939,0.0486,1.931,,,1
+random\random_unknown_8q_0036.json,random,unknown,8,10,0.0842,0.0468,1.8,,,1

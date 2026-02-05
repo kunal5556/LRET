@@ -1,0 +1,159 @@
+{
+  "circuit": {
+    "num_qubits": 6,
+    "operations": [
+      {
+        "name": "H",
+        "wires": [
+          0
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.1
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          1
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.1
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.1
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          1,
+          2
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.1
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.1
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          2,
+          3
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.1
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.1
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          3,
+          4
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.1
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.1
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          4,
+          5
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.1
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.1
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.0001,
+    "initial_rank": 1,
+    "export_state": true
+  },
+  "metadata": {
+    "type": "noisy",
+    "subtype": "ghz",
+    "noise_type": "PHASE_DAMP",
+    "noise_prob": 0.1,
+    "n_qubits": 6
+  }
+}

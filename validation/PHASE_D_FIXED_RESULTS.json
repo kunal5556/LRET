@@ -1,0 +1,920 @@
+[
+  {
+    "circuit": "ghz_amplitude_damping_10q_p01_0068.json",
+    "baseline_ms": 108.39271545410156,
+    "optimized_ms": 76.84469223022461,
+    "baseline_rank": 20,
+    "optimized_rank": 20,
+    "speedup": 1.4105426452793894,
+    "match": true
+  },
+  {
+    "circuit": "ghz_amplitude_damping_10q_p05_0069.json",
+    "baseline_ms": 92.76747703552246,
+    "optimized_ms": 88.74368667602539,
+    "baseline_rank": 21,
+    "optimized_rank": 21,
+    "speedup": 1.0453417083537067,
+    "match": true
+  },
+  {
+    "circuit": "ghz_amplitude_damping_6q_p01_0056.json",
+    "baseline_ms": 13.223886489868164,
+    "optimized_ms": 12.66336441040039,
+    "baseline_rank": 12,
+    "optimized_rank": 12,
+    "speedup": 1.0442632827503107,
+    "match": true
+  },
+  {
+    "circuit": "ghz_amplitude_damping_6q_p05_0057.json",
+    "baseline_ms": 12.94851303100586,
+    "optimized_ms": 14.090299606323242,
+    "baseline_rank": 13,
+    "optimized_rank": 13,
+    "speedup": 0.9189664799742805,
+    "match": true
+  },
+  {
+    "circuit": "ghz_amplitude_damping_8q_p01_0062.json",
+    "baseline_ms": 22.522926330566406,
+    "optimized_ms": 22.50814437866211,
+    "baseline_rank": 16,
+    "optimized_rank": 16,
+    "speedup": 1.0006567379192,
+    "match": true
+  },
+  {
+    "circuit": "ghz_amplitude_damping_8q_p05_0063.json",
+    "baseline_ms": 22.869110107421875,
+    "optimized_ms": 25.969505310058594,
+    "baseline_rank": 17,
+    "optimized_rank": 17,
+    "speedup": 0.8806140060959935,
+    "match": true
+  },
+  {
+    "circuit": "ghz_depolarizing_10q_p01_0066.json",
+    "baseline_ms": 318.67527961730957,
+    "optimized_ms": 317.66390800476074,
+    "baseline_rank": 36,
+    "optimized_rank": 36,
+    "speedup": 1.0031837787896687,
+    "match": true
+  },
+  {
+    "circuit": "ghz_depolarizing_10q_p05_0067.json",
+    "baseline_ms": 384.2885494232178,
+    "optimized_ms": 444.915771484375,
+    "baseline_rank": 38,
+    "optimized_rank": 38,
+    "speedup": 0.8637332593113383,
+    "match": true
+  },
+  {
+    "circuit": "ghz_depolarizing_6q_p01_0054.json",
+    "baseline_ms": 22.443532943725586,
+    "optimized_ms": 28.09596061706543,
+    "baseline_rank": 20,
+    "optimized_rank": 20,
+    "speedup": 0.7988170701696324,
+    "match": true
+  },
+  {
+    "circuit": "ghz_depolarizing_6q_p05_0055.json",
+    "baseline_ms": 35.886526107788086,
+    "optimized_ms": 32.927513122558594,
+    "baseline_rank": 22,
+    "optimized_rank": 22,
+    "speedup": 1.089864453905639,
+    "match": true
+  },
+  {
+    "circuit": "ghz_depolarizing_8q_p01_0060.json",
+    "baseline_ms": 91.13287925720215,
+    "optimized_ms": 88.33813667297363,
+    "baseline_rank": 28,
+    "optimized_rank": 28,
+    "speedup": 1.0316368749612028,
+    "match": true
+  },
+  {
+    "circuit": "ghz_depolarizing_8q_p05_0061.json",
+    "baseline_ms": 108.89124870300293,
+    "optimized_ms": 101.15242004394531,
+    "baseline_rank": 30,
+    "optimized_rank": 30,
+    "speedup": 1.0765066090924518,
+    "match": true
+  },
+  {
+    "circuit": "ghz_phase_damping_10q_p01_0070.json",
+    "baseline_ms": 15.589237213134766,
+    "optimized_ms": 20.948410034179688,
+    "baseline_rank": 2,
+    "optimized_rank": 2,
+    "speedup": 0.744172812528453,
+    "match": true
+  },
+  {
+    "circuit": "ghz_phase_damping_10q_p05_0071.json",
+    "baseline_ms": 18.820524215698242,
+    "optimized_ms": 20.888566970825195,
+    "baseline_rank": 2,
+    "optimized_rank": 2,
+    "speedup": 0.9009964274708091,
+    "match": true
+  },
+  {
+    "circuit": "ghz_phase_damping_6q_p01_0058.json",
+    "baseline_ms": 15.822172164916992,
+    "optimized_ms": 15.55323600769043,
+    "baseline_rank": 2,
+    "optimized_rank": 2,
+    "speedup": 1.017291331340538,
+    "match": true
+  },
+  {
+    "circuit": "ghz_phase_damping_6q_p05_0059.json",
+    "baseline_ms": 15.658855438232422,
+    "optimized_ms": 16.095399856567383,
+    "baseline_rank": 2,
+    "optimized_rank": 2,
+    "speedup": 0.9728776903820231,
+    "match": true
+  },
+  {
+    "circuit": "ghz_phase_damping_8q_p01_0064.json",
+    "baseline_ms": 17.02284812927246,
+    "optimized_ms": 16.28565788269043,
+    "baseline_rank": 2,
+    "optimized_rank": 2,
+    "speedup": 1.0452662245450686,
+    "match": true
+  },
+  {
+    "circuit": "ghz_phase_damping_8q_p05_0065.json",
+    "baseline_ms": 15.882253646850586,
+    "optimized_ms": 15.914440155029297,
+    "baseline_rank": 2,
+    "optimized_rank": 2,
+    "speedup": 0.9979775280898876,
+    "match": true
+  },
+  {
+    "circuit": "mixed_noise_10q_0100.json",
+    "baseline_ms": 908.7810516357422,
+    "optimized_ms": 924.7310161590576,
+    "baseline_rank": 16,
+    "optimized_rank": 16,
+    "speedup": 0.9827517794422373,
+    "match": true
+  },
+  {
+    "circuit": "mixed_noise_10q_0101.json",
+    "baseline_ms": 2034.9764823913574,
+    "optimized_ms": 1859.476089477539,
+    "baseline_rank": 21,
+    "optimized_rank": 21,
+    "speedup": 1.0943816346480308,
+    "match": true
+  },
+  {
+    "circuit": "mixed_noise_6q_0096.json",
+    "baseline_ms": 44.211387634277344,
+    "optimized_ms": 43.83993148803711,
+    "baseline_rank": 10,
+    "optimized_rank": 10,
+    "speedup": 1.0084730092778909,
+    "match": true
+  },
+  {
+    "circuit": "mixed_noise_6q_0097.json",
+    "baseline_ms": 82.9617977142334,
+    "optimized_ms": 77.74567604064941,
+    "baseline_rank": 16,
+    "optimized_rank": 16,
+    "speedup": 1.067092112889426,
+    "match": true
+  },
+  {
+    "circuit": "mixed_noise_8q_0098.json",
+    "baseline_ms": 228.58715057373047,
+    "optimized_ms": 238.39092254638672,
+    "baseline_rank": 13,
+    "optimized_rank": 13,
+    "speedup": 0.9588752295266251,
+    "match": true
+  },
+  {
+    "circuit": "mixed_noise_8q_0099.json",
+    "baseline_ms": 546.9019412994385,
+    "optimized_ms": 570.1501369476318,
+    "baseline_rank": 15,
+    "optimized_rank": 15,
+    "speedup": 0.9592244320545893,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_10q_p01_0042.json",
+    "baseline_ms": 582.7195644378662,
+    "optimized_ms": 565.3619766235352,
+    "baseline_rank": 15,
+    "optimized_rank": 15,
+    "speedup": 1.030701724792308,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_10q_p01_0043.json",
+    "baseline_ms": 538.733720779419,
+    "optimized_ms": 549.6575832366943,
+    "baseline_rank": 16,
+    "optimized_rank": 16,
+    "speedup": 0.9801260588584086,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_10q_p02_0044.json",
+    "baseline_ms": 704.6792507171631,
+    "optimized_ms": 1438.3180141448975,
+    "baseline_rank": 26,
+    "optimized_rank": 26,
+    "speedup": 0.4899328547561201,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_10q_p02_0045.json",
+    "baseline_ms": 569.3728923797607,
+    "optimized_ms": 604.9244403839111,
+    "baseline_rank": 19,
+    "optimized_rank": 19,
+    "speedup": 0.941229770809743,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_10q_p05_0046.json",
+    "baseline_ms": 9508.11743736267,
+    "optimized_ms": 6557.601690292358,
+    "baseline_rank": 59,
+    "optimized_rank": 59,
+    "speedup": 1.4499382375477534,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_10q_p05_0047.json",
+    "baseline_ms": 5335.2625370025635,
+    "optimized_ms": 3871.6771602630615,
+    "baseline_rank": 75,
+    "optimized_rank": 75,
+    "speedup": 1.3780236099644367,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_6q_p01_0006.json",
+    "baseline_ms": 46.65994644165039,
+    "optimized_ms": 23.740053176879883,
+    "baseline_rank": 10,
+    "optimized_rank": 10,
+    "speedup": 1.9654524820985608,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_6q_p01_0007.json",
+    "baseline_ms": 26.26824378967285,
+    "optimized_ms": 24.38521385192871,
+    "baseline_rank": 10,
+    "optimized_rank": 10,
+    "speedup": 1.077220152719522,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_6q_p02_0008.json",
+    "baseline_ms": 24.916887283325195,
+    "optimized_ms": 25.35080909729004,
+    "baseline_rank": 10,
+    "optimized_rank": 10,
+    "speedup": 0.9828833149940279,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_6q_p02_0009.json",
+    "baseline_ms": 32.964229583740234,
+    "optimized_ms": 30.23386001586914,
+    "baseline_rank": 14,
+    "optimized_rank": 14,
+    "speedup": 1.0903083353047867,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_6q_p05_0010.json",
+    "baseline_ms": 115.74363708496094,
+    "optimized_ms": 93.33157539367676,
+    "baseline_rank": 31,
+    "optimized_rank": 31,
+    "speedup": 1.240133755342167,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_6q_p05_0011.json",
+    "baseline_ms": 60.425758361816406,
+    "optimized_ms": 57.559967041015625,
+    "baseline_rank": 26,
+    "optimized_rank": 26,
+    "speedup": 1.0497879249784612,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_8q_p01_0024.json",
+    "baseline_ms": 108.83307456970215,
+    "optimized_ms": 95.22294998168945,
+    "baseline_rank": 13,
+    "optimized_rank": 13,
+    "speedup": 1.1429290374918,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_8q_p01_0025.json",
+    "baseline_ms": 89.30063247680664,
+    "optimized_ms": 66.48540496826172,
+    "baseline_rank": 12,
+    "optimized_rank": 12,
+    "speedup": 1.3431614430180019,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_8q_p02_0026.json",
+    "baseline_ms": 164.3507480621338,
+    "optimized_ms": 140.46359062194824,
+    "baseline_rank": 16,
+    "optimized_rank": 16,
+    "speedup": 1.1700594248973515,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_8q_p02_0027.json",
+    "baseline_ms": 136.74330711364746,
+    "optimized_ms": 115.52929878234863,
+    "baseline_rank": 15,
+    "optimized_rank": 15,
+    "speedup": 1.183624487942794,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_8q_p05_0028.json",
+    "baseline_ms": 1585.4501724243164,
+    "optimized_ms": 3170.1228618621826,
+    "baseline_rank": 53,
+    "optimized_rank": 53,
+    "speedup": 0.500122626633151,
+    "match": true
+  },
+  {
+    "circuit": "random_amplitude_damping_8q_p05_0029.json",
+    "baseline_ms": 710.1037502288818,
+    "optimized_ms": 690.4609203338623,
+    "baseline_rank": 45,
+    "optimized_rank": 45,
+    "speedup": 1.0284488655571145,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_10q_p01_0036.json",
+    "baseline_ms": 1674.520492553711,
+    "optimized_ms": 1479.3155193328857,
+    "baseline_rank": 15,
+    "optimized_rank": 15,
+    "speedup": 1.1319562802321272,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_10q_p01_0037.json",
+    "baseline_ms": 6803.909540176392,
+    "optimized_ms": 6094.842195510864,
+    "baseline_rank": 16,
+    "optimized_rank": 16,
+    "speedup": 1.1163389177143566,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_10q_p02_0038.json",
+    "baseline_ms": 1808.0334663391113,
+    "optimized_ms": 1366.919755935669,
+    "baseline_rank": 15,
+    "optimized_rank": 15,
+    "speedup": 1.3227063684521085,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_10q_p02_0039.json",
+    "baseline_ms": 5333.652496337891,
+    "optimized_ms": 3934.3321323394775,
+    "baseline_rank": 16,
+    "optimized_rank": 16,
+    "speedup": 1.3556690988277935,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_10q_p05_0040.json",
+    "baseline_ms": 16715.453386306763,
+    "optimized_ms": 17144.211292266846,
+    "baseline_rank": 73,
+    "optimized_rank": 73,
+    "speedup": 0.9749910976567653,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_10q_p05_0041.json",
+    "baseline_ms": 30359.934091567993,
+    "optimized_ms": 27218.408823013306,
+    "baseline_rank": 82,
+    "optimized_rank": 82,
+    "speedup": 1.1154191374294633,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_6q_p01_0000.json",
+    "baseline_ms": 77.66318321228027,
+    "optimized_ms": 58.70485305786133,
+    "baseline_rank": 10,
+    "optimized_rank": 10,
+    "speedup": 1.3229431497892181,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_6q_p01_0001.json",
+    "baseline_ms": 61.54823303222656,
+    "optimized_ms": 55.58156967163086,
+    "baseline_rank": 10,
+    "optimized_rank": 10,
+    "speedup": 1.1073496735670838,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_6q_p02_0002.json",
+    "baseline_ms": 83.1754207611084,
+    "optimized_ms": 77.0418643951416,
+    "baseline_rank": 16,
+    "optimized_rank": 16,
+    "speedup": 1.0796132909570864,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_6q_p02_0003.json",
+    "baseline_ms": 86.64274215698242,
+    "optimized_ms": 54.343223571777344,
+    "baseline_rank": 10,
+    "optimized_rank": 10,
+    "speedup": 1.5943614762297527,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_6q_p05_0004.json",
+    "baseline_ms": 1604.909896850586,
+    "optimized_ms": 1669.7492599487305,
+    "baseline_rank": 37,
+    "optimized_rank": 37,
+    "speedup": 0.9611682037217161,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_6q_p05_0005.json",
+    "baseline_ms": 1937.3466968536377,
+    "optimized_ms": 2010.9131336212158,
+    "baseline_rank": 36,
+    "optimized_rank": 36,
+    "speedup": 0.9634164024603584,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_8q_p01_0018.json",
+    "baseline_ms": 2062.0083808898926,
+    "optimized_ms": 1085.080623626709,
+    "baseline_rank": 13,
+    "optimized_rank": 13,
+    "speedup": 1.9003273452602611,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_8q_p01_0019.json",
+    "baseline_ms": 518.5379981994629,
+    "optimized_ms": 492.1722412109375,
+    "baseline_rank": 13,
+    "optimized_rank": 13,
+    "speedup": 1.0535701829173771,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_8q_p02_0020.json",
+    "baseline_ms": 936.1639022827148,
+    "optimized_ms": 487.2434139251709,
+    "baseline_rank": 13,
+    "optimized_rank": 13,
+    "speedup": 1.9213474734139506,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_8q_p02_0021.json",
+    "baseline_ms": 904.6797752380371,
+    "optimized_ms": 466.5408134460449,
+    "baseline_rank": 13,
+    "optimized_rank": 13,
+    "speedup": 1.9391224715276976,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_8q_p05_0022.json",
+    "baseline_ms": 8358.757495880127,
+    "optimized_ms": 8234.51566696167,
+    "baseline_rank": 61,
+    "optimized_rank": 61,
+    "speedup": 1.0150879340016241,
+    "match": true
+  },
+  {
+    "circuit": "random_depolarizing_8q_p05_0023.json",
+    "baseline_ms": 7464.846611022949,
+    "optimized_ms": 7160.769462585449,
+    "baseline_rank": 58,
+    "optimized_rank": 58,
+    "speedup": 1.0424643119746115,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_10q_p01_0048.json",
+    "baseline_ms": 348.38390350341797,
+    "optimized_ms": 276.8886089324951,
+    "baseline_rank": 10,
+    "optimized_rank": 10,
+    "speedup": 1.25820959138248,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_10q_p01_0049.json",
+    "baseline_ms": 501.71923637390137,
+    "optimized_ms": 664.8645401000977,
+    "baseline_rank": 14,
+    "optimized_rank": 14,
+    "speedup": 0.7546187322584023,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_10q_p02_0050.json",
+    "baseline_ms": 353.8527488708496,
+    "optimized_ms": 540.0271415710449,
+    "baseline_rank": 11,
+    "optimized_rank": 11,
+    "speedup": 0.6552499339966923,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_10q_p02_0051.json",
+    "baseline_ms": 554.8069477081299,
+    "optimized_ms": 618.4694766998291,
+    "baseline_rank": 15,
+    "optimized_rank": 15,
+    "speedup": 0.8970643962392384,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_10q_p05_0052.json",
+    "baseline_ms": 372.1315860748291,
+    "optimized_ms": 327.606201171875,
+    "baseline_rank": 13,
+    "optimized_rank": 13,
+    "speedup": 1.1359113006520727,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_10q_p05_0053.json",
+    "baseline_ms": 555.8328628540039,
+    "optimized_ms": 644.9637413024902,
+    "baseline_rank": 15,
+    "optimized_rank": 15,
+    "speedup": 0.8618048229060312,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_6q_p01_0012.json",
+    "baseline_ms": 30.79509735107422,
+    "optimized_ms": 28.13267707824707,
+    "baseline_rank": 9,
+    "optimized_rank": 9,
+    "speedup": 1.094637999271168,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_6q_p01_0013.json",
+    "baseline_ms": 28.314828872680664,
+    "optimized_ms": 22.757530212402344,
+    "baseline_rank": 8,
+    "optimized_rank": 8,
+    "speedup": 1.2441960357038093,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_6q_p02_0014.json",
+    "baseline_ms": 23.070573806762695,
+    "optimized_ms": 26.449918746948242,
+    "baseline_rank": 10,
+    "optimized_rank": 10,
+    "speedup": 0.8722360937091554,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_6q_p02_0015.json",
+    "baseline_ms": 22.591590881347656,
+    "optimized_ms": 21.381139755249023,
+    "baseline_rank": 9,
+    "optimized_rank": 9,
+    "speedup": 1.0566130309213975,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_6q_p05_0016.json",
+    "baseline_ms": 26.12590789794922,
+    "optimized_ms": 24.79863166809082,
+    "baseline_rank": 11,
+    "optimized_rank": 11,
+    "speedup": 1.0535221558843606,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_6q_p05_0017.json",
+    "baseline_ms": 22.797822952270508,
+    "optimized_ms": 26.625394821166992,
+    "baseline_rank": 13,
+    "optimized_rank": 13,
+    "speedup": 0.8562435639131408,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_8q_p01_0030.json",
+    "baseline_ms": 77.29673385620117,
+    "optimized_ms": 72.79753684997559,
+    "baseline_rank": 10,
+    "optimized_rank": 10,
+    "speedup": 1.0618042477934073,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_8q_p01_0031.json",
+    "baseline_ms": 89.42246437072754,
+    "optimized_ms": 60.56642532348633,
+    "baseline_rank": 10,
+    "optimized_rank": 10,
+    "speedup": 1.4764362250722345,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_8q_p02_0032.json",
+    "baseline_ms": 101.40299797058105,
+    "optimized_ms": 89.1873836517334,
+    "baseline_rank": 10,
+    "optimized_rank": 10,
+    "speedup": 1.1369657211444641,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_8q_p02_0033.json",
+    "baseline_ms": 114.44997787475586,
+    "optimized_ms": 138.3206844329834,
+    "baseline_rank": 11,
+    "optimized_rank": 11,
+    "speedup": 0.8274248955889678,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_8q_p05_0034.json",
+    "baseline_ms": 101.42898559570312,
+    "optimized_ms": 58.592796325683594,
+    "baseline_rank": 10,
+    "optimized_rank": 10,
+    "speedup": 1.7310828626768013,
+    "match": true
+  },
+  {
+    "circuit": "random_phase_damping_8q_p05_0035.json",
+    "baseline_ms": 98.60491752624512,
+    "optimized_ms": 71.44021987915039,
+    "baseline_rank": 13,
+    "optimized_rank": 13,
+    "speedup": 1.3802437575506772,
+    "match": true
+  },
+  {
+    "circuit": "stress_amplitude_damping_10q_p02_0094.json",
+    "baseline_ms": 14579.982042312622,
+    "optimized_ms": 15446.636438369751,
+    "baseline_rank": 57,
+    "optimized_rank": 57,
+    "speedup": 0.9438936496294855,
+    "match": true
+  },
+  {
+    "circuit": "stress_amplitude_damping_10q_p05_0095.json",
+    "baseline_ms": 20670.283317565918,
+    "optimized_ms": 15625.545263290405,
+    "baseline_rank": 48,
+    "optimized_rank": 48,
+    "speedup": 1.3228519689567106,
+    "match": true
+  },
+  {
+    "circuit": "stress_amplitude_damping_6q_p02_0086.json",
+    "baseline_ms": 187.5927448272705,
+    "optimized_ms": 179.70561981201172,
+    "baseline_rank": 29,
+    "optimized_rank": 29,
+    "speedup": 1.0438891394910712,
+    "match": true
+  },
+  {
+    "circuit": "stress_amplitude_damping_6q_p05_0087.json",
+    "baseline_ms": 336.99941635131836,
+    "optimized_ms": 392.4415111541748,
+    "baseline_rank": 37,
+    "optimized_rank": 37,
+    "speedup": 0.8587252030505116,
+    "match": true
+  },
+  {
+    "circuit": "stress_amplitude_damping_8q_p02_0090.json",
+    "baseline_ms": 3798.7217903137207,
+    "optimized_ms": 7257.75671005249,
+    "baseline_rank": 43,
+    "optimized_rank": 43,
+    "speedup": 0.5234016435205427,
+    "match": true
+  },
+  {
+    "circuit": "stress_amplitude_damping_8q_p05_0091.json",
+    "baseline_ms": 4189.395427703857,
+    "optimized_ms": 4912.510395050049,
+    "baseline_rank": 52,
+    "optimized_rank": 52,
+    "speedup": 0.852801335937158,
+    "match": true
+  },
+  {
+    "circuit": "stress_depolarizing_10q_p02_0092.json",
+    "baseline_ms": 37959.71131324768,
+    "optimized_ms": 44247.673988342285,
+    "baseline_rank": 57,
+    "optimized_rank": 57,
+    "speedup": 0.8578916786280955,
+    "match": true
+  },
+  {
+    "circuit": "stress_depolarizing_10q_p05_0093.json",
+    "baseline_ms": 265235.6016635895,
+    "optimized_ms": 271788.3245944977,
+    "baseline_rank": 109,
+    "optimized_rank": 109,
+    "speedup": 0.9758903442939106,
+    "match": true
+  },
+  {
+    "circuit": "stress_depolarizing_6q_p02_0084.json",
+    "baseline_ms": 2098.407506942749,
+    "optimized_ms": 2148.900270462036,
+    "baseline_rank": 35,
+    "optimized_rank": 35,
+    "speedup": 0.9765029749340435,
+    "match": true
+  },
+  {
+    "circuit": "stress_depolarizing_6q_p05_0085.json",
+    "baseline_ms": 15259.283065795898,
+    "optimized_ms": 16291.468143463135,
+    "baseline_rank": 56,
+    "optimized_rank": 56,
+    "speedup": 0.9366425991458974,
+    "match": true
+  },
+  {
+    "circuit": "stress_depolarizing_8q_p02_0088.json",
+    "baseline_ms": 7774.852752685547,
+    "optimized_ms": 7454.276561737061,
+    "baseline_rank": 43,
+    "optimized_rank": 43,
+    "speedup": 1.043005674433118,
+    "match": true
+  },
+  {
+    "circuit": "stress_depolarizing_8q_p05_0089.json",
+    "baseline_ms": 86558.265209198,
+    "optimized_ms": 84376.63984298706,
+    "baseline_rank": 98,
+    "optimized_rank": 98,
+    "speedup": 1.0258557981245833,
+    "match": true
+  },
+  {
+    "circuit": "vqe_depolarizing_10q_p01_0080.json",
+    "baseline_ms": 2311.4237785339355,
+    "optimized_ms": 2326.772689819336,
+    "baseline_rank": 41,
+    "optimized_rank": 41,
+    "speedup": 0.9934033473262951,
+    "match": true
+  },
+  {
+    "circuit": "vqe_depolarizing_10q_p01_0082.json",
+    "baseline_ms": 8754.882097244263,
+    "optimized_ms": 9689.138412475586,
+    "baseline_rank": 60,
+    "optimized_rank": 60,
+    "speedup": 0.9035769461164483,
+    "match": true
+  },
+  {
+    "circuit": "vqe_depolarizing_10q_p03_0081.json",
+    "baseline_ms": 4677.486419677734,
+    "optimized_ms": 4132.26056098938,
+    "baseline_rank": 51,
+    "optimized_rank": 51,
+    "speedup": 1.1319437268393868,
+    "match": true
+  },
+  {
+    "circuit": "vqe_depolarizing_10q_p03_0083.json",
+    "baseline_ms": 12692.100048065186,
+    "optimized_ms": 17951.29942893982,
+    "baseline_rank": 75,
+    "optimized_rank": 75,
+    "speedup": 0.7070295996290874,
+    "match": true
+  },
+  {
+    "circuit": "vqe_depolarizing_6q_p01_0072.json",
+    "baseline_ms": 244.7347640991211,
+    "optimized_ms": 238.18683624267578,
+    "baseline_rank": 25,
+    "optimized_rank": 25,
+    "speedup": 1.0274907209807933,
+    "match": true
+  },
+  {
+    "circuit": "vqe_depolarizing_6q_p01_0074.json",
+    "baseline_ms": 565.6099319458008,
+    "optimized_ms": 551.4047145843506,
+    "baseline_rank": 31,
+    "optimized_rank": 31,
+    "speedup": 1.025761871427157,
+    "match": true
+  },
+  {
+    "circuit": "vqe_depolarizing_6q_p03_0073.json",
+    "baseline_ms": 397.3522186279297,
+    "optimized_ms": 367.4795627593994,
+    "baseline_rank": 31,
+    "optimized_rank": 31,
+    "speedup": 1.0812906591164333,
+    "match": true
+  },
+  {
+    "circuit": "vqe_depolarizing_6q_p03_0075.json",
+    "baseline_ms": 1406.5561294555664,
+    "optimized_ms": 1083.5919380187988,
+    "baseline_rank": 40,
+    "optimized_rank": 40,
+    "speedup": 1.298049644063672,
+    "match": true
+  },
+  {
+    "circuit": "vqe_depolarizing_8q_p01_0076.json",
+    "baseline_ms": 1027.0915031433105,
+    "optimized_ms": 1023.8988399505615,
+    "baseline_rank": 35,
+    "optimized_rank": 35,
+    "speedup": 1.0031181431877618,
+    "match": true
+  },
+  {
+    "circuit": "vqe_depolarizing_8q_p01_0078.json",
+    "baseline_ms": 2051.236867904663,
+    "optimized_ms": 1948.5902786254883,
+    "baseline_rank": 43,
+    "optimized_rank": 43,
+    "speedup": 1.0526773588091491,
+    "match": true
+  },
+  {
+    "circuit": "vqe_depolarizing_8q_p03_0077.json",
+    "baseline_ms": 1624.2587566375732,
+    "optimized_ms": 1625.020980834961,
+    "baseline_rank": 44,
+    "optimized_rank": 44,
+    "speedup": 0.9995309450115555,
+    "match": true
+  },
+  {
+    "circuit": "vqe_depolarizing_8q_p03_0079.json",
+    "baseline_ms": 3043.848991394043,
+    "optimized_ms": 3348.44970703125,
+    "baseline_rank": 52,
+    "optimized_rank": 52,
+    "speedup": 0.9090323157616522,
+    "match": true
+  }
+]

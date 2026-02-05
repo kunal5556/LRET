@@ -1,0 +1,400 @@
+{
+  "circuit": {
+    "num_qubits": 6,
+    "operations": [
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          2
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          0
+        ],
+        "params": [
+          4.285551394509652
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          2
+        ],
+        "params": [
+          6.118798472222128
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          1
+        ],
+        "params": [
+          5.538101346650595
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          3,
+          1
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          3,
+          0
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "Z",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          2,
+          0
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "S",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          4
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          1,
+          4
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "S",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          5
+        ],
+        "params": [
+          3.8089225601753447
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          3
+        ],
+        "params": [
+          1.6004687079779
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          0
+        ],
+        "params": [
+          4.315650733624644
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          5
+        ],
+        "params": [
+          2.70992148434848
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          2
+        ],
+        "params": [
+          5.328237144457997
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          2
+        ],
+        "params": [
+          2.5660083229925985
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          2
+        ],
+        "params": [
+          2.6417422268194617
+        ]
+      },
+      {
+        "name": "PHASE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.0001,
+    "initial_rank": 1,
+    "export_state": true
+  },
+  "metadata": {
+    "type": "noisy",
+    "subtype": "random",
+    "noise_type": "PHASE_DAMP",
+    "noise_prob": 0.01,
+    "n_qubits": 6,
+    "depth": 20
+  }
+}

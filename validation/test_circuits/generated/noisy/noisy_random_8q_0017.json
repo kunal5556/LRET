@@ -1,0 +1,596 @@
+{
+  "circuit": {
+    "num_qubits": 8,
+    "operations": [
+      {
+        "name": "Z",
+        "wires": [
+          5
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          7,
+          2
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          7
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "S",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "X",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          2
+        ],
+        "params": [
+          5.524617868619111
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "S",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RZ",
+        "wires": [
+          0
+        ],
+        "params": [
+          1.8810521771046593
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "H",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "S",
+        "wires": [
+          2
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          3,
+          5
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          4
+        ],
+        "params": [
+          5.688396938803126
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.27700529397691737
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          2
+        ],
+        "params": [
+          1.0152494992291219
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          6
+        ],
+        "params": [
+          0.4727711160709698
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          6
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          2
+        ],
+        "params": [
+          3.660015549460224
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          0,
+          2
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          0
+        ],
+        "params": [
+          4.285551394509652
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          5
+        ],
+        "params": [
+          6.118798472222128
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          3
+        ],
+        "params": [
+          5.538101346650595
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          6,
+          7
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          6
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          7
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CNOT",
+        "wires": [
+          7,
+          1
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          7
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          5,
+          2
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          2
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "T",
+        "wires": [
+          3
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          3
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          4,
+          6
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          4
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          6
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          5,
+          7
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          7
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RX",
+        "wires": [
+          5
+        ],
+        "params": [
+          5.510594861443683
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "CZ",
+        "wires": [
+          0,
+          7
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          0
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          7
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "RY",
+        "wires": [
+          5
+        ],
+        "params": [
+          2.7419436392788383
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          5
+        ],
+        "params": [
+          0.01
+        ]
+      },
+      {
+        "name": "S",
+        "wires": [
+          1
+        ]
+      },
+      {
+        "name": "AMPLITUDE_DAMP",
+        "wires": [
+          1
+        ],
+        "params": [
+          0.01
+        ]
+      }
+    ]
+  },
+  "config": {
+    "epsilon": 0.0001,
+    "initial_rank": 1,
+    "export_state": true
+  },
+  "metadata": {
+    "type": "noisy",
+    "subtype": "random",
+    "noise_type": "AMPLITUDE_DAMP",
+    "noise_prob": 0.01,
+    "n_qubits": 8,
+    "depth": 30
+  }
+}

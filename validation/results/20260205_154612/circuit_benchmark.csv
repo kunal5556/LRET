@@ -1,0 +1,16 @@
+file,category,subtype,n_qubits,n_operations,baseline_time,optimized_time,speedup,baseline_rank,optimized_rank,trials
+entanglement\entanglement_bell_8q_0000.json,entanglement,bell,8,8,0.0801,0.0462,1.732,,,1
+entanglement\entanglement_ghz_3q_0001.json,entanglement,ghz,3,3,0.0844,0.0439,1.924,,,1
+entanglement\entanglement_ghz_4q_0002.json,entanglement,ghz,4,4,0.0891,0.0439,2.029,,,1
+entanglement\entanglement_ghz_5q_0003.json,entanglement,ghz,5,5,0.0825,0.0476,1.734,,,1
+entanglement\entanglement_ghz_6q_0004.json,entanglement,ghz,6,6,0.0751,0.0487,1.54,,,1
+entanglement\entanglement_ghz_7q_0005.json,entanglement,ghz,7,7,0.0934,0.0475,1.967,,,1
+entanglement\entanglement_ghz_8q_0006.json,entanglement,ghz,8,8,0.0866,0.0506,1.712,,,1
+entanglement\entanglement_ghz_9q_0007.json,entanglement,ghz,9,9,0.0928,0.0511,1.817,,,1
+entanglement\entanglement_ghz_10q_0008.json,entanglement,ghz,10,10,0.0919,0.0536,1.714,,,1
+entanglement\entanglement_w_state_3q_0011.json,entanglement,w_state,3,5,0.0792,0.049,1.616,,,1
+entanglement\entanglement_w_state_4q_0012.json,entanglement,w_state,4,7,0.0894,0.05,1.789,,,1
+entanglement\entanglement_w_state_5q_0013.json,entanglement,w_state,5,9,0.106,0.0592,1.791,,,1
+entanglement\entanglement_w_state_6q_0014.json,entanglement,w_state,6,11,0.0917,0.0499,1.837,,,1
+entanglement\entanglement_w_state_7q_0015.json,entanglement,w_state,7,13,0.0848,0.0536,1.582,,,1
+entanglement\entanglement_w_state_8q_0016.json,entanglement,w_state,8,15,0.0863,0.0524,1.645,,,1

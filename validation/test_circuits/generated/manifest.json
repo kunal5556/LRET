@@ -1,0 +1,2302 @@
+[
+  {
+    "file": "basic\\basic_single_qubit_6q_0000.json",
+    "category": "basic",
+    "subtype": "single_qubit",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "single_qubit",
+      "gate": "H"
+    }
+  },
+  {
+    "file": "basic\\basic_single_qubit_6q_0001.json",
+    "category": "basic",
+    "subtype": "single_qubit",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "single_qubit",
+      "gate": "X"
+    }
+  },
+  {
+    "file": "basic\\basic_single_qubit_6q_0002.json",
+    "category": "basic",
+    "subtype": "single_qubit",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "single_qubit",
+      "gate": "Y"
+    }
+  },
+  {
+    "file": "basic\\basic_single_qubit_6q_0003.json",
+    "category": "basic",
+    "subtype": "single_qubit",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "single_qubit",
+      "gate": "Z"
+    }
+  },
+  {
+    "file": "basic\\basic_single_qubit_6q_0004.json",
+    "category": "basic",
+    "subtype": "single_qubit",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "single_qubit",
+      "gate": "S"
+    }
+  },
+  {
+    "file": "basic\\basic_single_qubit_6q_0005.json",
+    "category": "basic",
+    "subtype": "single_qubit",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "single_qubit",
+      "gate": "T"
+    }
+  },
+  {
+    "file": "basic\\basic_param_gate_6q_0006.json",
+    "category": "basic",
+    "subtype": "param_gate",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "param_gate",
+      "gate": "RX",
+      "angle": 0
+    }
+  },
+  {
+    "file": "basic\\basic_param_gate_6q_0007.json",
+    "category": "basic",
+    "subtype": "param_gate",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "param_gate",
+      "gate": "RX",
+      "angle": 0.7853981633974483
+    }
+  },
+  {
+    "file": "basic\\basic_param_gate_6q_0008.json",
+    "category": "basic",
+    "subtype": "param_gate",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "param_gate",
+      "gate": "RX",
+      "angle": 1.5707963267948966
+    }
+  },
+  {
+    "file": "basic\\basic_param_gate_6q_0009.json",
+    "category": "basic",
+    "subtype": "param_gate",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "param_gate",
+      "gate": "RX",
+      "angle": 3.141592653589793
+    }
+  },
+  {
+    "file": "basic\\basic_param_gate_6q_0010.json",
+    "category": "basic",
+    "subtype": "param_gate",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "param_gate",
+      "gate": "RX",
+      "angle": 4.71238898038469
+    }
+  },
+  {
+    "file": "basic\\basic_param_gate_6q_0011.json",
+    "category": "basic",
+    "subtype": "param_gate",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "param_gate",
+      "gate": "RY",
+      "angle": 0
+    }
+  },
+  {
+    "file": "basic\\basic_param_gate_6q_0012.json",
+    "category": "basic",
+    "subtype": "param_gate",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "param_gate",
+      "gate": "RY",
+      "angle": 0.7853981633974483
+    }
+  },
+  {
+    "file": "basic\\basic_param_gate_6q_0013.json",
+    "category": "basic",
+    "subtype": "param_gate",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "param_gate",
+      "gate": "RY",
+      "angle": 1.5707963267948966
+    }
+  },
+  {
+    "file": "basic\\basic_param_gate_6q_0014.json",
+    "category": "basic",
+    "subtype": "param_gate",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "param_gate",
+      "gate": "RY",
+      "angle": 3.141592653589793
+    }
+  },
+  {
+    "file": "basic\\basic_param_gate_6q_0015.json",
+    "category": "basic",
+    "subtype": "param_gate",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "param_gate",
+      "gate": "RY",
+      "angle": 4.71238898038469
+    }
+  },
+  {
+    "file": "basic\\basic_param_gate_6q_0016.json",
+    "category": "basic",
+    "subtype": "param_gate",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "param_gate",
+      "gate": "RZ",
+      "angle": 0
+    }
+  },
+  {
+    "file": "basic\\basic_param_gate_6q_0017.json",
+    "category": "basic",
+    "subtype": "param_gate",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "param_gate",
+      "gate": "RZ",
+      "angle": 0.7853981633974483
+    }
+  },
+  {
+    "file": "basic\\basic_param_gate_6q_0018.json",
+    "category": "basic",
+    "subtype": "param_gate",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "param_gate",
+      "gate": "RZ",
+      "angle": 1.5707963267948966
+    }
+  },
+  {
+    "file": "basic\\basic_param_gate_6q_0019.json",
+    "category": "basic",
+    "subtype": "param_gate",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "param_gate",
+      "gate": "RZ",
+      "angle": 3.141592653589793
+    }
+  },
+  {
+    "file": "basic\\basic_param_gate_6q_0020.json",
+    "category": "basic",
+    "subtype": "param_gate",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "basic",
+      "subtype": "param_gate",
+      "gate": "RZ",
+      "angle": 4.71238898038469
+    }
+  },
+  {
+    "file": "basic\\basic_two_qubit_6q_0021.json",
+    "category": "basic",
+    "subtype": "two_qubit",
+    "n_qubits": 6,
+    "n_operations": 3,
+    "metadata": {
+      "type": "basic",
+      "subtype": "two_qubit",
+      "gate": "CNOT"
+    }
+  },
+  {
+    "file": "basic\\basic_two_qubit_6q_0022.json",
+    "category": "basic",
+    "subtype": "two_qubit",
+    "n_qubits": 6,
+    "n_operations": 3,
+    "metadata": {
+      "type": "basic",
+      "subtype": "two_qubit",
+      "gate": "CZ"
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_bell_8q_0000.json",
+    "category": "entanglement",
+    "subtype": "bell",
+    "n_qubits": 8,
+    "n_operations": 8,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "bell",
+      "pairs": 4
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_ghz_3q_0001.json",
+    "category": "entanglement",
+    "subtype": "ghz",
+    "n_qubits": 3,
+    "n_operations": 3,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "ghz",
+      "n_qubits": 3
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_ghz_4q_0002.json",
+    "category": "entanglement",
+    "subtype": "ghz",
+    "n_qubits": 4,
+    "n_operations": 4,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "ghz",
+      "n_qubits": 4
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_ghz_5q_0003.json",
+    "category": "entanglement",
+    "subtype": "ghz",
+    "n_qubits": 5,
+    "n_operations": 5,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "ghz",
+      "n_qubits": 5
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_ghz_6q_0004.json",
+    "category": "entanglement",
+    "subtype": "ghz",
+    "n_qubits": 6,
+    "n_operations": 6,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "ghz",
+      "n_qubits": 6
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_ghz_7q_0005.json",
+    "category": "entanglement",
+    "subtype": "ghz",
+    "n_qubits": 7,
+    "n_operations": 7,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "ghz",
+      "n_qubits": 7
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_ghz_8q_0006.json",
+    "category": "entanglement",
+    "subtype": "ghz",
+    "n_qubits": 8,
+    "n_operations": 8,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "ghz",
+      "n_qubits": 8
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_ghz_9q_0007.json",
+    "category": "entanglement",
+    "subtype": "ghz",
+    "n_qubits": 9,
+    "n_operations": 9,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "ghz",
+      "n_qubits": 9
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_ghz_10q_0008.json",
+    "category": "entanglement",
+    "subtype": "ghz",
+    "n_qubits": 10,
+    "n_operations": 10,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "ghz",
+      "n_qubits": 10
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_ghz_11q_0009.json",
+    "category": "entanglement",
+    "subtype": "ghz",
+    "n_qubits": 11,
+    "n_operations": 11,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "ghz",
+      "n_qubits": 11
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_ghz_12q_0010.json",
+    "category": "entanglement",
+    "subtype": "ghz",
+    "n_qubits": 12,
+    "n_operations": 12,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "ghz",
+      "n_qubits": 12
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_w_state_3q_0011.json",
+    "category": "entanglement",
+    "subtype": "w_state",
+    "n_qubits": 3,
+    "n_operations": 5,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "w_state",
+      "n_qubits": 3
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_w_state_4q_0012.json",
+    "category": "entanglement",
+    "subtype": "w_state",
+    "n_qubits": 4,
+    "n_operations": 7,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "w_state",
+      "n_qubits": 4
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_w_state_5q_0013.json",
+    "category": "entanglement",
+    "subtype": "w_state",
+    "n_qubits": 5,
+    "n_operations": 9,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "w_state",
+      "n_qubits": 5
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_w_state_6q_0014.json",
+    "category": "entanglement",
+    "subtype": "w_state",
+    "n_qubits": 6,
+    "n_operations": 11,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "w_state",
+      "n_qubits": 6
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_w_state_7q_0015.json",
+    "category": "entanglement",
+    "subtype": "w_state",
+    "n_qubits": 7,
+    "n_operations": 13,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "w_state",
+      "n_qubits": 7
+    }
+  },
+  {
+    "file": "entanglement\\entanglement_w_state_8q_0016.json",
+    "category": "entanglement",
+    "subtype": "w_state",
+    "n_qubits": 8,
+    "n_operations": 15,
+    "metadata": {
+      "type": "entanglement",
+      "subtype": "w_state",
+      "n_qubits": 8
+    }
+  },
+  {
+    "file": "random\\random_unknown_4q_0000.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 4,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 4,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_4q_0001.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 4,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 4,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_4q_0002.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 4,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 4,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_4q_0003.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 4,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 4,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_4q_0004.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 4,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 4,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_4q_0005.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 4,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 4,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_4q_0006.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 4,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 4,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_4q_0007.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 4,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 4,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_4q_0008.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 4,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 4,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_5q_0009.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 5,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 5,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_5q_0010.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 5,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 5,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_5q_0011.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 5,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 5,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_5q_0012.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 5,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 5,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_5q_0013.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 5,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 5,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_5q_0014.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 5,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 5,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_5q_0015.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 5,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 5,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_5q_0016.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 5,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 5,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_5q_0017.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 5,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 5,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_6q_0018.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 6,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 6,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_6q_0019.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 6,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 6,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_6q_0020.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 6,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 6,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_6q_0021.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 6,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 6,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_6q_0022.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 6,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 6,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_6q_0023.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 6,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 6,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_6q_0024.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 6,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 6,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_6q_0025.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 6,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 6,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_6q_0026.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 6,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 6,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_7q_0027.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 7,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 7,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_7q_0028.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 7,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 7,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_7q_0029.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 7,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 7,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_7q_0030.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 7,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 7,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_7q_0031.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 7,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 7,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_7q_0032.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 7,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 7,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_7q_0033.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 7,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 7,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_7q_0034.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 7,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 7,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_7q_0035.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 7,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 7,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_8q_0036.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 8,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 8,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_8q_0037.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 8,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 8,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_8q_0038.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 8,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 8,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_8q_0039.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 8,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 8,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_8q_0040.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 8,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 8,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_8q_0041.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 8,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 8,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_8q_0042.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 8,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 8,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_8q_0043.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 8,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 8,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_8q_0044.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 8,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 8,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_9q_0045.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 9,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 9,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_9q_0046.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 9,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 9,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_9q_0047.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 9,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 9,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_9q_0048.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 9,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 9,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_9q_0049.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 9,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 9,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_9q_0050.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 9,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 9,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_9q_0051.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 9,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 9,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_9q_0052.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 9,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 9,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_9q_0053.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 9,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 9,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_10q_0054.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 10,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 10,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_10q_0055.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 10,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 10,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_10q_0056.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 10,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 10,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_10q_0057.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 10,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 10,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_10q_0058.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 10,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 10,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_10q_0059.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 10,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 10,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_10q_0060.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 10,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 10,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_10q_0061.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 10,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 10,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_10q_0062.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 10,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 10,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_11q_0063.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 11,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 11,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_11q_0064.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 11,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 11,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_11q_0065.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 11,
+    "n_operations": 10,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 11,
+      "depth": 10,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_11q_0066.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 11,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 11,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_11q_0067.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 11,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 11,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_11q_0068.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 11,
+    "n_operations": 20,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 11,
+      "depth": 20,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "random\\random_unknown_11q_0069.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 11,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 11,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "random\\random_unknown_11q_0070.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 11,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 11,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "random\\random_unknown_11q_0071.json",
+    "category": "random",
+    "subtype": "unknown",
+    "n_qubits": 11,
+    "n_operations": 50,
+    "metadata": {
+      "type": "random",
+      "n_qubits": 11,
+      "depth": 50,
+      "two_qubit_prob": 0.3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_qft_3q_0000.json",
+    "category": "algorithm",
+    "subtype": "qft",
+    "n_qubits": 3,
+    "n_operations": 10,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "qft",
+      "n_qubits": 3
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_qft_4q_0001.json",
+    "category": "algorithm",
+    "subtype": "qft",
+    "n_qubits": 4,
+    "n_operations": 18,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "qft",
+      "n_qubits": 4
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_qft_5q_0002.json",
+    "category": "algorithm",
+    "subtype": "qft",
+    "n_qubits": 5,
+    "n_operations": 27,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "qft",
+      "n_qubits": 5
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_qft_6q_0003.json",
+    "category": "algorithm",
+    "subtype": "qft",
+    "n_qubits": 6,
+    "n_operations": 39,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "qft",
+      "n_qubits": 6
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_qft_7q_0004.json",
+    "category": "algorithm",
+    "subtype": "qft",
+    "n_qubits": 7,
+    "n_operations": 52,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "qft",
+      "n_qubits": 7
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_qft_8q_0005.json",
+    "category": "algorithm",
+    "subtype": "qft",
+    "n_qubits": 8,
+    "n_operations": 68,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "qft",
+      "n_qubits": 8
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_qft_9q_0006.json",
+    "category": "algorithm",
+    "subtype": "qft",
+    "n_qubits": 9,
+    "n_operations": 85,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "qft",
+      "n_qubits": 9
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_vqe_ansatz_6q_0007.json",
+    "category": "algorithm",
+    "subtype": "vqe_ansatz",
+    "n_qubits": 6,
+    "n_operations": 34,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "vqe_ansatz",
+      "n_qubits": 6,
+      "layers": 2,
+      "instance": 0
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_vqe_ansatz_6q_0008.json",
+    "category": "algorithm",
+    "subtype": "vqe_ansatz",
+    "n_qubits": 6,
+    "n_operations": 34,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "vqe_ansatz",
+      "n_qubits": 6,
+      "layers": 2,
+      "instance": 1
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_vqe_ansatz_6q_0009.json",
+    "category": "algorithm",
+    "subtype": "vqe_ansatz",
+    "n_qubits": 6,
+    "n_operations": 34,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "vqe_ansatz",
+      "n_qubits": 6,
+      "layers": 2,
+      "instance": 2
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_vqe_ansatz_8q_0010.json",
+    "category": "algorithm",
+    "subtype": "vqe_ansatz",
+    "n_qubits": 8,
+    "n_operations": 69,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "vqe_ansatz",
+      "n_qubits": 8,
+      "layers": 3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_vqe_ansatz_8q_0011.json",
+    "category": "algorithm",
+    "subtype": "vqe_ansatz",
+    "n_qubits": 8,
+    "n_operations": 69,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "vqe_ansatz",
+      "n_qubits": 8,
+      "layers": 3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_vqe_ansatz_8q_0012.json",
+    "category": "algorithm",
+    "subtype": "vqe_ansatz",
+    "n_qubits": 8,
+    "n_operations": 69,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "vqe_ansatz",
+      "n_qubits": 8,
+      "layers": 3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_qaoa_6q_0013.json",
+    "category": "algorithm",
+    "subtype": "qaoa",
+    "n_qubits": 6,
+    "n_operations": 57,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "qaoa",
+      "n_qubits": 6,
+      "p_layers": 2,
+      "instance": 0
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_qaoa_6q_0014.json",
+    "category": "algorithm",
+    "subtype": "qaoa",
+    "n_qubits": 6,
+    "n_operations": 63,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "qaoa",
+      "n_qubits": 6,
+      "p_layers": 2,
+      "instance": 1
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_qaoa_6q_0015.json",
+    "category": "algorithm",
+    "subtype": "qaoa",
+    "n_qubits": 6,
+    "n_operations": 63,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "qaoa",
+      "n_qubits": 6,
+      "p_layers": 2,
+      "instance": 2
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_qaoa_8q_0016.json",
+    "category": "algorithm",
+    "subtype": "qaoa",
+    "n_qubits": 8,
+    "n_operations": 155,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "qaoa",
+      "n_qubits": 8,
+      "p_layers": 3,
+      "instance": 0
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_qaoa_8q_0017.json",
+    "category": "algorithm",
+    "subtype": "qaoa",
+    "n_qubits": 8,
+    "n_operations": 155,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "qaoa",
+      "n_qubits": 8,
+      "p_layers": 3,
+      "instance": 1
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_qaoa_8q_0018.json",
+    "category": "algorithm",
+    "subtype": "qaoa",
+    "n_qubits": 8,
+    "n_operations": 146,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "qaoa",
+      "n_qubits": 8,
+      "p_layers": 3,
+      "instance": 2
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_grover_3q_0019.json",
+    "category": "algorithm",
+    "subtype": "grover",
+    "n_qubits": 3,
+    "n_operations": 47,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "grover",
+      "n_qubits": 3,
+      "iterations": 2
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_grover_4q_0020.json",
+    "category": "algorithm",
+    "subtype": "grover",
+    "n_qubits": 4,
+    "n_operations": 94,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "grover",
+      "n_qubits": 4,
+      "iterations": 3
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_grover_5q_0021.json",
+    "category": "algorithm",
+    "subtype": "grover",
+    "n_qubits": 5,
+    "n_operations": 145,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "grover",
+      "n_qubits": 5,
+      "iterations": 4
+    }
+  },
+  {
+    "file": "algorithm\\algorithm_grover_6q_0022.json",
+    "category": "algorithm",
+    "subtype": "grover",
+    "n_qubits": 6,
+    "n_operations": 276,
+    "metadata": {
+      "type": "algorithm",
+      "subtype": "grover",
+      "n_qubits": 6,
+      "iterations": 6
+    }
+  },
+  {
+    "file": "noisy\\noisy_ghz_6q_0000.json",
+    "category": "noisy",
+    "subtype": "ghz",
+    "n_qubits": 6,
+    "n_operations": 17,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "ghz",
+      "noise_type": "DEPOLARIZE",
+      "noise_prob": 0.01,
+      "n_qubits": 6
+    }
+  },
+  {
+    "file": "noisy\\noisy_ghz_6q_0001.json",
+    "category": "noisy",
+    "subtype": "ghz",
+    "n_qubits": 6,
+    "n_operations": 17,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "ghz",
+      "noise_type": "DEPOLARIZE",
+      "noise_prob": 0.05,
+      "n_qubits": 6
+    }
+  },
+  {
+    "file": "noisy\\noisy_ghz_6q_0002.json",
+    "category": "noisy",
+    "subtype": "ghz",
+    "n_qubits": 6,
+    "n_operations": 17,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "ghz",
+      "noise_type": "DEPOLARIZE",
+      "noise_prob": 0.1,
+      "n_qubits": 6
+    }
+  },
+  {
+    "file": "noisy\\noisy_ghz_6q_0003.json",
+    "category": "noisy",
+    "subtype": "ghz",
+    "n_qubits": 6,
+    "n_operations": 17,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "ghz",
+      "noise_type": "AMPLITUDE_DAMP",
+      "noise_prob": 0.01,
+      "n_qubits": 6
+    }
+  },
+  {
+    "file": "noisy\\noisy_ghz_6q_0004.json",
+    "category": "noisy",
+    "subtype": "ghz",
+    "n_qubits": 6,
+    "n_operations": 17,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "ghz",
+      "noise_type": "AMPLITUDE_DAMP",
+      "noise_prob": 0.05,
+      "n_qubits": 6
+    }
+  },
+  {
+    "file": "noisy\\noisy_ghz_6q_0005.json",
+    "category": "noisy",
+    "subtype": "ghz",
+    "n_qubits": 6,
+    "n_operations": 17,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "ghz",
+      "noise_type": "AMPLITUDE_DAMP",
+      "noise_prob": 0.1,
+      "n_qubits": 6
+    }
+  },
+  {
+    "file": "noisy\\noisy_ghz_6q_0006.json",
+    "category": "noisy",
+    "subtype": "ghz",
+    "n_qubits": 6,
+    "n_operations": 17,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "ghz",
+      "noise_type": "PHASE_DAMP",
+      "noise_prob": 0.01,
+      "n_qubits": 6
+    }
+  },
+  {
+    "file": "noisy\\noisy_ghz_6q_0007.json",
+    "category": "noisy",
+    "subtype": "ghz",
+    "n_qubits": 6,
+    "n_operations": 17,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "ghz",
+      "noise_type": "PHASE_DAMP",
+      "noise_prob": 0.05,
+      "n_qubits": 6
+    }
+  },
+  {
+    "file": "noisy\\noisy_ghz_6q_0008.json",
+    "category": "noisy",
+    "subtype": "ghz",
+    "n_qubits": 6,
+    "n_operations": 17,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "ghz",
+      "noise_type": "PHASE_DAMP",
+      "noise_prob": 0.1,
+      "n_qubits": 6
+    }
+  },
+  {
+    "file": "noisy\\noisy_random_6q_0009.json",
+    "category": "noisy",
+    "subtype": "random",
+    "n_qubits": 6,
+    "n_operations": 45,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "random",
+      "noise_type": "DEPOLARIZE",
+      "noise_prob": 0.01,
+      "n_qubits": 6,
+      "depth": 20
+    }
+  },
+  {
+    "file": "noisy\\noisy_random_6q_0010.json",
+    "category": "noisy",
+    "subtype": "random",
+    "n_qubits": 6,
+    "n_operations": 47,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "random",
+      "noise_type": "DEPOLARIZE",
+      "noise_prob": 0.05,
+      "n_qubits": 6,
+      "depth": 20
+    }
+  },
+  {
+    "file": "noisy\\noisy_random_6q_0011.json",
+    "category": "noisy",
+    "subtype": "random",
+    "n_qubits": 6,
+    "n_operations": 47,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "random",
+      "noise_type": "AMPLITUDE_DAMP",
+      "noise_prob": 0.01,
+      "n_qubits": 6,
+      "depth": 20
+    }
+  },
+  {
+    "file": "noisy\\noisy_random_6q_0012.json",
+    "category": "noisy",
+    "subtype": "random",
+    "n_qubits": 6,
+    "n_operations": 44,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "random",
+      "noise_type": "AMPLITUDE_DAMP",
+      "noise_prob": 0.05,
+      "n_qubits": 6,
+      "depth": 20
+    }
+  },
+  {
+    "file": "noisy\\noisy_random_6q_0013.json",
+    "category": "noisy",
+    "subtype": "random",
+    "n_qubits": 6,
+    "n_operations": 45,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "random",
+      "noise_type": "PHASE_DAMP",
+      "noise_prob": 0.01,
+      "n_qubits": 6,
+      "depth": 20
+    }
+  },
+  {
+    "file": "noisy\\noisy_random_6q_0014.json",
+    "category": "noisy",
+    "subtype": "random",
+    "n_qubits": 6,
+    "n_operations": 48,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "random",
+      "noise_type": "PHASE_DAMP",
+      "noise_prob": 0.05,
+      "n_qubits": 6,
+      "depth": 20
+    }
+  },
+  {
+    "file": "noisy\\noisy_random_8q_0015.json",
+    "category": "noisy",
+    "subtype": "random",
+    "n_qubits": 8,
+    "n_operations": 73,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "random",
+      "noise_type": "DEPOLARIZE",
+      "noise_prob": 0.01,
+      "n_qubits": 8,
+      "depth": 30
+    }
+  },
+  {
+    "file": "noisy\\noisy_random_8q_0016.json",
+    "category": "noisy",
+    "subtype": "random",
+    "n_qubits": 8,
+    "n_operations": 71,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "random",
+      "noise_type": "DEPOLARIZE",
+      "noise_prob": 0.05,
+      "n_qubits": 8,
+      "depth": 30
+    }
+  },
+  {
+    "file": "noisy\\noisy_random_8q_0017.json",
+    "category": "noisy",
+    "subtype": "random",
+    "n_qubits": 8,
+    "n_operations": 69,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "random",
+      "noise_type": "AMPLITUDE_DAMP",
+      "noise_prob": 0.01,
+      "n_qubits": 8,
+      "depth": 30
+    }
+  },
+  {
+    "file": "noisy\\noisy_random_8q_0018.json",
+    "category": "noisy",
+    "subtype": "random",
+    "n_qubits": 8,
+    "n_operations": 70,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "random",
+      "noise_type": "AMPLITUDE_DAMP",
+      "noise_prob": 0.05,
+      "n_qubits": 8,
+      "depth": 30
+    }
+  },
+  {
+    "file": "noisy\\noisy_random_8q_0019.json",
+    "category": "noisy",
+    "subtype": "random",
+    "n_qubits": 8,
+    "n_operations": 73,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "random",
+      "noise_type": "PHASE_DAMP",
+      "noise_prob": 0.01,
+      "n_qubits": 8,
+      "depth": 30
+    }
+  },
+  {
+    "file": "noisy\\noisy_random_8q_0020.json",
+    "category": "noisy",
+    "subtype": "random",
+    "n_qubits": 8,
+    "n_operations": 73,
+    "metadata": {
+      "type": "noisy",
+      "subtype": "random",
+      "noise_type": "PHASE_DAMP",
+      "noise_prob": 0.05,
+      "n_qubits": 8,
+      "depth": 30
+    }
+  },
+  {
+    "file": "stress\\stress_high_depth_6q_0000.json",
+    "category": "stress",
+    "subtype": "high_depth",
+    "n_qubits": 6,
+    "n_operations": 50,
+    "metadata": {
+      "type": "stress",
+      "n_qubits": 6,
+      "depth": 50,
+      "two_qubit_prob": 0.4,
+      "subtype": "high_depth"
+    }
+  },
+  {
+    "file": "stress\\stress_high_depth_6q_0001.json",
+    "category": "stress",
+    "subtype": "high_depth",
+    "n_qubits": 6,
+    "n_operations": 100,
+    "metadata": {
+      "type": "stress",
+      "n_qubits": 6,
+      "depth": 100,
+      "two_qubit_prob": 0.4,
+      "subtype": "high_depth"
+    }
+  },
+  {
+    "file": "stress\\stress_high_depth_6q_0002.json",
+    "category": "stress",
+    "subtype": "high_depth",
+    "n_qubits": 6,
+    "n_operations": 200,
+    "metadata": {
+      "type": "stress",
+      "n_qubits": 6,
+      "depth": 200,
+      "two_qubit_prob": 0.4,
+      "subtype": "high_depth"
+    }
+  },
+  {
+    "file": "stress\\stress_high_depth_8q_0003.json",
+    "category": "stress",
+    "subtype": "high_depth",
+    "n_qubits": 8,
+    "n_operations": 50,
+    "metadata": {
+      "type": "stress",
+      "n_qubits": 8,
+      "depth": 50,
+      "two_qubit_prob": 0.4,
+      "subtype": "high_depth"
+    }
+  },
+  {
+    "file": "stress\\stress_high_depth_8q_0004.json",
+    "category": "stress",
+    "subtype": "high_depth",
+    "n_qubits": 8,
+    "n_operations": 100,
+    "metadata": {
+      "type": "stress",
+      "n_qubits": 8,
+      "depth": 100,
+      "two_qubit_prob": 0.4,
+      "subtype": "high_depth"
+    }
+  },
+  {
+    "file": "stress\\stress_high_entanglement_4q_0005.json",
+    "category": "stress",
+    "subtype": "high_entanglement",
+    "n_qubits": 4,
+    "n_operations": 52,
+    "metadata": {
+      "type": "stress",
+      "subtype": "high_entanglement",
+      "n_qubits": 4,
+      "density": "all_to_all"
+    }
+  },
+  {
+    "file": "stress\\stress_high_entanglement_5q_0006.json",
+    "category": "stress",
+    "subtype": "high_entanglement",
+    "n_qubits": 5,
+    "n_operations": 105,
+    "metadata": {
+      "type": "stress",
+      "subtype": "high_entanglement",
+      "n_qubits": 5,
+      "density": "all_to_all"
+    }
+  },
+  {
+    "file": "stress\\stress_high_entanglement_6q_0007.json",
+    "category": "stress",
+    "subtype": "high_entanglement",
+    "n_qubits": 6,
+    "n_operations": 186,
+    "metadata": {
+      "type": "stress",
+      "subtype": "high_entanglement",
+      "n_qubits": 6,
+      "density": "all_to_all"
+    }
+  },
+  {
+    "file": "stress\\stress_high_entanglement_7q_0008.json",
+    "category": "stress",
+    "subtype": "high_entanglement",
+    "n_qubits": 7,
+    "n_operations": 301,
+    "metadata": {
+      "type": "stress",
+      "subtype": "high_entanglement",
+      "n_qubits": 7,
+      "density": "all_to_all"
+    }
+  },
+  {
+    "file": "stress\\stress_high_entanglement_8q_0009.json",
+    "category": "stress",
+    "subtype": "high_entanglement",
+    "n_qubits": 8,
+    "n_operations": 456,
+    "metadata": {
+      "type": "stress",
+      "subtype": "high_entanglement",
+      "n_qubits": 8,
+      "density": "all_to_all"
+    }
+  },
+  {
+    "file": "stress\\stress_high_entanglement_9q_0010.json",
+    "category": "stress",
+    "subtype": "high_entanglement",
+    "n_qubits": 9,
+    "n_operations": 657,
+    "metadata": {
+      "type": "stress",
+      "subtype": "high_entanglement",
+      "n_qubits": 9,
+      "density": "all_to_all"
+    }
+  },
+  {
+    "file": "stress\\stress_parallel_friendly_6q_0011.json",
+    "category": "stress",
+    "subtype": "parallel_friendly",
+    "n_qubits": 6,
+    "n_operations": 180,
+    "metadata": {
+      "type": "stress",
+      "subtype": "parallel_friendly",
+      "n_qubits": 6,
+      "layers": 20
+    }
+  },
+  {
+    "file": "stress\\stress_parallel_friendly_8q_0012.json",
+    "category": "stress",
+    "subtype": "parallel_friendly",
+    "n_qubits": 8,
+    "n_operations": 240,
+    "metadata": {
+      "type": "stress",
+      "subtype": "parallel_friendly",
+      "n_qubits": 8,
+      "layers": 20
+    }
+  },
+  {
+    "file": "stress\\stress_parallel_friendly_10q_0013.json",
+    "category": "stress",
+    "subtype": "parallel_friendly",
+    "n_qubits": 10,
+    "n_operations": 300,
+    "metadata": {
+      "type": "stress",
+      "subtype": "parallel_friendly",
+      "n_qubits": 10,
+      "layers": 20
+    }
+  }
+]
