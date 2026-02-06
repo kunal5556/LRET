@@ -203,6 +203,8 @@ set(LIB_SOURCES
     src/sparse_tensor_sim.cpp
     src/distributed_tensor_scatter.cpp
     src/variational_lindblad.cpp
+    src/morton_order.cpp
+    src/tuning_params.cpp
 )
 
 # Create static library
