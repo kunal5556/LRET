@@ -205,6 +205,8 @@ set(LIB_SOURCES
     src/variational_lindblad.cpp
     src/morton_order.cpp
     src/tuning_params.cpp
+    # Phase 5 (Row-Parallel): Matrix Completion & Tomography
+    src/matrix_completion.cpp
 )
 
 # Create static library
@@ -471,6 +473,12 @@ endif()
 if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_qec_adaptive.cpp")
     add_executable(test_qec_adaptive tests/test_qec_adaptive.cpp)
     target_link_libraries(test_qec_adaptive PRIVATE qlret_lib)
+endif()
+
+# Matrix Completion & Tomography test (Phase 5 Row-Parallel)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_matrix_completion.cpp")
+    add_executable(test_matrix_completion tests/test_matrix_completion.cpp)
+    target_link_libraries(test_matrix_completion PRIVATE qlret_lib)
 endif()
 
 # Compiler optimizations for Release builds
