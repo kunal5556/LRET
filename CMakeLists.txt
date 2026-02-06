@@ -196,6 +196,9 @@ set(LIB_SOURCES
     src/qec_distributed.cpp
     # Phase 9.3: Adaptive QEC
     src/qec_adaptive.cpp
+    # Phase 10: Advanced Row-Parallel Optimizations
+    src/iterative_compression.cpp
+    src/dlra_evolution.cpp
 )
 
 # Create static library

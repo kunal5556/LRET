@@ -46,6 +46,30 @@ MatrixXcd expand_single_gate(const MatrixXcd& gate, size_t target, size_t num_qu
 MatrixXcd expand_two_qubit_gate(const MatrixXcd& gate, size_t control, size_t target, size_t num_qubits);
 
 /**
+ * @brief Apply a single-qubit gate directly to L matrix (without full expansion)
+ * O(2^n × rank) instead of O(4^n). Applies gate to pairs of rows differing in target qubit.
+ * @param L Current low-rank factor (dim x rank)
+ * @param gate 2×2 gate matrix
+ * @param target Target qubit index
+ * @param num_qubits Total number of qubits
+ * @return Updated low-rank factor
+ */
+MatrixXcd apply_single_gate_direct(const MatrixXcd& L, const MatrixXcd& gate, size_t target, size_t num_qubits);
+
+/**
+ * @brief Apply a two-qubit gate directly to L matrix (without full expansion)
+ * O(4 × 2^n × rank) per gate instead of O(4^n).
+ * @param L Current low-rank factor (dim x rank)
+ * @param gate 4×4 gate matrix (row/col index = (q1_bit << 1) | q2_bit)
+ * @param q1 First qubit index (control for CNOT)
+ * @param q2 Second qubit index (target for CNOT)
+ * @param num_qubits Total number of qubits
+ * @return Updated low-rank factor
+ */
+MatrixXcd apply_two_qubit_gate_direct(const MatrixXcd& L, const MatrixXcd& gate,
+                                       size_t q1, size_t q2, size_t num_qubits);
+
+/**
  * @brief Apply a gate operation to a low-rank factor L
  * @param L Current low-rank factor (dim x rank)
  * @param gate_op Gate operation to apply

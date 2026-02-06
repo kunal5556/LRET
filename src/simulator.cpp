@@ -18,6 +18,8 @@
 #include "utils.h"
 #include "resource_monitor.h"
 #include "structured_csv.h"
+#include "iterative_compression.h"
+#include "dlra_evolution.h"
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
@@ -225,7 +227,17 @@ MatrixXcd run_simulation_optimized(
             const auto& noise = std::get<NoiseOp>(op);
             
             auto kraus_start = std::chrono::steady_clock::now();
-            L = apply_noise_to_L(L, noise, num_qubits);
+
+            // Phase 10: Use iterative compression instead of separate
+            // apply_noise_to_L() + truncate_L() for better performance.
+            // Iterative compression applies Kraus ops one at a time with
+            // intermediate compression, keeping Gram matrices small.
+            if (do_truncation) {
+                L = apply_noise_iterative_simple(L, noise, num_qubits, truncation_threshold);
+            } else {
+                L = apply_noise_to_L(L, noise, num_qubits);
+            }
+
             auto kraus_time = std::chrono::duration<double>(
                 std::chrono::steady_clock::now() - kraus_start).count();
             
@@ -238,8 +250,10 @@ MatrixXcd run_simulation_optimized(
                 std::cout << "Step " << step << ": Applied noise, rank = " << L.cols() << std::endl;
             }
             
-            // Truncate after noise (noise increases rank)
-            if (do_truncation && L.cols() > 1) {
+            // Note: truncation is now integrated into iterative compression above.
+            // For backward compatibility, perform truncation if rank still grew
+            // (e.g., correlated Pauli noise that delegates to standard path).
+            if (do_truncation && L.cols() > 1 && L.cols() > rank_before) {
                 size_t old_rank = L.cols();
                 auto trunc_start = std::chrono::steady_clock::now();
                 L = truncate_L(L, truncation_threshold);
@@ -386,11 +400,19 @@ MatrixXcd run_simulation_with_timing(
             const auto& noise = std::get<NoiseOp>(op);
             
             auto kraus_start = std::chrono::steady_clock::now();
-            L = apply_noise_to_L(L, noise, num_qubits);
+
+            // Phase 10: Use iterative compression (combined noise + truncation)
+            if (do_truncation) {
+                L = apply_noise_iterative_simple(L, noise, num_qubits, truncation_threshold);
+            } else {
+                L = apply_noise_to_L(L, noise, num_qubits);
+            }
+
             noise_time_out += std::chrono::duration<double>(
                 std::chrono::steady_clock::now() - kraus_start).count();
             
-            // Truncate after noise
+            // Fallback truncation for cases where iterative compression
+            // delegates to standard path (e.g., correlated Pauli)
             if (do_truncation && L.cols() > 1) {
                 size_t old_rank = L.cols();
                 auto trunc_start = std::chrono::steady_clock::now();
@@ -551,13 +573,19 @@ MatrixXcd run_noisy_density_matrix_circuit(
             }
         } else {
             const auto& noise = std::get<NoiseOp>(op);
-            L = apply_noise_to_L(L, noise, num_qubits);
+
+            // Phase 10: Use iterative compression for combined noise + truncation
+            if (do_truncation) {
+                L = apply_noise_iterative_simple(L, noise, num_qubits, truncation_threshold);
+            } else {
+                L = apply_noise_to_L(L, noise, num_qubits);
+            }
             
             if (verbose) {
                 std::cout << "Step " << step << ": applied noise, rank = " << L.cols() << std::endl;
             }
             
-            // Truncate after noise if enabled
+            // Fallback truncation if iterative compression delegates to standard path
             if (do_truncation && L.cols() > 1) {
                 L = truncate_L(L, truncation_threshold);
             }
