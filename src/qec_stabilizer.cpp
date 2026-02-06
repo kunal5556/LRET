@@ -137,81 +137,120 @@ SurfaceCode::SurfaceCode(size_t distance) : distance_(distance) {
 }
 
 size_t SurfaceCode::num_ancilla_qubits() const {
-    // For rotated surface code: (d²-1)/2 X-ancillas + (d²-1)/2 Z-ancillas
-    return (distance_ * distance_ - 1);
+    return x_ancilla_coords_.size() + z_ancilla_coords_.size();
 }
 
 void SurfaceCode::generate_lattice() {
-    // Rotated surface code layout
-    // Data qubits at (row, col) where (row + col) is even
-    // X-ancilla at (row, col) where row is odd, col is odd
-    // Z-ancilla at (row, col) where row is even, col is even (except corners)
+    // Simple surface code on d x d data qubit grid
+    // Data qubit index = row * d + col, coords = (row, col)
 
     data_coords_.clear();
     x_ancilla_coords_.clear();
     z_ancilla_coords_.clear();
 
-    size_t grid = grid_size();
+    int d = static_cast<int>(distance_);
 
-    for (size_t r = 0; r < grid; ++r) {
-        for (size_t c = 0; c < grid; ++c) {
-            if (is_data_qubit(static_cast<int>(r), static_cast<int>(c))) {
-                data_coords_.push_back({static_cast<int>(r), static_cast<int>(c)});
-            } else if (is_x_ancilla(static_cast<int>(r), static_cast<int>(c))) {
-                x_ancilla_coords_.push_back({static_cast<int>(r), static_cast<int>(c)});
-            } else if (is_z_ancilla(static_cast<int>(r), static_cast<int>(c))) {
-                z_ancilla_coords_.push_back({static_cast<int>(r), static_cast<int>(c)});
+    // Data qubits on d x d grid
+    for (int r = 0; r < d; ++r) {
+        for (int c = 0; c < d; ++c) {
+            data_coords_.push_back({r, c});
+        }
+    }
+
+    // X-stabilizers (plaquettes): placed at centers of faces in a checkerboard
+    // For a d x d grid, faces are at (r+0.5, c+0.5) for 0 <= r < d-1, 0 <= c < d-1
+    // We use (r, c) to denote the face between data qubits (r,c), (r,c+1), (r+1,c), (r+1,c+1)
+    // X-plaquettes: faces where (r + c) is even
+    // Z-plaquettes: faces where (r + c) is odd
+    // Plus boundary weight-2 stabilizers
+
+    for (int r = 0; r < d - 1; ++r) {
+        for (int c = 0; c < d - 1; ++c) {
+            if ((r + c) % 2 == 0) {
+                x_ancilla_coords_.push_back({r, c});  // face index
+            } else {
+                z_ancilla_coords_.push_back({r, c});  // face index
             }
+        }
+    }
+
+    // Boundary stabilizers: weight-2 on edges without interior plaquettes
+    // Top boundary: Z-type, touching (0, c) and (0, c+1)
+    for (int c = 0; c < d - 1; ++c) {
+        if (c % 2 == 1) {  // Where there's no X-plaquette at row=-1
+            z_ancilla_coords_.push_back({-1, c});  // boundary marker
+        }
+    }
+    // Bottom boundary
+    for (int c = 0; c < d - 1; ++c) {
+        if ((d - 1 + c) % 2 == 1) {
+            z_ancilla_coords_.push_back({d - 1, c});
+        }
+    }
+    // Left boundary: X-type
+    for (int r = 0; r < d - 1; ++r) {
+        if (r % 2 == 1) {
+            x_ancilla_coords_.push_back({r, -1});
+        }
+    }
+    // Right boundary
+    for (int r = 0; r < d - 1; ++r) {
+        if ((r + d - 1) % 2 == 1) {
+            x_ancilla_coords_.push_back({r, d - 1});
         }
     }
 }
 
 bool SurfaceCode::is_data_qubit(int row, int col) const {
-    int grid = static_cast<int>(grid_size());
-    if (row < 0 || col < 0 || row >= grid || col >= grid) return false;
-    return ((row + col) % 2) == 0;
+    int d = static_cast<int>(distance_);
+    return (row >= 0 && col >= 0 && row < d && col < d);
 }
 
 bool SurfaceCode::is_x_ancilla(int row, int col) const {
-    int grid = static_cast<int>(grid_size());
-    if (row < 0 || col < 0 || row >= grid || col >= grid) return false;
-    if ((row + col) % 2 == 0) return false;  // Data qubit position
-    // X-ancillas on odd rows (for rotated code)
-    return (row % 2) == 1;
+    for (const auto& [r, c] : x_ancilla_coords_) {
+        if (r == row && c == col) return true;
+    }
+    return false;
 }
 
 bool SurfaceCode::is_z_ancilla(int row, int col) const {
-    int grid = static_cast<int>(grid_size());
-    if (row < 0 || col < 0 || row >= grid || col >= grid) return false;
-    if ((row + col) % 2 == 0) return false;  // Data qubit position
-    // Z-ancillas on even rows
-    return (row % 2) == 0;
+    for (const auto& [r, c] : z_ancilla_coords_) {
+        if (r == row && c == col) return true;
+    }
+    return false;
 }
 
 void SurfaceCode::generate_stabilizers() {
     size_t n_data = num_data_qubits();
+    int d = static_cast<int>(distance_);
     x_stabs_.clear();
     z_stabs_.clear();
 
-    // Build map from coords to data qubit index
-    auto coord_to_data_idx = [this](int r, int c) -> int {
-        for (size_t i = 0; i < data_coords_.size(); ++i) {
-            if (data_coords_[i].first == r && data_coords_[i].second == c) {
-                return static_cast<int>(i);
-            }
-        }
-        return -1;
+    // Helper: convert (row, col) in d x d grid to data qubit index
+    auto coord_to_idx = [d](int r, int c) -> int {
+        if (r < 0 || c < 0 || r >= d || c >= d) return -1;
+        return r * d + c;
     };
 
-    // X-stabilizers: for each X-ancilla, X on adjacent data qubits
-    for (const auto& [ar, ac] : x_ancilla_coords_) {
+    // X-stabilizers from X-ancilla positions
+    for (const auto& [fr, fc] : x_ancilla_coords_) {
         PauliString stab(n_data);
-        // Adjacent data qubits: (ar±1, ac), (ar, ac±1)
-        std::vector<std::pair<int, int>> neighbors = {
-            {ar - 1, ac}, {ar + 1, ac}, {ar, ac - 1}, {ar, ac + 1}
-        };
-        for (const auto& [nr, nc] : neighbors) {
-            int idx = coord_to_data_idx(nr, nc);
+        // Each face/plaquette (fr, fc) touches 4 data qubits:
+        // (fr, fc), (fr, fc+1), (fr+1, fc), (fr+1, fc+1)
+        // But boundary stabilizers (fc == -1 or fc == d-1) only touch 2
+        std::vector<std::pair<int, int>> corners;
+        if (fc >= 0 && fc < d - 1) {
+            // Interior plaquette
+            corners = {{fr, fc}, {fr, fc + 1}, {fr + 1, fc}, {fr + 1, fc + 1}};
+        } else if (fc == -1) {
+            // Left boundary: touches (fr, 0) and (fr+1, 0)
+            corners = {{fr, 0}, {fr + 1, 0}};
+        } else if (fc == d - 1) {
+            // Right boundary: touches (fr, d-1) and (fr+1, d-1)
+            corners = {{fr, d - 1}, {fr + 1, d - 1}};
+        }
+        for (const auto& [cr, cc] : corners) {
+            int idx = coord_to_idx(cr, cc);
             if (idx >= 0) {
                 stab.set(static_cast<size_t>(idx), Pauli::X);
             }
@@ -221,14 +260,22 @@ void SurfaceCode::generate_stabilizers() {
         }
     }
 
-    // Z-stabilizers: for each Z-ancilla, Z on adjacent data qubits
-    for (const auto& [ar, ac] : z_ancilla_coords_) {
+    // Z-stabilizers from Z-ancilla positions
+    for (const auto& [fr, fc] : z_ancilla_coords_) {
         PauliString stab(n_data);
-        std::vector<std::pair<int, int>> neighbors = {
-            {ar - 1, ac}, {ar + 1, ac}, {ar, ac - 1}, {ar, ac + 1}
-        };
-        for (const auto& [nr, nc] : neighbors) {
-            int idx = coord_to_data_idx(nr, nc);
+        std::vector<std::pair<int, int>> corners;
+        if (fr >= 0 && fr < d - 1) {
+            // Interior plaquette
+            corners = {{fr, fc}, {fr, fc + 1}, {fr + 1, fc}, {fr + 1, fc + 1}};
+        } else if (fr == -1) {
+            // Top boundary: touches (0, fc) and (0, fc+1)
+            corners = {{0, fc}, {0, fc + 1}};
+        } else if (fr == d - 1) {
+            // Bottom boundary: touches (d-1, fc) and (d-1, fc+1)
+            corners = {{d - 1, fc}, {d - 1, fc + 1}};
+        }
+        for (const auto& [cr, cc] : corners) {
+            int idx = coord_to_idx(cr, cc);
             if (idx >= 0) {
                 stab.set(static_cast<size_t>(idx), Pauli::Z);
             }
@@ -240,22 +287,19 @@ void SurfaceCode::generate_stabilizers() {
 }
 
 void SurfaceCode::generate_logical_operators() {
+    int d = static_cast<int>(distance_);
     size_t n_data = num_data_qubits();
 
-    // Logical X: horizontal chain of X operators
+    // Logical X: horizontal chain of X operators across the top row
     logical_x_ = PauliString(n_data);
-    for (size_t i = 0; i < data_coords_.size(); ++i) {
-        if (data_coords_[i].first == 0) {  // Top row
-            logical_x_.set(i, Pauli::X);
-        }
+    for (int c = 0; c < d; ++c) {
+        logical_x_.set(static_cast<size_t>(0 * d + c), Pauli::X);  // row 0, all cols
     }
 
-    // Logical Z: vertical chain of Z operators
+    // Logical Z: vertical chain of Z operators down the left column
     logical_z_ = PauliString(n_data);
-    for (size_t i = 0; i < data_coords_.size(); ++i) {
-        if (data_coords_[i].second == 0) {  // Left column
-            logical_z_.set(i, Pauli::Z);
-        }
+    for (int r = 0; r < d; ++r) {
+        logical_z_.set(static_cast<size_t>(r * d + 0), Pauli::Z);  // all rows, col 0
     }
 }
 
