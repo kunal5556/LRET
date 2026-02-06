@@ -207,6 +207,9 @@ set(LIB_SOURCES
     src/tuning_params.cpp
     # Phase 5 (Row-Parallel): Matrix Completion & Tomography
     src/matrix_completion.cpp
+    # Phase 6 (Row-Parallel): Production Pipeline & Benchmarking
+    src/pipeline.cpp
+    src/benchmark_phases.cpp
 )
 
 # Create static library
@@ -479,6 +482,12 @@ endif()
 if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_matrix_completion.cpp")
     add_executable(test_matrix_completion tests/test_matrix_completion.cpp)
     target_link_libraries(test_matrix_completion PRIVATE qlret_lib)
+endif()
+
+# Pipeline & Benchmark test (Phase 6 Row-Parallel)
+if(EXISTS "${CMAKE_SOURCE_DIR}/tests/test_pipeline.cpp")
+    add_executable(test_pipeline tests/test_pipeline.cpp)
+    target_link_libraries(test_pipeline PRIVATE qlret_lib)
 endif()
 
 # Compiler optimizations for Release builds

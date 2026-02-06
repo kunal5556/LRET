@@ -118,17 +118,15 @@ MatrixXcd truncate_L(const MatrixXcd& L, double threshold, size_t max_rank) {
     // L_new = L * V_kept
     MatrixXcd L_new = L * V_kept;
     
-    // Phase 3: Optional Cholesky QR orthonormalization for well-conditioned L
-    // This provides 2-3× speedup for dim >> rank cases by using row-parallel
-    // multiplication Q = L × R⁻¹ instead of column-based HouseholderQR.
-    // Only used when rank < 64 (Cholesky overhead is minimal for small rank).
-    if (g_use_cholesky_qr && new_rank >= 2 && new_rank < 64) {
-        // Try Cholesky QR (falls back to standard if it fails)
-        MatrixXcd L_ortho = orthonormalize_cholesky_qr(L_new);
-        if (L_ortho.cols() == L_new.cols()) {
-            L_new = L_ortho;
-        }
-    }
+    // NOTE: We intentionally do NOT orthonormalize here.
+    // Orthonormalization (Cholesky QR or HouseholderQR) would change the density
+    // matrix ρ = L L†, which would alter simulation results. The truncation
+    // preserves the dominant eigenspace but must not change the physical state.
+    // 
+    // The Cholesky QR optimization was incorrectly applied here in Phase 3.
+    // Orthonormalization should only be used for numerical stability in specific
+    // contexts where it doesn't affect the physics (e.g., after gate application
+    // where L → U L preserves ρ up to numerical precision).
     
     // IMPORTANT: Renormalize to preserve trace
     // Truncation discards eigenvalues, which reduces Tr[ρ] = Tr[L L†]

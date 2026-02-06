@@ -219,7 +219,17 @@ MatrixXcd apply_noise_sparse(
     // Step 3: Remove zero columns (reduce rank)
     MatrixXcd L_compact = remove_zero_columns(L_noisy, config.sparsity_threshold);
 
-    // Step 4: Renormalize to preserve trace(ρ) = 1
+    // Step 4: Eigenvalue-based rank truncation to prevent unbounded rank growth.
+    // Sparsification alone (steps 2-3) only removes near-zero elements/columns,
+    // which is insufficient when noise probability is low (e.g., p=0.01) because
+    // Kraus weights remain well above the sparsity threshold. Without this step,
+    // rank grows as k^n (k=num_kraus, n=noise_ops), causing bad_alloc.
+    if (L_compact.cols() > 1) {
+        L_compact = truncate_L(L_compact, config.sparsity_threshold,
+                               config.max_dense_rank);
+    }
+
+    // Step 5: Renormalize to preserve trace(ρ) = 1
     double trace = L_compact.squaredNorm();
     if (trace > 1e-15) {
         L_compact /= std::sqrt(trace);

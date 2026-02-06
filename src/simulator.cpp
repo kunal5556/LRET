@@ -24,6 +24,8 @@
 #include "sparse_tensor_sim.h"
 #include "distributed_tensor_scatter.h"
 #include "variational_lindblad.h"
+#include "morton_order.h"
+#include "tuning_params.h"
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
