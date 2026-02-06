@@ -201,6 +201,8 @@ set(LIB_SOURCES
     src/dlra_evolution.cpp
     src/cp_decomposition.cpp
     src/sparse_tensor_sim.cpp
+    src/distributed_tensor_scatter.cpp
+    src/variational_lindblad.cpp
 )
 
 # Create static library

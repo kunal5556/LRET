@@ -22,6 +22,8 @@
 #include "dlra_evolution.h"
 #include "cp_decomposition.h"
 #include "sparse_tensor_sim.h"
+#include "distributed_tensor_scatter.h"
+#include "variational_lindblad.h"
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
