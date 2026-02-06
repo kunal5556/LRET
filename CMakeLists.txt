@@ -199,6 +199,8 @@ set(LIB_SOURCES
     # Phase 10: Advanced Row-Parallel Optimizations
     src/iterative_compression.cpp
     src/dlra_evolution.cpp
+    src/cp_decomposition.cpp
+    src/sparse_tensor_sim.cpp
 )
 
 # Create static library

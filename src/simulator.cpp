@@ -20,6 +20,8 @@
 #include "structured_csv.h"
 #include "iterative_compression.h"
 #include "dlra_evolution.h"
+#include "cp_decomposition.h"
+#include "sparse_tensor_sim.h"
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
@@ -169,6 +171,26 @@ MatrixXcd run_simulation_optimized(
     size_t max_rank = L.cols();
     auto start_time = std::chrono::steady_clock::now();
     
+    // Phase 2: Detect circuit pattern for optimized truncation strategy
+    CircuitPattern circuit_pattern = detect_circuit_pattern(sequence);
+    bool use_cp = (circuit_pattern != CircuitPattern::UNKNOWN);
+    
+    // Phase 2B: Check if sparse mode is beneficial
+    SparseConfig sparse_config;
+    sparse_config.verbose = verbose;
+    bool use_sparse = should_use_sparse(sequence, sparse_config);
+    
+    // CP takes priority over sparse for structured circuits
+    CPConfig cp_config;
+    cp_config.verbose = verbose;
+    
+    if (verbose && (use_cp || use_sparse)) {
+        std::cout << "[Phase 2] Circuit pattern: " << circuit_pattern_name(circuit_pattern)
+                  << ", CP mode: " << (use_cp ? "ON" : "OFF")
+                  << ", Sparse mode: " << (use_sparse ? "ON" : "OFF")
+                  << std::endl;
+    }
+    
     // Collect gates for batched application
     std::vector<GateOp> gate_batch;
     
@@ -228,12 +250,19 @@ MatrixXcd run_simulation_optimized(
             
             auto kraus_start = std::chrono::steady_clock::now();
 
-            // Phase 10: Use iterative compression instead of separate
-            // apply_noise_to_L() + truncate_L() for better performance.
-            // Iterative compression applies Kraus ops one at a time with
-            // intermediate compression, keeping Gram matrices small.
+            // Phase 2/10: Choose truncation strategy based on circuit pattern.
+            // Priority: CP (structured circuits) > Sparse (noisy) > Iterative (default)
             if (do_truncation) {
-                L = apply_noise_iterative_simple(L, noise, num_qubits, truncation_threshold);
+                if (use_cp) {
+                    // Phase 2A: CP-ALS for structured circuits (QFT, Grover, etc.)
+                    L = apply_noise_cp(L, noise, num_qubits, cp_config);
+                } else if (use_sparse) {
+                    // Phase 2B: Sparse truncation for noise-heavy circuits
+                    L = apply_noise_sparse(L, noise, num_qubits, sparse_config);
+                } else {
+                    // Phase 1 default: Iterative compression
+                    L = apply_noise_iterative_simple(L, noise, num_qubits, truncation_threshold);
+                }
             } else {
                 L = apply_noise_to_L(L, noise, num_qubits);
             }
@@ -366,6 +395,13 @@ MatrixXcd run_simulation_with_timing(
     bool do_truncation = config.do_truncation;
     double truncation_threshold = config.truncation_threshold;
     
+    // Phase 2: Detect circuit pattern and sparse applicability
+    CircuitPattern pattern_timed = detect_circuit_pattern(sequence);
+    bool cp_timed = (pattern_timed != CircuitPattern::UNKNOWN);
+    SparseConfig sparse_cfg_timed;
+    bool sparse_timed = should_use_sparse(sequence, sparse_cfg_timed);
+    CPConfig cp_cfg_timed;
+    
     // Collect gates for batched application
     std::vector<GateOp> gate_batch;
     
@@ -401,9 +437,15 @@ MatrixXcd run_simulation_with_timing(
             
             auto kraus_start = std::chrono::steady_clock::now();
 
-            // Phase 10: Use iterative compression (combined noise + truncation)
+            // Phase 2/10: Choose truncation strategy
             if (do_truncation) {
-                L = apply_noise_iterative_simple(L, noise, num_qubits, truncation_threshold);
+                if (cp_timed) {
+                    L = apply_noise_cp(L, noise, num_qubits, cp_cfg_timed);
+                } else if (sparse_timed) {
+                    L = apply_noise_sparse(L, noise, num_qubits, sparse_cfg_timed);
+                } else {
+                    L = apply_noise_iterative_simple(L, noise, num_qubits, truncation_threshold);
+                }
             } else {
                 L = apply_noise_to_L(L, noise, num_qubits);
             }
@@ -561,6 +603,15 @@ MatrixXcd run_noisy_density_matrix_circuit(
     MatrixXcd L = L_init;
     size_t step = 0;
     
+    // Phase 2: Detect circuit pattern and sparse applicability
+    CircuitPattern pattern_noisy = detect_circuit_pattern(sequence);
+    bool cp_noisy = (pattern_noisy != CircuitPattern::UNKNOWN);
+    SparseConfig sparse_cfg_noisy;
+    bool sparse_noisy = should_use_sparse(sequence, sparse_cfg_noisy);
+    CPConfig cp_cfg_noisy;
+    cp_cfg_noisy.verbose = verbose;
+    sparse_cfg_noisy.verbose = verbose;
+    
     for (const auto& op : sequence.operations) {
         step++;
         
@@ -574,9 +625,15 @@ MatrixXcd run_noisy_density_matrix_circuit(
         } else {
             const auto& noise = std::get<NoiseOp>(op);
 
-            // Phase 10: Use iterative compression for combined noise + truncation
+            // Phase 2/10: Choose truncation strategy
             if (do_truncation) {
-                L = apply_noise_iterative_simple(L, noise, num_qubits, truncation_threshold);
+                if (cp_noisy) {
+                    L = apply_noise_cp(L, noise, num_qubits, cp_cfg_noisy);
+                } else if (sparse_noisy) {
+                    L = apply_noise_sparse(L, noise, num_qubits, sparse_cfg_noisy);
+                } else {
+                    L = apply_noise_iterative_simple(L, noise, num_qubits, truncation_threshold);
+                }
             } else {
                 L = apply_noise_to_L(L, noise, num_qubits);
             }
