@@ -51,6 +51,14 @@ void ScatterStats::print() const {
 
 #ifdef USE_MPI
 
+// MS-MPI (Windows) does not reliably support MPI_CXX_DOUBLE_COMPLEX or
+// MPI_C_DOUBLE_COMPLEX in collective operations. Use MPI_DOUBLE with
+// doubled element counts instead (std::complex<double> == double[2]).
+#ifndef LRET_MPI_COMPLEX_COUNT
+#define LRET_MPI_COMPLEX_COUNT(n) ((n) * 2)
+#define LRET_MPI_COMPLEX_TYPE MPI_DOUBLE
+#endif
+
 DistributedTensorScatter::DistributedTensorScatter(MPI_Comm comm, 
                                                      const ScatterConfig& config)
     : comm_(comm), config_(config) {
@@ -132,13 +140,13 @@ void DistributedTensorScatter::scatter_tensors(
             local_tensors.push_back(tensors[i]);
         } else if (rank_ == root) {
             // Root sends to target
-            MPI_Send(tensors[i].data(), elems, MPI_CXX_DOUBLE_COMPLEX,
+            MPI_Send(tensors[i].data(), LRET_MPI_COMPLEX_COUNT(elems), LRET_MPI_COMPLEX_TYPE,
                      target_rank, i /*tag*/, comm_);
             stats_.total_bytes_scattered += elems * sizeof(Complex);
         } else if (rank_ == target_rank) {
             // This rank receives
             MatrixXcd tensor(rows, cols);
-            MPI_Recv(tensor.data(), elems, MPI_CXX_DOUBLE_COMPLEX,
+            MPI_Recv(tensor.data(), LRET_MPI_COMPLEX_COUNT(elems), LRET_MPI_COMPLEX_TYPE,
                      root, i /*tag*/, comm_, MPI_STATUS_IGNORE);
             local_tensors.push_back(std::move(tensor));
         }
@@ -173,43 +181,32 @@ void DistributedTensorScatter::broadcast_scatter_hybrid(
     int global_rows = dims[0];
     int cols = dims[1];
     
-    // Phase 2: Compute local row ranges (even distribution with remainder)
+    // Phase 2: Broadcast the full L matrix to all ranks
+    // (Eigen is column-major, so direct MPI_Scatterv of rows would
+    //  scatter non-contiguous data. Broadcasting full L is simpler
+    //  and still efficient for moderate sizes.)
+    MatrixXcd L_full(global_rows, cols);
+    if (rank_ == root) {
+        L_full = L;
+    }
+    MPI_Bcast(
+        L_full.data(),
+        LRET_MPI_COMPLEX_COUNT(global_rows * cols),
+        LRET_MPI_COMPLEX_TYPE,
+        root,
+        comm_
+    );
+    
+    // Phase 3: Each rank extracts its row slab
     int base_rows = global_rows / size_;
     int remainder = global_rows % size_;
     int local_rows = base_rows + (rank_ < remainder ? 1 : 0);
     int local_start = rank_ * base_rows + std::min(rank_, remainder);
     
-    // Phase 3: Scatter row slabs
-    // Build send counts and displacements on root
-    std::vector<int> send_counts(size_, 0);
-    std::vector<int> displs(size_, 0);
-    
-    if (rank_ == root) {
-        for (int r = 0; r < size_; ++r) {
-            int r_rows = base_rows + (r < remainder ? 1 : 0);
-            int r_start = r * base_rows + std::min(r, remainder);
-            send_counts[r] = r_rows * cols;
-            displs[r] = r_start * cols;
-        }
-    }
-    
-    local_L.resize(local_rows, cols);
-    int local_count = local_rows * cols;
-    
-    MPI_Scatterv(
-        rank_ == root ? L.data() : nullptr,
-        send_counts.data(),
-        displs.data(),
-        MPI_CXX_DOUBLE_COMPLEX,
-        local_L.data(),
-        local_count,
-        MPI_CXX_DOUBLE_COMPLEX,
-        root,
-        comm_
-    );
+    local_L = L_full.middleRows(local_start, local_rows);
     
     stats_.scatter_count++;
-    stats_.total_bytes_scattered += local_count * sizeof(Complex);
+    stats_.total_bytes_scattered += local_rows * cols * sizeof(Complex);
     stats_.scatter_time += std::chrono::duration<double>(
         std::chrono::steady_clock::now() - t_start).count();
 }
@@ -221,7 +218,8 @@ void DistributedTensorScatter::broadcast_scatter_hybrid(
 MatrixXcd DistributedTensorScatter::contract_and_reduce(
     const std::vector<MatrixXcd>& local_tensors,
     const MatrixXcd& local_L,
-    size_t num_qubits
+    size_t num_qubits,
+    size_t target_qubit
 ) {
     auto t_compute_start = std::chrono::steady_clock::now();
     
@@ -229,36 +227,20 @@ MatrixXcd DistributedTensorScatter::contract_and_reduce(
     size_t rank = local_L.cols();
     size_t num_local = local_tensors.size();
     
-    // Each local tensor (Kraus operator) is applied to local_L.
-    // The results are concatenated column-wise: [K_0·L | K_1·L | ...]
-    // Then allreduce combines partial concatenations from all ranks.
-    
-    // Compute total output rank: each Kraus op contributes 'rank' columns
-    // But we must allreduce across ranks, so we need consistent dimensions.
-    //
-    // Strategy: Each rank applies its local Kraus ops to get partial L columns.
-    // We use a two-step approach:
-    //   1. Each rank produces local_result = Σ_k (K_k · L · K_k†) in L-factor form
-    //      More precisely: local_result = [K_0·L | K_1·L | ...] for its local K_k's
-    //   2. Allgatherv to combine all partial results into the full concatenation
-    
     // Local contraction: apply each local Kraus operator to L
     MatrixXcd local_result;
     
     if (num_local == 0) {
-        // This rank has no tensors assigned - contribute zero
         local_result = MatrixXcd::Zero(dim, 0);
     } else {
-        // Allocate space for all local Kraus applications
         local_result.resize(dim, rank * num_local);
         
         #ifdef USE_OPENMP
         if (config_.multilevel) {
-            // Multi-level: OpenMP within each MPI rank
             #pragma omp parallel for schedule(dynamic)
             for (int k = 0; k < static_cast<int>(num_local); ++k) {
                 MatrixXcd L_k = apply_kraus_to_L(
-                    local_tensors[k], local_L, 0, num_qubits
+                    local_tensors[k], local_L, target_qubit, num_qubits
                 );
                 local_result.block(0, k * rank, dim, rank) = L_k;
             }
@@ -267,7 +249,7 @@ MatrixXcd DistributedTensorScatter::contract_and_reduce(
         {
             for (size_t k = 0; k < num_local; ++k) {
                 MatrixXcd L_k = apply_kraus_to_L(
-                    local_tensors[k], local_L, 0, num_qubits
+                    local_tensors[k], local_L, target_qubit, num_qubits
                 );
                 local_result.block(0, k * rank, dim, rank) = L_k;
             }
@@ -298,14 +280,20 @@ MatrixXcd DistributedTensorScatter::contract_and_reduce(
     
     MatrixXcd global_result(dim, total_cols);
     
+    // Double counts/displacements for MPI_DOUBLE encoding of complex
+    std::vector<int> recv_counts_d(size_), recv_displs_d(size_);
+    for (int r = 0; r < size_; ++r) {
+        recv_counts_d[r] = LRET_MPI_COMPLEX_COUNT(recv_counts[r]);
+        recv_displs_d[r] = LRET_MPI_COMPLEX_COUNT(recv_displs[r]);
+    }
     MPI_Allgatherv(
         local_result.data(),
-        static_cast<int>(dim) * local_cols,
-        MPI_CXX_DOUBLE_COMPLEX,
+        LRET_MPI_COMPLEX_COUNT(static_cast<int>(dim) * local_cols),
+        LRET_MPI_COMPLEX_TYPE,
         global_result.data(),
-        recv_counts.data(),
-        recv_displs.data(),
-        MPI_CXX_DOUBLE_COMPLEX,
+        recv_counts_d.data(),
+        recv_displs_d.data(),
+        LRET_MPI_COMPLEX_TYPE,
         comm_
     );
     
@@ -325,14 +313,15 @@ MatrixXcd DistributedTensorScatter::scatter_apply_reduce(
     const std::vector<MatrixXcd>& kraus_ops,
     const MatrixXcd& local_L,
     size_t num_qubits,
-    int root
+    int root,
+    size_t target_qubit
 ) {
     // Step 1: Scatter Kraus operators across ranks
     std::vector<MatrixXcd> local_kraus;
     scatter_tensors(kraus_ops, local_kraus, root);
     
     // Step 2: Contract locally and reduce globally
-    return contract_and_reduce(local_kraus, local_L, num_qubits);
+    return contract_and_reduce(local_kraus, local_L, num_qubits, target_qubit);
 }
 
 //------------------------------------------------------------------------------
@@ -462,7 +451,8 @@ MatrixXcd DistributedTensorScatter::apply_kraus_to_L(
 MatrixXcd DistributedTensorScatter::contract_and_reduce(
     const std::vector<MatrixXcd>& local_tensors,
     const MatrixXcd& local_L,
-    size_t num_qubits
+    size_t num_qubits,
+    size_t target_qubit
 ) {
     size_t dim = local_L.rows();
     size_t rank = local_L.cols();
@@ -481,8 +471,7 @@ MatrixXcd DistributedTensorScatter::contract_and_reduce(
         
         MatrixXcd L_k;
         if (k_dim == 2) {
-            // Single-qubit: assume qubit 0 (caller should specify)
-            L_k = apply_single_gate_direct(local_L, K, 0, num_qubits);
+            L_k = apply_single_gate_direct(local_L, K, target_qubit, num_qubits);
         } else if (k_dim == 4) {
             Matrix4cd K4;
             K4 << K(0,0), K(0,1), K(0,2), K(0,3),
@@ -537,7 +526,8 @@ MatrixXcd apply_noise_distributed(
         // AND enough Kraus operators to distribute
         if (world_size > 1 && kraus_ops.size() >= static_cast<size_t>(world_size)) {
             DistributedTensorScatter scatter(MPI_COMM_WORLD, config);
-            return scatter.scatter_apply_reduce(kraus_ops, L, num_qubits);
+            size_t target_q = noise.qubits.empty() ? 0 : noise.qubits[0];
+            return scatter.scatter_apply_reduce(kraus_ops, L, num_qubits, 0, target_q);
         }
     }
     #endif

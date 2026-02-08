@@ -11,6 +11,20 @@
 
 #ifdef USE_MPI
 
+// MS-MPI (Windows) does not reliably support MPI_CXX_DOUBLE_COMPLEX or
+// MPI_C_DOUBLE_COMPLEX in collective operations. Use MPI_DOUBLE with
+// doubled element counts instead (std::complex<double> == double[2]).
+#ifndef LRET_MPI_COMPLEX_COUNT
+#define LRET_MPI_COMPLEX_COUNT(n) ((n) * 2)
+#define LRET_MPI_COMPLEX_TYPE MPI_DOUBLE
+#endif
+
+// Legacy compat: mpi_parallel.cpp still uses MPI_CXX_DOUBLE_COMPLEX directly
+// in point-to-point calls which work fine with MPI_C_DOUBLE_COMPLEX.
+#ifndef MPI_CXX_DOUBLE_COMPLEX
+#define MPI_CXX_DOUBLE_COMPLEX MPI_C_DOUBLE_COMPLEX
+#endif
+
 namespace qlret {
 
 //==============================================================================

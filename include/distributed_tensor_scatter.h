@@ -246,7 +246,8 @@ public:
     MatrixXcd contract_and_reduce(
         const std::vector<MatrixXcd>& local_tensors,
         const MatrixXcd& local_L,
-        size_t num_qubits
+        size_t num_qubits,
+        size_t target_qubit = 0
     );
     
     /**
@@ -260,13 +261,15 @@ public:
      * @param local_L     Local L chunk on this rank
      * @param num_qubits  Number of qubits
      * @param root        Root rank with all Kraus operators
+     * @param target_qubit Target qubit for Kraus application (default 0)
      * @return Concatenated result after scatter+contract+reduce
      */
     MatrixXcd scatter_apply_reduce(
         const std::vector<MatrixXcd>& kraus_ops,
         const MatrixXcd& local_L,
         size_t num_qubits,
-        int root = 0
+        int root = 0,
+        size_t target_qubit = 0
     );
     
     //--------------------------------------------------------------------------
@@ -396,18 +399,20 @@ public:
     MatrixXcd contract_and_reduce(
         const std::vector<MatrixXcd>& local_tensors,
         const MatrixXcd& local_L,
-        size_t num_qubits
+        size_t num_qubits,
+        size_t target_qubit = 0
     );
     
     MatrixXcd scatter_apply_reduce(
         const std::vector<MatrixXcd>& kraus_ops,
         const MatrixXcd& local_L,
         size_t num_qubits,
-        int root = 0
+        int root = 0,
+        size_t target_qubit = 0
     ) {
         (void)root;
         // Single process: just apply all Kraus ops locally
-        return contract_and_reduce(kraus_ops, local_L, num_qubits);
+        return contract_and_reduce(kraus_ops, local_L, num_qubits, target_qubit);
     }
     
     void set_multilevel_mode(bool enable) { config_.multilevel = enable; }
