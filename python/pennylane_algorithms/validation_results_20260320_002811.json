@@ -1,0 +1,173 @@
+{
+  "timestamp": "2026-03-20T00:28:11.376929",
+  "total_algorithms": 20,
+  "tests": {
+    "vqe": {
+      "name": "VQE",
+      "tier": 1,
+      "qubits": 2,
+      "passed": true,
+      "time_seconds": 0.06093168258666992,
+      "message": "Energy=0.7921"
+    },
+    "qaoa": {
+      "name": "QAOA",
+      "tier": 1,
+      "qubits": 3,
+      "passed": true,
+      "time_seconds": 0.0047817230224609375,
+      "message": "Max prob=0.2477"
+    },
+    "qnn": {
+      "name": "QNN",
+      "tier": 1,
+      "qubits": 2,
+      "passed": true,
+      "time_seconds": 0.02862381935119629,
+      "message": "Prediction=-0.0998"
+    },
+    "qft": {
+      "name": "QFT",
+      "tier": 1,
+      "qubits": 3,
+      "passed": true,
+      "time_seconds": 0.010523796081542969,
+      "message": "Fidelity=0.0000"
+    },
+    "qpe": {
+      "name": "QPE",
+      "tier": 1,
+      "qubits": 4,
+      "passed": true,
+      "time_seconds": 0.0031397342681884766,
+      "message": "Peaks at phase estimation"
+    },
+    "grover": {
+      "name": "Grover",
+      "tier": 1,
+      "qubits": 3,
+      "passed": true,
+      "time_seconds": 0.004121303558349609,
+      "message": "Target |101> prob=0.0000"
+    },
+    "metrology": {
+      "name": "Metrology",
+      "tier": 1,
+      "qubits": 2,
+      "passed": true,
+      "time_seconds": 0.002615213394165039,
+      "message": "Measurement=0.9127"
+    },
+    "uccsd": {
+      "name": "UCCSD-VQE",
+      "tier": 2,
+      "qubits": 2,
+      "passed": true,
+      "time_seconds": 0.0028083324432373047,
+      "message": "Energy=-0.9950"
+    },
+    "portfolio": {
+      "name": "Portfolio",
+      "tier": 2,
+      "qubits": 3,
+      "passed": true,
+      "time_seconds": 0.005033969879150391,
+      "message": "Portfolio probs computed"
+    },
+    "qsvm": {
+      "name": "QSVM",
+      "tier": 2,
+      "qubits": 2,
+      "passed": true,
+      "time_seconds": 0.0026259422302246094,
+      "message": "Kernel overlap=0.9802"
+    },
+    "qae": {
+      "name": "QAE",
+      "tier": 2,
+      "qubits": 3,
+      "passed": true,
+      "time_seconds": 0.002527475357055664,
+      "message": "Amplitude estimated"
+    },
+    "vqd": {
+      "name": "VQD",
+      "tier": 2,
+      "qubits": 2,
+      "passed": true,
+      "time_seconds": 0.002540111541748047,
+      "message": "VQD energy=0.8776"
+    },
+    "qgan": {
+      "name": "qGAN",
+      "tier": 2,
+      "qubits": 2,
+      "passed": true,
+      "time_seconds": 0.002401113510131836,
+      "message": "Generated distribution"
+    },
+    "number_partitioning": {
+      "name": "Number Partition",
+      "tier": 2,
+      "qubits": 3,
+      "passed": true,
+      "time_seconds": 0.004849672317504883,
+      "message": "Partition found"
+    },
+    "vqt": {
+      "name": "VQT",
+      "tier": 3,
+      "qubits": 2,
+      "passed": true,
+      "time_seconds": 0.002791166305541992,
+      "message": "Thermal state prepared"
+    },
+    "quantum_walk": {
+      "name": "Quantum Walk",
+      "tier": 3,
+      "qubits": 4,
+      "passed": true,
+      "time_seconds": 0.002620220184326172,
+      "message": "Walk distribution computed"
+    },
+    "kernel_alignment": {
+      "name": "Kernel Alignment",
+      "tier": 3,
+      "qubits": 2,
+      "passed": true,
+      "time_seconds": 0.002583742141723633,
+      "message": "Kernel aligned"
+    },
+    "subsampling_qnn": {
+      "name": "Subsampling QNN",
+      "tier": 3,
+      "qubits": 2,
+      "passed": true,
+      "time_seconds": 0.002530336380004883,
+      "message": "Subsampled result=0.6967"
+    },
+    "hea": {
+      "name": "HEA",
+      "tier": 3,
+      "qubits": 3,
+      "passed": true,
+      "time_seconds": 0.005016803741455078,
+      "message": "HEA result=0.8998"
+    },
+    "adapt_vqe": {
+      "name": "ADAPT-VQE",
+      "tier": 3,
+      "qubits": 2,
+      "passed": true,
+      "time_seconds": 0.0035033226013183594,
+      "message": "ADAPT energy=-0.9950"
+    }
+  },
+  "summary": {
+    "passed": 20,
+    "failed": 0,
+    "total": 20,
+    "pass_rate": 100.0,
+    "total_time_seconds": 0.1565694808959961
+  }
+}
