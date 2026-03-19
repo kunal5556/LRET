@@ -1,0 +1,26 @@
+Microsoft (R) Build Engine version 16.11.2+f32259642 for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  1>Checking Build System
+  Building Custom Rule D:/LRET/CMakeLists.txt
+  qlret_lib.vcxproj -> D:\LRET\build\Release\qlret_lib.lib
+  Building Custom Rule D:/LRET/CMakeLists.txt
+  demo_batch.vcxproj -> D:\LRET\build\Release\demo_batch.exe
+  Building Custom Rule D:/LRET/CMakeLists.txt
+  quantum_sim.vcxproj -> D:\LRET\build\Release\quantum_sim.exe
+  Building Custom Rule D:/LRET/CMakeLists.txt
+  test_advanced_noise.vcxproj -> D:\LRET\build\Release\test_advanced_noise.exe
+  Building Custom Rule D:/LRET/CMakeLists.txt
+  test_autodiff.vcxproj -> D:\LRET\build\Release\test_autodiff.exe
+  Building Custom Rule D:/LRET/CMakeLists.txt
+  test_autodiff_multi.vcxproj -> D:\LRET\build\Release\test_autodiff_multi.exe
+  Building Custom Rule D:/LRET/CMakeLists.txt
+  test_checkpoint.vcxproj -> D:\LRET\build\Release\test_checkpoint.exe
+  Building Custom Rule D:/LRET/CMakeLists.txt
+  test_fidelity.vcxproj -> D:\LRET\build\Release\test_fidelity.exe
+  Building Custom Rule D:/LRET/CMakeLists.txt
+  test_leakage_measurement.cpp
+D:\LRET\tests\test_leakage_measurement.cpp : fatal error C1083: Cannot open compiler generated file: 'D:\LRET\build\test_leakage_measurement.dir\Release\test_leakage_measurement.obj': Permission denied [D:\LRET\build\test_leakage_measurement.vcxproj]
+  Building Custom Rule D:/LRET/CMakeLists.txt
+  test_minimal.cpp
+Attempting to cancel the build...

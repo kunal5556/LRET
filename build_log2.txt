@@ -1,0 +1,23 @@
+Microsoft (R) Build Engine version 16.11.2+f32259642 for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  1>Checking Build System
+  Building Custom Rule D:/LRET/CMakeLists.txt
+  qlret_lib.vcxproj -> D:\LRET\build\Release\qlret_lib.lib
+  Building Custom Rule D:/LRET/CMakeLists.txt
+  demo_batch.vcxproj -> D:\LRET\build\Release\demo_batch.exe
+  Building Custom Rule D:/LRET/CMakeLists.txt
+  quantum_sim.vcxproj -> D:\LRET\build\Release\quantum_sim.exe
+  Building Custom Rule D:/LRET/CMakeLists.txt
+  test_advanced_noise.vcxproj -> D:\LRET\build\Release\test_advanced_noise.exe
+  Building Custom Rule D:/LRET/CMakeLists.txt
+C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Microsoft\VC\v160\Microsoft.CppCommon.targets(687,5): error MSB6003: The specified task executable "CL.exe" could not be run. System.IO.IOException: The process cannot access the file 'D:\LRET\BUILD\TEST_AUTODIFF.DIR\RELEASE\TEST_AUTODIFF.OBJ' because it is being used by another process. [D:\LRET\build\test_autodiff.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Microsoft\VC\v160\Microsoft.CppCommon.targets(687,5): error MSB6003:    at System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath) [D:\LRET\build\test_autodiff.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Microsoft\VC\v160\Microsoft.CppCommon.targets(687,5): error MSB6003:    at System.IO.FileInfo.Delete() [D:\LRET\build\test_autodiff.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Microsoft\VC\v160\Microsoft.CppCommon.targets(687,5): error MSB6003:    at Microsoft.Build.CPPTasks.TrackedVCToolTask.DeleteFiles(ITaskItem[] filesToDelete) [D:\LRET\build\test_autodiff.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Microsoft\VC\v160\Microsoft.CppCommon.targets(687,5): error MSB6003:    at Microsoft.Build.CPPTasks.CL.ComputeOutOfDateSources() [D:\LRET\build\test_autodiff.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Microsoft\VC\v160\Microsoft.CppCommon.targets(687,5): error MSB6003:    at Microsoft.Build.CPPTasks.TrackedVCToolTask.SkipTaskExecution() [D:\LRET\build\test_autodiff.vcxproj]
+C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Microsoft\VC\v160\Microsoft.CppCommon.targets(687,5): error MSB6003:    at Microsoft.Build.Utilities.ToolTask.Execute() [D:\LRET\build\test_autodiff.vcxproj]
+  Building Custom Rule D:/LRET/CMakeLists.txt
+  test_autodiff_multi.cpp
+Attempting to cancel the build...

@@ -1,0 +1,74 @@
+BUILD_START=Sun 02/08/2026  0:52:02.09 
+Microsoft (R) Build Engine version 16.11.2+f32259642 for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  1>Checking Build System
+  Building Custom Rule D:/LRET/CMakeLists.txt
+  gates_and_noise.cpp
+  gate_fusion.cpp
+  circuit_optimizer.cpp
+  simd_kernels.cpp
+  simulator.cpp
+  autodiff.cpp
+  utils.cpp
+  cli_parser.cpp
+  output_formatter.cpp
+  parallel_modes.cpp
+  fdm_simulator.cpp
+  resource_monitor.cpp
+  progressive_csv.cpp
+  structured_csv.cpp
+  benchmark_types.cpp
+  benchmark_runner.cpp
+  mpi_parallel.cpp
+  noise_import.cpp
+  json_interface.cpp
+  checkpoint.cpp
+  Generating Code...
+  Compiling...
+  distributed_perf.cpp
+  qec_types.cpp
+  qec_stabilizer.cpp
+  qec_syndrome.cpp
+  qec_decoder.cpp
+  qec_logical.cpp
+  qec_distributed.cpp
+  qec_adaptive.cpp
+  iterative_compression.cpp
+  dlra_evolution.cpp
+  cp_decomposition.cpp
+  sparse_tensor_sim.cpp
+  distributed_tensor_scatter.cpp
+  variational_lindblad.cpp
+  morton_order.cpp
+  tuning_params.cpp
+  matrix_completion.cpp
+  pipeline.cpp
+  benchmark_phases.cpp
+  Generating Code...
+  Microsoft (R) Library Manager Version 14.29.30157.0
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  
+  "/OUT:D:\LRET\build\Release\qlret_lib.lib" /NOLOGO /MACHINE:X64 /machine:x64 qlret_lib.dir\Release\gates_and_noise.obj 
+  qlret_lib.dir\Release\gate_fusion.obj 
+  qlret_lib.dir\Release\circuit_optimizer.obj 
+  qlret_lib.dir\Release\simd_kernels.obj 
+  qlret_lib.dir\Release\simulator.obj 
+  qlret_lib.dir\Release\autodiff.obj 
+  qlret_lib.dir\Release\utils.obj 
+  qlret_lib.dir\Release\cli_parser.obj 
+  qlret_lib.dir\Release\output_formatter.obj 
+  qlret_lib.dir\Release\parallel_modes.obj 
+  qlret_lib.dir\Release\fdm_simulator.obj 
+  qlret_lib.dir\Release\resource_monitor.obj 
+  qlret_lib.dir\Release\progressive_csv.obj 
+  qlret_lib.dir\Release\structured_csv.obj 
+  qlret_lib.dir\Release\benchmark_types.obj 
+  qlret_lib.dir\Release\benchmark_runner.obj 
+  qlret_lib.dir\Release\mpi_parallel.obj 
+  qlret_lib.dir\Release\noise_import.obj 
+  qlret_lib.dir\Release\json_interface.obj 
+LINK : fatal error LNK1104: cannot open file 'qlret_lib.dir\Release\json_interface.obj' [D:\LRET\build\qlret_lib.vcxproj]
+BUILD_EXIT=1 
+BUILD_END=Sun 02/08/2026  1:20:15.08 
+TEST_EXE=MISSING 
