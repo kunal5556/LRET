@@ -166,8 +166,9 @@ theorem rx_unitary (θ : ℝ) : IsUnitary (RX_gate θ) := by
     -- (diagonal) cos^2+sin^2=1 or sin^2+cos^2=1: closed by simp with trig identities
     -- (off-diagonal) ring goals like -(cos*sin)+sin*cos=0: closed by ring
     -- Use (try simp) so "no progress" on ring goals doesn't abort before ring runs
-    (try simp [Real.cos_sq_add_sin_sq, Real.sin_sq_add_cos_sq]) <;>
-    ring
+    (try ring) <;>
+    linarith [Real.cos_sq_add_sin_sq (θ * (1 / 2)),
+              Real.sin_sq_add_cos_sq (θ * (1 / 2))]
 
 -- ============================================================
 -- Theorem 2.8: RZ(θ) is unitary for all θ : ℝ

@@ -146,9 +146,11 @@ theorem bit_flip_kraus_complete (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
   -- The smul for complex scalars: (r : ℝ) • (x : ℂ) = (↑r * x)
   -- After simp the goal should be arithmetic in ℂ components
   split_ifs with h
-  · push_cast
-    nlinarith [h1p, hsp]
-  · push_cast; ring
+  · -- star (r : ℝ) = r (TrivialStar); smul_smul: r • s • x = (r*s) • x
+    simp only [star_trivial, smul_smul]
+    rw [h1p, hsp, ← add_smul]
+    norm_num [one_smul]
+  · simp [smul_zero]
 
 -- ============================================================
 -- Theorem 3.5: Phase flip Kraus completeness
@@ -175,9 +177,10 @@ theorem phase_flip_kraus_complete (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
   have hsp : Real.sqrt p * Real.sqrt p = p :=
     Real.mul_self_sqrt hp.1
   split_ifs with h
-  · push_cast
-    nlinarith [h1p, hsp]
-  · push_cast; ring
+  · simp only [star_trivial, smul_smul]
+    rw [h1p, hsp, ← add_smul]
+    norm_num [one_smul]
+  · simp [smul_zero]
 
 -- ============================================================
 -- Theorem 3.6: CPTP maps preserve trace

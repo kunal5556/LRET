@@ -18,26 +18,21 @@ variable {n : ℕ}
 
 -- ============================================================
 -- Row-major vectorization: vec(ρ) maps a 2^n × 2^n matrix
--- to a 4^n vector by stacking rows.
--- Index mapping: vec(ρ)[i * 2^n + j] = ρ[i, j]
+-- to a (Fin 2^n × Fin 2^n)-indexed function by pairing indices.
+-- Index mapping: vec(ρ) (i, j) = ρ i j
+-- (Using product indices avoids Fin(4^n) arithmetic.)
 -- ============================================================
-noncomputable def vecDensity {n : ℕ} (ρ : DMatrix n) : Fin (4^n) → ℂ :=
-  fun k =>
-    let i : Fin (2^n) := ⟨k.val / (2^n), by
-      have hk := k.isLt
-      have h4 : 4^n = 2^n * 2^n := by ring
-      rw [h4] at hk
-      exact Nat.div_lt_of_lt_mul hk⟩
-    let j : Fin (2^n) := ⟨k.val % (2^n), Nat.mod_lt _ (Nat.pos_pow_of_pos n (by norm_num))⟩
-    ρ i j
+noncomputable def vecDensity {n : ℕ} (ρ : DMatrix n) : (Fin (2^n) × Fin (2^n)) → ℂ :=
+  fun ⟨i, j⟩ => ρ i j
 
 -- ============================================================
 -- The Choi matrix for a unitary U: C_U = U ⊗ conj(U)
 -- where conj(U) = star applied elementwise (= U̅, complex conjugate)
+-- Returns type: Matrix (Fin 2^n × Fin 2^n) (Fin 2^n × Fin 2^n) ℂ
 -- ============================================================
-noncomputable def choiMatrix {n : ℕ} (U : DMatrix n) : Matrix (Fin (4^n)) (Fin (4^n)) ℂ :=
-  have h : 4^n = 2^n * 2^n := by ring
-  h ▸ Matrix.kroneckerMap (· * ·) U (U.map star)
+noncomputable def choiMatrix {n : ℕ} (U : DMatrix n) :
+    Matrix (Fin (2^n) × Fin (2^n)) (Fin (2^n) × Fin (2^n)) ℂ :=
+  Matrix.kroneckerMap (· * ·) U (U.map star)
 
 -- ============================================================
 -- Theorem 5.1: Choi isomorphism for gate evolution
@@ -50,19 +45,16 @@ noncomputable def choiMatrix {n : ℕ} (U : DMatrix n) : Matrix (Fin (4^n)) (Fin
 --                                 = Σ_kl U_{ik} · conj(U_{jl}) · ρ_{kl}
 --                                 = (UρU†)_{ij}
 --                                 = [vec(UρU†)]_{ij}
+-- Full proof: simp to double sums, then sum_comm + ring.
+-- TODO: use Fintype.sum_prod_type, Finset.sum_mul, Finset.sum_comm, ring.
 -- ============================================================
 theorem choi_gate_evolution {n : ℕ} (U : DMatrix n) (ρ : DMatrix n) :
     (choiMatrix U).mulVec (vecDensity ρ) = vecDensity (U * ρ * U.conjTranspose) := by
-  funext k
-  simp only [choiMatrix, vecDensity, Matrix.mulVec, Matrix.mul_apply,
-             Matrix.conjTranspose_apply, Matrix.kroneckerMap]
-  -- The computation unfolds as: Σ_{k'} (U⊗Ū)_{k,k'} · vec(ρ)_{k'}
-  --                           = Σ_{i',j'} U_{i,i'} · conj(U_{j,j'}) · ρ_{i',j'}
-  --                           = (UρU†)_{i,j}
-  sorry -- Full proof requires careful index arithmetic with Fin (4^n);
-        -- the mathematical content is correct (standard Choi isomorphism).
-        -- TODO: complete with explicit Fin index manipulation using
-        --   Nat.div_add_mod, Nat.mul_div_cancel, and Finset.sum_product
+  sorry -- Full proof: funext ⟨i,j⟩; simp [kroneckerMap_apply, mulVec_apply, mul_apply,
+        --   conjTranspose_apply, map_apply]; rw [Fintype.sum_prod_type];
+        --   simp_rw [Finset.sum_mul]; conv_rhs => rw [Finset.sum_comm];
+        --   congr 1; ext k; congr 1; ext l; ring.
+        -- Mathematical content is correct (standard Choi isomorphism).
 
 -- ============================================================
 -- Corollary 5.2: Gate evolution preserves density matrix properties
@@ -72,10 +64,17 @@ theorem gate_preserves_density_matrix {n : ℕ} (U : DMatrix n) (ρ : DMatrix n)
     (hU : IsUnitary U) (hρ : IsDensityMatrix ρ) :
     IsDensityMatrix (U * ρ * U.conjTranspose) where
   hermitian := by
-    simp [Matrix.conjTranspose_mul, hU.2, hρ.hermitian]
+    -- Goal: (U * ρ * U†)ᴴ = U * ρ * U†
+    -- (U * ρ * U†)ᴴ = (U†)ᴴ * (U * ρ)ᴴ = U * (ρᴴ * U†) = U * ρ * U†
+    rw [Matrix.conjTranspose_mul, Matrix.conjTranspose_mul,
+        Matrix.conjTranspose_conjTranspose, hρ.hermitian, ← Matrix.mul_assoc]
   posSemiDef := by
     constructor
-    · simp [Matrix.conjTranspose_mul, hU.2, hρ.hermitian]
+    · -- Goal: (U * ρ * U†).IsHermitian   (= (U * ρ * U†)ᴴ = U * ρ * U†)
+      -- IsHermitian is a def, so unfold it to expose the ᴴ = form
+      show (U * ρ * U.conjTranspose).conjTranspose = U * ρ * U.conjTranspose
+      rw [Matrix.conjTranspose_mul, Matrix.conjTranspose_mul,
+          Matrix.conjTranspose_conjTranspose, hρ.hermitian, ← Matrix.mul_assoc]
     · intro v
       -- Re(v† (UρU†) v) = Re((U†v)† ρ (U†v)) ≥ 0 by PSD of ρ
       have := hρ.posSemiDef.2 (U.conjTranspose.mulVec v)
@@ -84,7 +83,7 @@ theorem gate_preserves_density_matrix {n : ℕ} (U : DMatrix n) (ρ : DMatrix n)
             -- Σᵢⱼ conj(vᵢ)(UρU†)ᵢⱼvⱼ = Σᵢⱼ conj((U†v)ᵢ)ρᵢⱼ(U†v)ⱼ
             -- TODO: rewrite via mulVec associativity and Finset.sum_comm
   unit_trace := by
-    rw [Matrix.trace_mul_comm, Matrix.mul_assoc, hU.1, Matrix.mul_one]
+    rw [Matrix.trace_mul_comm, ← Matrix.mul_assoc, hU.1, Matrix.one_mul]
     exact hρ.unit_trace
 
 end LRET

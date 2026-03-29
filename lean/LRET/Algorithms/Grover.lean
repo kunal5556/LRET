@@ -56,9 +56,9 @@ theorem reflection_unitary {n : ℕ} (P : DMatrix n)
     norm_cast
   rw [hDherm]
   calc (2 • P - 1) * (2 • P - 1)
-      = 4 • (P * P) - 4 • P + 1 := by ring
+      = 4 • (P * P) - 4 • P + 1 := by noncomm_ring
     _ = 4 • P - 4 • P + 1 := by rw [hP_proj]
-    _ = 1 := by ring
+    _ = 1 := by abel
 
 -- ============================================================
 -- Theorem 6.3: Phase kickback in oracle

@@ -30,35 +30,37 @@ theorem llstar_hermitian {m k : ℕ} (L : CMatrix m k) :
 -- For any L, LL† satisfies IsPosSemidefC:
 --   Re(v† LL† v) = ‖L†v‖² ≥ 0
 -- ============================================================
+set_option maxHeartbeats 800000 in
 theorem llstar_posSemidef {m k : ℕ} (L : CMatrix m k) :
     IsPosSemidefC (L * L.conjTranspose) := by
   constructor
-  · -- IsHermitian: (LL†)ᴴ = LL†
-    exact llstar_hermitian L
-  · -- Re(v† LL† v) = ‖L†v‖² ≥ 0
-    intro v
-    -- v† (LL†) v = Σᵢⱼ conj(vᵢ)(LL†)ᵢⱼvⱼ
-    -- = Σᵢⱼ conj(vᵢ)(Σₖ Lᵢₖ conj(Lⱼₖ))vⱼ
-    -- = Σₖ |Σᵢ conj(vᵢ) Lᵢₖ|² = Σₖ normSq((L†v)ₖ) ≥ 0
-    -- Re of this is a sum of non-negative reals.
-    have key : (∑ i : Fin m, ∑ j : Fin m,
-                  star (v i) * (L * L.conjTranspose) i j * v j).re =
-               ∑ col : Fin k,
-                  Complex.normSq (∑ row : Fin m, L row col * v row) := by
-      simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, Complex.normSq_apply,
-                 Complex.mul_re, Complex.mul_im, star]
-      simp only [Finset.sum_re, Complex.mul_re, Complex.mul_im]
-      -- Expand and rearrange using Finset.sum_comm
-      push_cast
-      simp only [Complex.normSq_apply, Complex.mul_re, Complex.mul_im,
-                 Complex.re_sum, Complex.im_sum]
-      simp [mul_comm, mul_assoc, Finset.sum_comm (s := Finset.univ) (t := Finset.univ)]
-      ring_nf
-      simp [Finset.sum_comm (s := Finset.univ) (t := Finset.univ)]
-    rw [key]
-    apply Finset.sum_nonneg
-    intro col _
-    exact Complex.normSq_nonneg _
+  · exact llstar_hermitian L
+  · intro v
+    -- Abbreviation: wₖ = (L†v)ₖ = Σᵢ star(Lᵢₖ)·vᵢ
+    -- We show the quadratic form = Σₖ conj(wₖ)·wₖ, then Re ≥ 0
+    have hre : ∀ z : ℂ, (star z * z).re = Complex.normSq z := fun z => by
+      simp only [Complex.normSq_apply, Complex.star_def, Complex.mul_re,
+                 Complex.conj_re, Complex.conj_im]; ring
+    have hform : ∑ i : Fin m, ∑ j : Fin m,
+                   star (v i) * (L * L.conjTranspose) i j * v j =
+                 ∑ col : Fin k,
+                   star (∑ row : Fin m, star (L row col) * v row) *
+                   (∑ row : Fin m, star (L row col) * v row) := by
+      simp only [Matrix.mul_apply, Matrix.conjTranspose_apply]
+      -- Both sides equal Σcol Σi Σj star(vi)·L(i,col)·star(L(j,col))·vj;
+      -- prove each direction separately to avoid simp_rw interaction
+      trans (∑ col : Fin k, ∑ i : Fin m, ∑ j : Fin m,
+               star (v i) * L i col * star (L j col) * v j)
+      · -- LHS → triple sum: distribute products over the inner Σcol, then reorder
+        simp_rw [Finset.mul_sum, Finset.sum_mul]
+        conv_lhs => arg 2; ext i; rw [Finset.sum_comm]  -- Σj Σcol → Σcol Σj
+        rw [Finset.sum_comm]                             -- Σi Σcol → Σcol Σi
+        congr 1; ext col; congr 1; ext i; congr 1; ext j; ring
+      · -- RHS → triple sum: expand star-of-sum, then distribute products
+        simp_rw [star_sum, StarMul.star_mul, star_star, Finset.sum_mul, Finset.mul_sum]
+        congr 1; ext col; congr 1; ext i; congr 1; ext j; ring
+    rw [hform, Complex.re_sum]
+    exact Finset.sum_nonneg fun col _ => hre _ ▸ Complex.normSq_nonneg _
 
 -- ============================================================
 -- Theorem 1.3: If Tr(L†L) = 1, then Tr(LL†) = 1
@@ -72,34 +74,33 @@ theorem llstar_trace_eq_lstarl_trace {m k : ℕ} (L : CMatrix m k) :
 -- Theorem 1.4: Gram matrix G = L†L is positive semidefinite
 -- This is the Gram matrix used in LRET's rank truncation
 -- ============================================================
+set_option maxHeartbeats 800000 in
 theorem gram_matrix_posSemidef {m k : ℕ} (L : CMatrix m k) :
     IsPosSemidefC (L.conjTranspose * L) := by
   constructor
-  · -- (L†L)ᴴ = L†L  (explicit rewrite to avoid simp naming issues)
-    show (L.conjTranspose * L).conjTranspose = L.conjTranspose * L
+  · show (L.conjTranspose * L).conjTranspose = L.conjTranspose * L
     rw [Matrix.conjTranspose_mul, Matrix.conjTranspose_conjTranspose]
-  · -- Re(v† L†L v) = ‖Lv‖² ≥ 0
-    intro v
-    -- v† L†L v = Σᵢⱼ conj(vᵢ)(L†L)ᵢⱼvⱼ
-    -- = Σᵢⱼ conj(vᵢ)(Σₖ conj(Lₖᵢ)Lₖⱼ)vⱼ
-    -- = Σₖ |Σⱼ Lₖⱼ vⱼ|² = Σₖ normSq((Lv)ₖ) ≥ 0
-    have key : (∑ i : Fin k, ∑ j : Fin k,
-                  star (v i) * (L.conjTranspose * L) i j * v j).re =
-               ∑ row : Fin m,
-                  Complex.normSq (∑ col : Fin k, L row col * v col) := by
-      simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, Complex.normSq_apply,
-                 Complex.mul_re, Complex.mul_im, star]
-      simp only [Finset.sum_re, Complex.mul_re, Complex.mul_im]
-      push_cast
-      simp only [Complex.normSq_apply, Complex.mul_re, Complex.mul_im,
-                 Complex.re_sum, Complex.im_sum]
-      simp [mul_comm, mul_assoc, Finset.sum_comm (s := Finset.univ) (t := Finset.univ)]
-      ring_nf
-      simp [Finset.sum_comm (s := Finset.univ) (t := Finset.univ)]
-    rw [key]
-    apply Finset.sum_nonneg
-    intro row _
-    exact Complex.normSq_nonneg _
+  · intro v
+    -- wᵣ = (Lv)ᵣ = Σcol L r col * v col; quadratic form = Σᵣ conj(wᵣ)·wᵣ
+    have hre : ∀ z : ℂ, (star z * z).re = Complex.normSq z := fun z => by
+      simp only [Complex.normSq_apply, Complex.star_def, Complex.mul_re,
+                 Complex.conj_re, Complex.conj_im]; ring
+    have hform : ∑ i : Fin k, ∑ j : Fin k,
+                   star (v i) * (L.conjTranspose * L) i j * v j =
+                 ∑ row : Fin m,
+                   star (∑ col : Fin k, L row col * v col) *
+                   (∑ col : Fin k, L row col * v col) := by
+      simp only [Matrix.mul_apply, Matrix.conjTranspose_apply]
+      trans (∑ row : Fin m, ∑ i : Fin k, ∑ j : Fin k,
+               star (v i) * star (L row i) * L row j * v j)
+      · simp_rw [Finset.mul_sum, Finset.sum_mul]
+        conv_lhs => arg 2; ext i; rw [Finset.sum_comm]  -- Σj Σrow → Σrow Σj
+        rw [Finset.sum_comm]                             -- Σi Σrow → Σrow Σi
+        congr 1; ext row; congr 1; ext i; congr 1; ext j; ring
+      · simp_rw [star_sum, StarMul.star_mul, Finset.sum_mul, Finset.mul_sum]
+        congr 1; ext row; congr 1; ext i; congr 1; ext j; ring
+    rw [hform, Complex.re_sum]
+    exact Finset.sum_nonneg fun row _ => hre _ ▸ Complex.normSq_nonneg _
 
 -- ============================================================
 -- Theorem 1.5: Density matrix validity from LL† factorization

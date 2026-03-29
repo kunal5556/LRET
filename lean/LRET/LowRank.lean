@@ -100,7 +100,9 @@ theorem truncation_error_bound {m : ℕ} (L : CMatrix m m) (k : ℕ) (hk : k ≤
     -- frobeniusNormSq 0 = 0 ≤ frobeniusNormSq(L*L†)
     -- LHS: frobeniusNormSq of zero matrix = 0
     -- RHS: frobeniusNormSq ≥ 0 always
-    simp only [frobeniusNormSq]
+    -- Reduce LHS frobeniusNormSq(0) to 0, then show 0 ≤ frobeniusNormSq(LL†)
+    simp only [frobeniusNormSq, Matrix.zero_apply, Complex.normSq_zero,
+               Finset.sum_const_zero]
     apply Finset.sum_nonneg; intro i _
     apply Finset.sum_nonneg; intro j _
     exact Complex.normSq_nonneg _
