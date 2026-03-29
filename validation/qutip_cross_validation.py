@@ -10,6 +10,9 @@ Fidelity > 0.999 across all test circuits confirms numerical correctness.
 """
 
 import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 import numpy as np
 from numpy.linalg import norm
 
@@ -58,8 +61,14 @@ def expand_gate(gate: np.ndarray, qubit: int, n_qubits: int) -> np.ndarray:
     return U
 
 def state_fidelity(rho1: np.ndarray, rho2: np.ndarray) -> float:
-    """Fidelity F(ρ₁,ρ₂) ≈ Tr(ρ₁ρ₂) for mixed states (linear fidelity)."""
-    return min(1.0, abs(np.trace(rho1 @ rho2)).real)
+    """Bures fidelity F(ρ₁,ρ₂) = (Tr sqrt(sqrt(ρ₁) ρ₂ sqrt(ρ₁)))²."""
+    from scipy.linalg import sqrtm
+    from numpy.linalg import eigvalsh
+    sqrt_rho1 = sqrtm(rho1)
+    M = sqrt_rho1 @ rho2 @ sqrt_rho1
+    eigs = np.real(eigvalsh(M))
+    eigs = np.maximum(eigs, 0.0)
+    return min(1.0, float(np.sum(np.sqrt(eigs))**2))
 
 # ──────────────────────────────────────────────────────────────
 # QuTiP reference implementation

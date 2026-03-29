@@ -7,10 +7,16 @@ All assertions must pass (exit code 0 = all pass).
 """
 
 import sys
+
+# Force UTF-8 output on Windows (cp1252 can't encode unicode math chars)
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 import sympy as sp
 from sympy import Matrix, Symbol, sqrt, simplify, trigsimp, eye, zeros, conjugate
 from sympy import cos, sin, exp, I, pi, re, im, Rational, symbols
-from sympy import expand, factor, cancel, radsimp
+from sympy import expand, factor, cancel, radsimp, refine
+from sympy.assumptions import Q
 
 def verify_gate_unitarity():
     """Verify U†U = I for all single- and two-qubit gates (including parametric)."""
@@ -71,42 +77,50 @@ def verify_kraus_completeness():
     gamma = Symbol('gamma', real=True, positive=True)
     lam = Symbol('lam', real=True, positive=True)
 
-    # 1. Depolarizing: K0=√(1-p)I, K1=√(p/3)X, K2=√(p/3)Y, K3=√(p/3)Z
+    def _real_kraus(mat, syms):
+        """Replace conjugate(sqrt(x)) -> sqrt(x) for all real-valued syms."""
+        result = mat
+        for s in syms:
+            result = result.xreplace({conjugate(sqrt(s)): sqrt(s),
+                                       conjugate(sqrt(s)**2): s})
+        return simplify(result)
+
+    # 1. Depolarizing: K0=sqrt(1-p)I, K1=sqrt(p/3)X, K2=sqrt(p/3)Y, K3=sqrt(p/3)Z
     K0 = sqrt(1-p) * eye(2)
     K1 = sqrt(p/3) * Matrix([[0,1],[1,0]])
     K2 = sqrt(p/3) * Matrix([[0,-I],[I,0]])
     K3 = sqrt(p/3) * Matrix([[1,0],[0,-1]])
-    total = simplify(K0.H*K0 + K1.H*K1 + K2.H*K2 + K3.H*K3)
-    # After simplification: (1-p) + p/3 + p/3 + p/3 = 1, off-diag = 0
-    assert total == eye(2), f"Depolarizing: Σ Kᵢ†Kᵢ ≠ I, got {total}"
+    total = _real_kraus(K0.H*K0 + K1.H*K1 + K2.H*K2 + K3.H*K3,
+                        [1-p, p/3])
+    assert total == eye(2), f"Depolarizing: sum K_i†K_i != I, got {total}"
     results['depolarizing'] = True
 
-    # 2. Amplitude damping: K0=[[1,0],[0,√(1-γ)]], K1=[[0,√γ],[0,0]]
+    # 2. Amplitude damping: K0=[[1,0],[0,sqrt(1-g)]], K1=[[0,sqrt(g)],[0,0]]
     K0 = Matrix([[1,0],[0,sqrt(1-gamma)]])
     K1 = Matrix([[0,sqrt(gamma)],[0,0]])
-    total = simplify(K0.H*K0 + K1.H*K1)
-    assert total == eye(2), f"Amplitude damping: Σ Kᵢ†Kᵢ ≠ I, got {total}"
+    total = _real_kraus(K0.H*K0 + K1.H*K1, [1-gamma, gamma])
+    assert total == eye(2), f"Amplitude damping: sum K_i†K_i != I, got {total}"
     results['amplitude_damping'] = True
 
-    # 3. Phase damping: K0=[[1,0],[0,√(1-λ)]], K1=[[0,0],[0,√λ]]
+    # 3. Phase damping: K0=[[1,0],[0,sqrt(1-l)]], K1=[[0,0],[0,sqrt(l)]]
     K0 = Matrix([[1,0],[0,sqrt(1-lam)]])
     K1 = Matrix([[0,0],[0,sqrt(lam)]])
-    total = simplify(K0.H*K0 + K1.H*K1)
-    assert total == eye(2), f"Phase damping: Σ Kᵢ†Kᵢ ≠ I, got {total}"
+    total = _real_kraus(K0.H*K0 + K1.H*K1, [1-lam, lam])
+    assert total == eye(2), f"Phase damping: sum K_i†K_i != I, got {total}"
     results['phase_damping'] = True
 
-    # 4. Bit flip: K0=√(1-p)I, K1=√p·X
+    # 4. Bit flip: K0=sqrt(1-p)I, K1=sqrt(p)*X
     K0 = sqrt(1-p) * eye(2)
     K1 = sqrt(p) * Matrix([[0,1],[1,0]])
-    total = simplify(K0.H*K0 + K1.H*K1)
-    assert total == eye(2), f"Bit flip: Σ Kᵢ†Kᵢ ≠ I, got {total}"
+    total = _real_kraus(K0.H*K0 + K1.H*K1, [1-p, p])
+    assert total == eye(2), f"Bit flip: sum K_i†K_i != I, got {total}"
     results['bit_flip'] = True
 
-    # 5. Phase flip: K0=√(1-p)I, K1=√p·Z
+    # 5. Phase flip: K0=sqrt(1-p)I, K1=sqrt(p)*Z
     K0 = sqrt(1-p) * eye(2)
     K1 = sqrt(p) * Matrix([[1,0],[0,-1]])
-    total = simplify(K0.H*K0 + K1.H*K1)
-    assert total == eye(2), f"Phase flip: Σ Kᵢ†Kᵢ ≠ I, got {total}"
+    total = _real_kraus(K0.H*K0 + K1.H*K1, [1-p, p])
+    assert total == eye(2), f"Phase flip: sum K_i†K_i != I, got {total}"
     results['phase_flip'] = True
 
     print(f"  Kraus completeness: {len(results)} channels verified ✓")
@@ -123,10 +137,11 @@ def verify_choi_isomorphism_2q():
     a, b_r, b_i, d = symbols('a b_r b_i d', real=True)
     rho = Matrix([[a, b_r + I*b_i], [b_r - I*b_i, d]])
 
-    # Left side: (U†⊗U) · vec(ρ) where vec stacks rows
-    # U† ⊗ U is 4×4 Kronecker product
+    # Row-major vectorization: vec_row(rho) = [rho[0,0], rho[0,1], rho[1,0], rho[1,1]]
+    # vec_row(U rho U†) = (U ⊗ conj(U)) · vec_row(rho)
+    # because vec_row(AXB) = (A ⊗ B^T) vec_row(X), B = U† → B^T = conj(U)
     Ud = U.H
-    kron = Matrix(sp.kronecker_product(Ud, U))
+    kron = Matrix(sp.kronecker_product(U, U.conjugate()))
     vec_rho = Matrix([rho[0,0], rho[0,1], rho[1,0], rho[1,1]])
     lhs = simplify(kron * vec_rho)
 
@@ -191,7 +206,9 @@ def verify_truncation_fidelity():
     eps = Symbol('eps', real=True, positive=True)
     # If the discarded singular value squared = eps², fidelity ≥ 1 - eps²
     fidelity_lower = 1 - eps**2
-    assert fidelity_lower > 0 or True  # Symbolic check: just verify formula is sensible
+    # Formula is sensible: 1 - eps² < 1 and approaches 1 as eps → 0
+    diff = simplify(1 - fidelity_lower)   # = eps²
+    assert diff == eps**2, f"Expected eps**2, got {diff}"
     print("  Truncation fidelity bound: formula verified symbolically ✓")
 
 def verify_vectorization_identity():
@@ -205,10 +222,10 @@ def verify_vectorization_identity():
     AXB = A * X * B
     vec_AXB = Matrix([AXB[0,0], AXB[0,1], AXB[1,0], AXB[1,1]])
 
-    # Right: (Bᵀ⊗A)·vec(X)
-    BT_kron_A = Matrix(sp.kronecker_product(B.T, A))
+    # Row-major: vec_row(AXB) = (A ⊗ B^T) · vec_row(X)
+    A_kron_BT = Matrix(sp.kronecker_product(A, B.T))
     vec_X = Matrix([X[0,0], X[0,1], X[1,0], X[1,1]])
-    rhs = BT_kron_A * vec_X
+    rhs = A_kron_BT * vec_X
 
     diff = simplify(vec_AXB - rhs)
     assert diff == Matrix([0,0,0,0]), f"Vectorization identity failed: diff = {diff}"

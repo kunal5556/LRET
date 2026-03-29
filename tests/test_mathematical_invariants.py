@@ -8,6 +8,7 @@ Run: pytest tests/test_mathematical_invariants.py -v
 import pytest
 import numpy as np
 from numpy.linalg import eigvalsh, norm, svd, matrix_rank
+from scipy.linalg import sqrtm
 from typing import Tuple
 
 # ──────────────────────────────────────────────────────────────
@@ -27,9 +28,13 @@ def reconstruct_density_matrix(L: np.ndarray) -> np.ndarray:
     return L @ L.conj().T
 
 def density_matrix_fidelity(rho1: np.ndarray, rho2: np.ndarray) -> float:
-    """Compute fidelity F(ρ₁, ρ₂) = Tr(√(√ρ₁ ρ₂ √ρ₁))²."""
-    # Simplified: for numerical tests use F = Tr(ρ₁ρ₂) (linear fidelity for mixed states)
-    return abs(np.trace(rho1 @ rho2)).real
+    """Compute Bures fidelity F(ρ₁, ρ₂) = (Tr √(√ρ₁ ρ₂ √ρ₁))²."""
+    sqrt_rho1 = sqrtm(rho1)
+    M = sqrt_rho1 @ rho2 @ sqrt_rho1
+    # Eigenvalues of M are real and ≥ 0 (M is PSD); sum of sqrt = Tr(sqrtm(M))
+    eigvals = np.real(eigvalsh(M))
+    eigvals = np.maximum(eigvals, 0.0)
+    return float(np.sum(np.sqrt(eigvals))**2)
 
 def apply_single_qubit_gate_to_L(L: np.ndarray, gate: np.ndarray, qubit: int, n_qubits: int) -> np.ndarray:
     """Apply single-qubit gate to L via full gate matrix U_full = I⊗...⊗G⊗...⊗I."""
@@ -180,18 +185,26 @@ def test_truncation_fidelity_bound(n_qubits, full_rank, trunc_rank):
     U, s, Vh = svd(L, full_matrices=False)
     L_trunc = U[:, :trunc_rank] * s[:trunc_rank]
 
-    # Re-normalize
-    L_trunc /= norm(L_trunc, 'fro')
-    rho_trunc = reconstruct_density_matrix(L_trunc)
+    # Keep L_trunc un-normalized so rho_trunc = L_trunc L_trunc† captures the
+    # fraction of the original state retained (not forced to trace=1).
+    rho_trunc_unnorm = L_trunc @ L_trunc.conj().T
+    retained_energy = np.trace(rho_trunc_unnorm).real  # = sum(s[:trunc_rank]²)
 
-    # Compute truncation error
-    discarded_sv_sq = np.sum(s[trunc_rank:]**2) / np.sum(s**2)
+    # Compute truncation error ε² = fraction of energy discarded
+    total_energy = np.sum(s**2)
+    eps_sq = 1.0 - retained_energy / total_energy
 
-    # Fidelity via trace inner product (simplified)
-    fidelity = abs(np.trace(rho_full @ rho_trunc)).real
+    # Fidelity (Bures) between rho_full and the normalized truncation
+    L_trunc_norm = L_trunc / norm(L_trunc, 'fro')
+    rho_trunc = reconstruct_density_matrix(L_trunc_norm)
+    fidelity = density_matrix_fidelity(rho_full, rho_trunc)
 
-    # Bound: F ≥ 1 - discarded_energy (not exactly 1-ε² but comparable)
-    assert fidelity > 0.5, f"Truncation fidelity too low: {fidelity:.4f}"
+    # Bound: F(ρ, ρ_trunc) ≥ retained_energy / total_energy = 1 - ε²
+    lower_bound = 1.0 - eps_sq
+    assert fidelity >= lower_bound - 1e-10, (
+        f"Fidelity {fidelity:.6f} < 1 - eps^2 = {lower_bound:.6f} "
+        f"(eps^2={eps_sq:.4f})"
+    )
 
 # ──────────────────────────────────────────────────────────────
 # Tests: Rank monotonicity

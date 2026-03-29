@@ -39,7 +39,7 @@ except ImportError:
 # Configuration
 # ──────────────────────────────────────────────────────────────
 QUBIT_RANGE_FULL  = [4, 6, 8, 10, 12, 14, 16]
-QUBIT_RANGE_QUICK = [4, 6, 8, 10]
+QUBIT_RANGE_QUICK = [4, 6, 8]
 CIRCUIT_DEPTH     = 20
 NOISE_PROB        = 0.0001
 N_TRIALS_FULL     = 5

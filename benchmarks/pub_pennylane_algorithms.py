@@ -246,13 +246,16 @@ def plot_per_algorithm(result: dict, output_dir: str, datestamp: str):
     ax.set_title(result['algo'].replace('_', ' ').title())
     ax.legend(framealpha=0.9)
 
-    # Inset timing bar
+    # Inset timing bar — use numeric x-positions to avoid StrCategoryConverter clash
     ax_in = ax.inset_axes([0.65, 0.55, 0.32, 0.38])
-    ax_in.bar(['LRET', result['competitor'][:8]],
+    _x = np.arange(2)
+    ax_in.bar(_x,
               [result['lret_mean_ms'], result['comp_mean_ms']],
               color=[COLORS['lret'], COLORS['cirq_fdm']],
               yerr=[result['lret_std_ms'], result['comp_std_ms']],
               capsize=3, width=0.5)
+    ax_in.set_xticks(_x)
+    ax_in.set_xticklabels(['LRET', result['competitor'][:8]], fontsize=6)
     ax_in.set_ylabel('ms', fontsize=7)
     ax_in.tick_params(labelsize=6)
 
