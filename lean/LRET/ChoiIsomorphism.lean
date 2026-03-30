@@ -48,13 +48,28 @@ noncomputable def choiMatrix {n : ℕ} (U : DMatrix n) :
 -- Full proof: simp to double sums, then sum_comm + ring.
 -- TODO: use Fintype.sum_prod_type, Finset.sum_mul, Finset.sum_comm, ring.
 -- ============================================================
+set_option maxHeartbeats 400000 in
 theorem choi_gate_evolution {n : ℕ} (U : DMatrix n) (ρ : DMatrix n) :
     (choiMatrix U).mulVec (vecDensity ρ) = vecDensity (U * ρ * U.conjTranspose) := by
-  sorry -- Full proof: funext ⟨i,j⟩; simp [kroneckerMap_apply, mulVec_apply, mul_apply,
-        --   conjTranspose_apply, map_apply]; rw [Fintype.sum_prod_type];
-        --   simp_rw [Finset.sum_mul]; conv_rhs => rw [Finset.sum_comm];
-        --   congr 1; ext k; congr 1; ext l; ring.
-        -- Mathematical content is correct (standard Choi isomorphism).
+  funext ⟨i, j⟩
+  -- Unfold definitions to double sums
+  -- Matrix.mulVec unfolds to ⬝ᵥ (dotProduct); add dotProduct to expand to Finset.sum
+  simp only [choiMatrix, vecDensity, Matrix.mulVec, dotProduct,
+             Matrix.kroneckerMap_apply, Matrix.map_apply, Matrix.mul_apply,
+             Matrix.conjTranspose_apply]
+  -- LHS: Σ_{x : Fin(2^n) × Fin(2^n)}, U i x.1 * star(U j x.2) * ρ x.1 x.2
+  -- Convert product-type sum to double sum
+  rw [Fintype.sum_prod_type]
+  -- LHS: Σ_a Σ_b, U i a * star(U j b) * ρ a b
+  -- RHS: Σ_k (Σ_l U i l * ρ l k) * star(U j k)
+  -- Distribute * star(U j k) inside inner sum on RHS
+  simp_rw [Finset.sum_mul]
+  -- RHS: Σ_k Σ_l, U i l * ρ l k * star(U j k)
+  -- Swap the two RHS sums to align indices with LHS
+  conv_rhs => rw [Finset.sum_comm]
+  -- RHS: Σ_l Σ_k, U i l * ρ l k * star(U j k)   (l = a, k = b after rename)
+  -- Both sides now have form Σ_a Σ_b, <terms equal by ring>
+  congr 1; ext a; congr 1; ext b; ring
 
 -- ============================================================
 -- Corollary 5.2: Gate evolution preserves density matrix properties
