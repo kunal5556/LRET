@@ -47,7 +47,18 @@ theorem depolarizing_kraus_complete (p : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) :
   --   rw [pauli_x_unitary.1, pauli_y_unitary.1, pauli_z_unitary.1]
   --   simp [Real.mul_self_sqrt hp.1, Real.mul_self_sqrt (by linarith : 0 ≤ p/3)]
   --   ring
-  sorry -- TODO: conjTranspose_smul + X†X=I + smul arithmetic; documented above
+  simp only [depolarizing_kraus, List.map_cons, List.map_nil,
+             List.foldl_cons, List.foldl_nil, zero_add]
+  -- Each (r • G)†(r • G) = r * r • (G†G)
+  have h1p : 0 ≤ 1 - p := by linarith [hp.2]
+  have hp3 : 0 ≤ p / 3 := div_nonneg hp.1 (by norm_num)
+  simp only [Matrix.conjTranspose_smul, star_trivial, Matrix.smul_mul, Matrix.mul_smul,
+             smul_smul, Matrix.conjTranspose_one, Matrix.one_mul,
+             pauli_x_unitary.1, pauli_y_unitary.1, pauli_z_unitary.1]
+  rw [Real.mul_self_sqrt h1p, Real.mul_self_sqrt hp3]
+  simp only [← add_smul]
+  rw [show (1 - p) + p / 3 + p / 3 + p / 3 = 1 from by ring]
+  simp
 
 -- ============================================================
 -- Amplitude Damping channel:
