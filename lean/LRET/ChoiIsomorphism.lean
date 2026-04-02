@@ -91,12 +91,24 @@ theorem gate_preserves_density_matrix {n : ℕ} (U : DMatrix n) (ρ : DMatrix n)
       rw [Matrix.conjTranspose_mul, Matrix.conjTranspose_mul,
           Matrix.conjTranspose_conjTranspose, hρ.hermitian, ← Matrix.mul_assoc]
     · intro v
-      -- Re(v† (UρU†) v) = Re((U†v)† ρ (U†v)) ≥ 0 by PSD of ρ
-      have := hρ.posSemiDef.2 (U.conjTranspose.mulVec v)
-      simp only [Matrix.mulVec, Matrix.mul_apply, Matrix.conjTranspose_apply] at *
-      sorry -- Index manipulation to show the two bilinear forms are equal:
-            -- Σᵢⱼ conj(vᵢ)(UρU†)ᵢⱼvⱼ = Σᵢⱼ conj((U†v)ᵢ)ρᵢⱼ(U†v)ⱼ
-            -- TODO: rewrite via mulVec associativity and Finset.sum_comm
+      -- Re(v†(UρU†)v) = Re((U†v)†ρ(U†v)) ≥ 0  by PSD of ρ applied to w = U†v
+      have hpsd := hρ.posSemiDef.2 (U.conjTranspose.mulVec v)
+      -- suffices: show goal sum equals hypothesis sum, then use hpsd
+      suffices heq : ∑ i : Fin (2^n), ∑ j : Fin (2^n),
+            star (v i) * (U * ρ * U.conjTranspose) i j * v j =
+          ∑ i : Fin (2^n), ∑ j : Fin (2^n),
+            star ((U.conjTranspose.mulVec v) i) * ρ i j *
+              (U.conjTranspose.mulVec v) j by
+        rw [heq]; exact hpsd
+      -- Expand U†v and UρU† entrywise; expand star(Σ ...) on RHS
+      simp only [Matrix.mulVec, dotProduct, Matrix.conjTranspose_apply, Matrix.mul_apply]
+      simp_rw [star_sum, StarMul.star_mul, star_star, Finset.sum_mul, Finset.mul_sum]
+      -- Both sides are 4-fold sums ∑_i ∑_j ∑_k ∑_l with the same terms under index renaming:
+      -- LHS: ∑_i ∑_j ∑_k ∑_l, star(v_i) * U_il * ρ_lk * star(U_jk) * v_j
+      -- RHS: ∑_i ∑_j ∑_k ∑_l, star(v_k) * U_ki * ρ_ij * star(U_lj) * v_l
+      -- Rename LHS indices (i→k, j→l, l→i, k→j) to match RHS: requires swapping ∑∑ pairs.
+      -- TODO: close by Finset.sum_comm (swap outer pair past inner pair) + ring
+      sorry -- TODO: 4-fold sum reindex: LHS(i,j,k,l)→RHS via (i↔k,j↔l) rename
   unit_trace := by
     rw [Matrix.trace_mul_comm, ← Matrix.mul_assoc, hU.1, Matrix.one_mul]
     exact hρ.unit_trace
