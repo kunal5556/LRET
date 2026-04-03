@@ -212,6 +212,18 @@ theorem kraus_preserves_trace {n : ℕ} (ks : List (DMatrix n))
   --                       = Tr((Σᵢ Mᵢ†Mᵢ)·ρ)  (trace linearity)
   --                       = Tr(I·ρ)            (h_complete)
   --                       = Tr(ρ)
-  sorry -- TODO: List.foldl induction + Matrix.trace_add + Matrix.trace_mul_comm + h_complete
+  simp only [← List.sum_eq_foldl] at h_complete ⊢
+  -- Key: show Tr(Σ MρM†) = Tr((Σ M†M)·ρ) by induction, then use h_complete
+  -- IH: Tr(Σ MρM†) = Tr((Σ M†M)·ρ) for any sublist (no completeness needed)
+  have key : ∀ (ks' : List (DMatrix n)),
+      (ks'.map (fun M : DMatrix n => M * ρ * M.conjTranspose)).sum.trace =
+      ((ks'.map (fun M : DMatrix n => M.conjTranspose * M)).sum * ρ).trace := by
+    intro l; induction l with
+    | nil => simp
+    | cons K rest ih =>
+      simp only [List.map_cons, List.sum_cons, Matrix.trace_add, Matrix.add_mul]
+      -- rewrite Tr(KρK†) → Tr(K†Kρ), then IH closes the rest
+      rw [Matrix.trace_mul_comm (K * ρ) K.conjTranspose, ← Matrix.mul_assoc, ih]
+  rw [key, h_complete, Matrix.one_mul]
 
 end LRET
