@@ -81,8 +81,23 @@ def _get_rss_mb() -> float:
 # LRET benchmark
 # ──────────────────────────────────────────────────────────────
 
+def _apply_1q_gate(L: np.ndarray, gate: np.ndarray, q: int, n_qubits: int) -> np.ndarray:
+    """Apply a 2×2 gate to qubit q of state matrix L (dim × rank).
+
+    Tensor-index contraction — O(2^n × rank) instead of O(4^n) Kronecker product.
+    """
+    rank = L.shape[1]
+    L3 = L.reshape([2] * n_qubits + [rank])
+    L3 = np.tensordot(gate, L3, axes=[[1], [q]])
+    L3 = np.moveaxis(L3, 0, q)
+    return L3.reshape(-1, rank)
+
+
 def run_lret_benchmark(n_qubits: int, depth: int, n_trials: int = 3) -> dict:
-    """Run LRET and track time + peak memory."""
+    """Run LRET and track time + peak memory.
+
+    Uses efficient tensor-index gate application — O(2^n × rank) per gate.
+    """
     from numpy.linalg import norm, svd
 
     dim = 2**n_qubits
@@ -100,13 +115,9 @@ def run_lret_benchmark(n_qubits: int, depth: int, n_trials: int = 3) -> dict:
         t0 = time.perf_counter()
 
         for _ in range(depth):
+            # Efficient tensor gate application — no Kronecker products
             for q in range(n_qubits):
-                ops = [np.eye(2, dtype=complex)] * n_qubits
-                ops[q] = H
-                U = ops[0]
-                for op in ops[1:]:
-                    U = np.kron(U, op)
-                L = U @ L
+                L = _apply_1q_gate(L, H, q, n_qubits)
 
             # Truncate
             if L.shape[1] > 1:

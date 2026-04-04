@@ -37,6 +37,15 @@ try:
 except ImportError:
     PENNYLANE_AVAILABLE = False
 
+# Check whether the qlret PennyLane plugin is installed
+QLRET_AVAILABLE = False
+if PENNYLANE_AVAILABLE:
+    try:
+        _test_dev = qml.device('qlret.mixed', wires=2)
+        QLRET_AVAILABLE = True
+    except Exception:
+        QLRET_AVAILABLE = False
+
 try:
     from scipy import stats as scipy_stats
     SCIPY_AVAILABLE = True
@@ -141,14 +150,26 @@ def _run_pennylane_vqe(device_name: str, n_qubits: int, n_epochs: int,
 
 def _run_single(algo: str, device: str, n_qubits: int, n_epochs: int,
                 trial: int) -> tuple:
-    """Return (time_ms, convergence_curve) for one trial."""
+    """Return (time_ms, convergence_curve) for one trial.
+
+    When qlret.mixed is not installed, LRET timing uses default.mixed as a
+    conservative proxy so the time_ratio reflects a real PennyLane comparison
+    rather than synthetic (near-zero) timing.
+    """
     rng = np.random.default_rng(trial * 31 + abs(hash(algo)) % 10000)
 
     t0 = time.perf_counter()
 
     curve = []
-    if PENNYLANE_AVAILABLE and device not in ('lret.mixed',):
-        curve = _run_pennylane_vqe(device, n_qubits, n_epochs, rng)
+    if PENNYLANE_AVAILABLE:
+        if device == 'lret.mixed':
+            if QLRET_AVAILABLE:
+                curve = _run_pennylane_vqe('qlret.mixed', n_qubits, n_epochs, rng)
+            else:
+                # Proxy: use default.mixed to get honest real-hardware timing
+                curve = _run_pennylane_vqe('default.mixed', n_qubits, n_epochs, rng)
+        else:
+            curve = _run_pennylane_vqe(device, n_qubits, n_epochs, rng)
 
     if not curve:
         curve = _synthetic_convergence(algo, n_epochs, rng,
@@ -338,8 +359,10 @@ def run(output_dir: str = 'results', quick: bool = False):
 
     algos = list(ALGORITHM_DEVICE_MAP.keys())
 
+    lret_mode = "qlret.mixed (real)" if QLRET_AVAILABLE else "default.mixed (proxy — qlret not installed)"
     print(f"\n[2c] PennyLane 20-Algorithm Comparison — "
           f"n={n_qubits}, epochs={n_epochs}, trials={n_trials}")
+    print(f"     LRET device: {lret_mode}")
 
     all_results = []
     for algo in algos:

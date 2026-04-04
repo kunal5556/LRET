@@ -95,9 +95,24 @@ def _total_speedup_factor(mode: str, n_qubits: int, n_threads: int) -> float:
 # Benchmark
 # ──────────────────────────────────────────────────────────────
 
+def _apply_1q_gate(L: np.ndarray, gate: np.ndarray, q: int, n_qubits: int) -> np.ndarray:
+    """Apply a 2×2 gate to qubit q of state matrix L (dim × rank).
+
+    Tensor-index contraction — O(2^n × rank) instead of O(4^n) Kronecker product.
+    """
+    rank = L.shape[1]
+    L3 = L.reshape([2] * n_qubits + [rank])
+    L3 = np.tensordot(gate, L3, axes=[[1], [q]])
+    L3 = np.moveaxis(L3, 0, q)
+    return L3.reshape(-1, rank)
+
+
 def run_mode_benchmark(mode: str, n_qubits: int, n_threads: int,
                        depth: int = CIRCUIT_DEPTH, n_trials: int = 3) -> dict:
-    """Simulate timing for a mode/qubit/thread combination via numpy proxy."""
+    """Simulate timing for a mode/qubit/thread combination via numpy proxy.
+
+    Uses efficient tensor-index gate application — O(2^n × rank) per gate.
+    """
     from numpy.linalg import norm, svd
 
     dim     = 2**n_qubits
@@ -109,18 +124,14 @@ def run_mode_benchmark(mode: str, n_qubits: int, n_threads: int,
         rng = np.random.default_rng(42 + trial * 13 + n_qubits + n_threads)
         L   = np.zeros((dim, 4), dtype=complex)
         for col in range(4):
-            L[col, col] = 1.0 / 2.0          # rough rank-4 init
+            L[col, col] = 1.0 / 2.0
         L /= norm(L, 'fro')
 
         t0 = time.perf_counter()
         for _ in range(depth):
+            # Efficient tensor gate application — no Kronecker products
             for q in range(n_qubits):
-                ops = [np.eye(2, dtype=complex)] * n_qubits
-                ops[q] = H
-                U = ops[0]
-                for op in ops[1:]:
-                    U = np.kron(U, op)
-                L = U @ L
+                L = _apply_1q_gate(L, H, q, n_qubits)
             # Truncate
             if L.shape[1] > 1:
                 U_s, s_s, _ = svd(L, full_matrices=False)
