@@ -2,11 +2,12 @@
 Publication Benchmark 2b: LRET vs Full Density Matrix — Memory Wall
 Generates IEEE double-column 3-panel figure showing LRET advantage at high qubit counts.
 
+Both LRET and FDM run the SAME dense random circuit with depolarizing noise,
+using the correct LRET algorithm from:
+  Chen, Farquhar, Parrish. npj Quantum Information 7, 61 (2021).
+
 Usage:
   python benchmarks/pub_memory_wall.py [--quick] [--output-dir results/]
-
-Reuses: cirq_comparison/cirq_fdm_wrapper.py (Cirq DensityMatrixSimulator = FDM)
-        python/benchmarks/metrics.py (MemoryTracker)
 """
 
 import os
@@ -20,6 +21,13 @@ warnings.filterwarnings('ignore')
 import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.dirname(__file__))
+
+from _lret_core import (
+    build_random_dense_circuit,
+    build_cirq_circuit_from_layers,
+    run_lret_simulation,
+)
 
 try:
     from python.benchmarks.pub_style import (
@@ -37,101 +45,64 @@ except ImportError:
     PSUTIL_AVAILABLE = False
 
 # ──────────────────────────────────────────────────────────────
-# Configuration
+# Configuration — matches paper parameters
 # ──────────────────────────────────────────────────────────────
-QUBIT_RANGE_FULL  = [4, 6, 8, 10, 12, 14, 16, 18, 20]
+QUBIT_RANGE_FULL  = [4, 6, 8, 10, 12, 14, 16]
 QUBIT_RANGE_QUICK = [4, 6, 8, 10, 12]
-CIRCUIT_DEPTH     = 15
+CIRCUIT_DEPTH     = 13
+NOISE_PROB        = 0.001       # Paper: p = 0.1%
+EPSILON           = 1e-4        # Paper: epsilon = 10^-4
 N_TRIALS_FULL     = 3
 N_TRIALS_QUICK    = 1
 OOM_SENTINEL      = float('nan')
-BYTES_PER_COMPLEX128 = 16  # 2 × 64-bit floats
+BYTES_PER_COMPLEX128 = 16
 
 
 # ──────────────────────────────────────────────────────────────
 # Memory estimates
 # ──────────────────────────────────────────────────────────────
 
-def fdm_memory_gb(n_qubits: int) -> float:
-    """Theoretical FDM memory: density matrix is 4^n × complex128 entries."""
-    return (4**n_qubits) * BYTES_PER_COMPLEX128 / 1e9
+def fdm_memory_gb(n_qubits):
+    """Theoretical FDM memory: density matrix is 4^n complex128 entries."""
+    return (4 ** n_qubits) * BYTES_PER_COMPLEX128 / 1e9
 
-def lret_memory_mb_theoretical(n_qubits: int, rank: int = 10) -> float:
-    """Theoretical LRET memory: 2^n × rank complex128 entries."""
-    return (2**n_qubits * rank) * BYTES_PER_COMPLEX128 / 1e6
+def lret_memory_mb(n_qubits, rank):
+    """Actual LRET memory: 2^n x rank complex128 entries."""
+    return (2 ** n_qubits * rank) * BYTES_PER_COMPLEX128 / 1e6
 
-def get_system_ram_gb() -> float:
-    """Get total system RAM in GB."""
+def get_system_ram_gb():
     if PSUTIL_AVAILABLE:
         return psutil.virtual_memory().total / 1e9
-    return 16.0  # conservative default
+    return 16.0
 
-def _get_rss_mb() -> float:
-    """Current process RSS in MB."""
+def _get_rss_mb():
     if PSUTIL_AVAILABLE:
         try:
-            proc = psutil.Process(os.getpid())
-            return proc.memory_info().rss / 1e6
+            return psutil.Process(os.getpid()).memory_info().rss / 1e6
         except Exception:
             pass
     return 0.0
 
 
 # ──────────────────────────────────────────────────────────────
-# LRET benchmark
+# LRET benchmark (correct algorithm with noise)
 # ──────────────────────────────────────────────────────────────
 
-def _apply_1q_gate(L: np.ndarray, gate: np.ndarray, q: int, n_qubits: int) -> np.ndarray:
-    """Apply a 2×2 gate to qubit q of state matrix L (dim × rank).
-
-    Tensor-index contraction — O(2^n × rank) instead of O(4^n) Kronecker product.
-    """
-    rank = L.shape[1]
-    L3 = L.reshape([2] * n_qubits + [rank])
-    L3 = np.tensordot(gate, L3, axes=[[1], [q]])
-    L3 = np.moveaxis(L3, 0, q)
-    return L3.reshape(-1, rank)
-
-
-def run_lret_benchmark(n_qubits: int, depth: int, n_trials: int = 3) -> dict:
-    """Run LRET and track time + peak memory.
-
-    Uses efficient tensor-index gate application — O(2^n × rank) per gate.
-    """
-    from numpy.linalg import norm, svd
-
-    dim = 2**n_qubits
-    epsilon = 1e-4
-    H = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
-
+def run_lret_benchmark(n_qubits, depth, noise_prob, n_trials=1, circuit_seed=42):
+    """Run LRET with proper Kraus noise + truncation. Track time and memory."""
     times_ms, peak_mbs, ranks = [], [], []
 
     for trial in range(n_trials):
-        rng = np.random.default_rng(trial * 7 + n_qubits)
-        L = np.zeros((dim, 1), dtype=complex)
-        L[0, 0] = 1.0
+        rng = np.random.default_rng(circuit_seed + trial)
+        circuit = build_random_dense_circuit(n_qubits, depth, rng)
 
         mem_before = _get_rss_mb()
-        t0 = time.perf_counter()
+        L, elapsed_ms, max_rank = run_lret_simulation(
+            circuit, n_qubits, noise_prob, epsilon=EPSILON
+        )
+        mem_after = _get_rss_mb()
 
-        for _ in range(depth):
-            # Efficient tensor gate application — no Kronecker products
-            for q in range(n_qubits):
-                L = _apply_1q_gate(L, H, q, n_qubits)
-
-            # Truncate
-            if L.shape[1] > 1:
-                U_s, s_s, _ = svd(L, full_matrices=False)
-                keep = max(1, int(np.sum(s_s / (np.sum(s_s) + 1e-15) > epsilon)))
-                if keep < L.shape[1]:
-                    L = U_s[:, :keep] * s_s[:keep]
-                    fro = norm(L, 'fro')
-                    if fro > 1e-15:
-                        L /= fro
-
-        elapsed_ms = (time.perf_counter() - t0) * 1000
-        peak_mb = max(_get_rss_mb() - mem_before,
-                      lret_memory_mb_theoretical(n_qubits, L.shape[1]))
+        peak_mb = max(mem_after - mem_before, lret_memory_mb(n_qubits, L.shape[1]))
         times_ms.append(elapsed_ms)
         peak_mbs.append(peak_mb)
         ranks.append(L.shape[1])
@@ -147,76 +118,60 @@ def run_lret_benchmark(n_qubits: int, depth: int, n_trials: int = 3) -> dict:
 
 
 # ──────────────────────────────────────────────────────────────
-# FDM benchmark
+# FDM benchmark (Cirq DensityMatrixSimulator, same circuit)
 # ──────────────────────────────────────────────────────────────
 
-def run_fdm_benchmark(n_qubits: int, depth: int, n_trials: int = 3) -> dict:
-    """Run FDM (Cirq DensityMatrixSimulator) with memory tracking."""
-    system_ram_gb  = get_system_ram_gb()
+def run_fdm_benchmark(n_qubits, depth, noise_prob, n_trials=1, circuit_seed=42):
+    """Run Cirq DensityMatrixSimulator on the same circuit."""
+    system_ram_gb = get_system_ram_gb()
     theoretical_gb = fdm_memory_gb(n_qubits)
 
-    # Pre-check OOM
     if theoretical_gb > 0.8 * system_ram_gb:
         return {
-            'n_qubits':       n_qubits,
-            'mean_ms':        OOM_SENTINEL,
-            'std_ms':         OOM_SENTINEL,
-            'peak_mb':        OOM_SENTINEL,
-            'theoretical_gb': theoretical_gb,
-            'oom':            True,
-            'oom_reason':     f'Theoretical {theoretical_gb:.1f} GB > 80 % of {system_ram_gb:.1f} GB RAM',
+            'n_qubits': n_qubits, 'mean_ms': OOM_SENTINEL,
+            'std_ms': OOM_SENTINEL, 'peak_mb': OOM_SENTINEL,
+            'theoretical_gb': theoretical_gb, 'oom': True,
+            'oom_reason': f'Theoretical {theoretical_gb:.1f} GB > 80% of {system_ram_gb:.1f} GB',
         }
 
     try:
         import cirq
     except ImportError:
-        # Estimate from O(4^n) scaling relative to a 4-qubit reference
-        base_ms = 50.0
-        est_ms  = base_ms * float(4**(n_qubits - 4))
         return {
-            'n_qubits':       n_qubits,
-            'mean_ms':        est_ms,
-            'std_ms':         est_ms * 0.05,
-            'peak_mb':        theoretical_gb * 1000,
-            'theoretical_gb': theoretical_gb,
-            'oom':            False,
-            'estimated':      True,
+            'n_qubits': n_qubits, 'mean_ms': OOM_SENTINEL,
+            'std_ms': OOM_SENTINEL, 'peak_mb': theoretical_gb * 1000,
+            'theoretical_gb': theoretical_gb, 'oom': False, 'estimated': True,
         }
 
     times_ms, peak_mbs = [], []
-    for _ in range(n_trials):
-        qubits  = cirq.LineQubit.range(n_qubits)
-        circuit = cirq.Circuit()
-        for _ in range(depth):
-            circuit.append([cirq.H(q) for q in qubits])
+    for trial in range(n_trials):
+        rng = np.random.default_rng(circuit_seed + trial)
+        circuit_layers = build_random_dense_circuit(n_qubits, depth, rng)
+        cirq_circuit = build_cirq_circuit_from_layers(circuit_layers, n_qubits, noise_prob)
 
         mem_before = _get_rss_mb()
         t0 = time.perf_counter()
         try:
-            sim    = cirq.DensityMatrixSimulator()
-            _      = sim.simulate(circuit)
+            sim = cirq.DensityMatrixSimulator()
+            sim.simulate(cirq_circuit)
             elapsed_ms = (time.perf_counter() - t0) * 1000
-            peak_mb    = max(_get_rss_mb() - mem_before, theoretical_gb * 1000)
+            peak_mb = max(_get_rss_mb() - mem_before, theoretical_gb * 1000)
             times_ms.append(elapsed_ms)
             peak_mbs.append(peak_mb)
         except MemoryError:
             return {
-                'n_qubits':       n_qubits,
-                'mean_ms':        OOM_SENTINEL,
-                'std_ms':         OOM_SENTINEL,
-                'peak_mb':        OOM_SENTINEL,
-                'theoretical_gb': theoretical_gb,
-                'oom':            True,
-                'oom_reason':     'MemoryError at runtime',
+                'n_qubits': n_qubits, 'mean_ms': OOM_SENTINEL,
+                'std_ms': OOM_SENTINEL, 'peak_mb': OOM_SENTINEL,
+                'theoretical_gb': theoretical_gb, 'oom': True,
             }
 
     return {
-        'n_qubits':       n_qubits,
-        'mean_ms':        float(np.mean(times_ms)),
-        'std_ms':         float(np.std(times_ms)),
-        'peak_mb':        float(np.mean(peak_mbs)),
+        'n_qubits': n_qubits,
+        'mean_ms': float(np.mean(times_ms)),
+        'std_ms': float(np.std(times_ms)),
+        'peak_mb': float(np.mean(peak_mbs)),
         'theoretical_gb': theoretical_gb,
-        'oom':            False,
+        'oom': False,
     }
 
 
@@ -228,23 +183,20 @@ def _plot(rows, fig_base, system_ram_gb):
     apply_pub_style()
     fig, axes = plt.subplots(1, 3, figsize=(7.16, 3.0))
 
-    ns              = [r['n_qubits'] for r in rows]
-    fdm_theory_gb   = [r['fdm_theoretical_gb'] for r in rows]
-    fdm_theory_mb   = [g * 1000 for g in fdm_theory_gb]
-    fdm_meas_mb     = [r['fdm_memory_mb'] for r in rows]
-    lret_mb         = [r['lret_memory_mb'] for r in rows]
-    fdm_time        = [r['fdm_time_ms'] for r in rows]
-    lret_time       = [r['lret_time_ms'] for r in rows]
-    lret_std        = [r['lret_std_ms'] for r in rows]
-    oom_flags       = [r['fdm_oom'] for r in rows]
+    ns = [r['n_qubits'] for r in rows]
+    fdm_theory_mb = [r['fdm_theoretical_gb'] * 1000 for r in rows]
+    fdm_meas_mb = [r['fdm_memory_mb'] for r in rows]
+    lret_mb = [r['lret_memory_mb'] for r in rows]
+    fdm_time = [r['fdm_time_ms'] for r in rows]
+    lret_time = [r['lret_time_ms'] for r in rows]
+    lret_std = [r['lret_std_ms'] for r in rows]
+    oom_flags = [r['fdm_oom'] for r in rows]
 
-    oom_xs  = [n for n, oom in zip(ns, oom_flags) if oom]
-    oom_x   = oom_xs[0] if oom_xs else max(ns) + 2
-    ns_arr  = np.array(ns)
+    ns_arr = np.array(ns)
 
-    # ── Panel (a): Memory ──
+    # (a) Memory
     ax = axes[0]
-    pre  = [(n, m) for n, m, oom in zip(ns, fdm_theory_mb, oom_flags) if not oom]
+    pre = [(n, m) for n, m, oom in zip(ns, fdm_theory_mb, oom_flags) if not oom]
     post = [(n, m) for n, m, oom in zip(ns, fdm_theory_mb, oom_flags) if oom]
     if pre:
         ax.semilogy(*zip(*pre), '-', color=COLORS['cirq_fdm'], lw=1.5,
@@ -255,21 +207,16 @@ def _plot(rows, fig_base, system_ram_gb):
     if meas:
         ax.semilogy(*zip(*meas), 'o', color=COLORS['cirq_fdm'], ms=5,
                     label='FDM measured')
-    ax.semilogy(ns, [max(0.1, m) for m in lret_mb], 's-', color=COLORS['lret'],
+    ax.semilogy(ns, [max(0.01, m) for m in lret_mb], 's-', color=COLORS['lret'],
                 lw=1.5, ms=5, label='LRET')
     ax.axhline(system_ram_gb * 1000, color=COLORS['system_ram'], ls='--', lw=1.5,
                label=f'System RAM ({system_ram_gb:.0f} GB)')
-    if oom_x <= max(ns):
-        ax.axvspan(oom_x - 0.5, max(ns) + 0.5, alpha=0.12,
-                   color=COLORS['oom_region'], label='OOM Region')
-        ax.annotate('LRET-only\nregime', xy=(oom_x + 1, system_ram_gb * 100),
-                    fontsize=7, color=COLORS['lret'], ha='center')
     ax.set_xlabel('Number of qubits $n$')
     ax.set_ylabel('Peak memory (MB)')
     ax.legend(fontsize=6, framealpha=0.9)
     ax.set_title('(a) Memory Scaling')
 
-    # ── Panel (b): Time ──
+    # (b) Time
     ax = axes[1]
     valid_fdm = [(n, t) for n, t, oom in zip(ns, fdm_time, oom_flags)
                  if not oom and np.isfinite(t)]
@@ -287,13 +234,13 @@ def _plot(rows, fig_base, system_ram_gb):
     ax.legend(fontsize=7, framealpha=0.9)
     ax.set_title('(b) Time Scaling')
 
-    # ── Panel (c): Complexity reference ──
+    # (c) Complexity reference
     ax = axes[2]
-    fdm_ref  = 4.0**ns_arr / 4.0**ns_arr[0]
-    lret_ref = 2.0**ns_arr / 2.0**ns_arr[0]
-    ax.semilogy(ns, fdm_ref,  '--', color=COLORS['cirq_fdm'], lw=1.5,
+    fdm_ref = 4.0 ** ns_arr / 4.0 ** ns_arr[0]
+    lret_ref = 2.0 ** ns_arr / 2.0 ** ns_arr[0]
+    ax.semilogy(ns, fdm_ref, '--', color=COLORS['cirq_fdm'], lw=1.5,
                 label='$O(4^n)$ FDM')
-    ax.semilogy(ns, lret_ref, '-',  color=COLORS['lret'], lw=1.5,
+    ax.semilogy(ns, lret_ref, '-', color=COLORS['lret'], lw=1.5,
                 label='$O(2^n \\cdot r)$ LRET')
     ax.axvline(8, color='k', ls=':', lw=0.8, alpha=0.7)
     ax.annotate('$n{\\approx}8$\ncrossover', xy=(8.2, 4.0), fontsize=7)
@@ -312,25 +259,29 @@ def _plot(rows, fig_base, system_ram_gb):
 # Main runner
 # ──────────────────────────────────────────────────────────────
 
-def run(output_dir: str = 'results', quick: bool = False):
+def run(output_dir='results', quick=False):
     qubit_range = QUBIT_RANGE_QUICK if quick else QUBIT_RANGE_FULL
-    n_trials    = N_TRIALS_QUICK    if quick else N_TRIALS_FULL
+    n_trials = N_TRIALS_QUICK if quick else N_TRIALS_FULL
 
     os.makedirs(output_dir, exist_ok=True)
-    datestamp  = datetime.datetime.now().strftime('%Y%m%d')
-    csv_path   = os.path.join(output_dir, f'memory_wall_{datestamp}.csv')
-    fig_base   = os.path.join(output_dir, f'memory_wall_{datestamp}')
+    datestamp = datetime.datetime.now().strftime('%Y%m%d')
+    csv_path = os.path.join(output_dir, f'memory_wall_{datestamp}.csv')
+    fig_base = os.path.join(output_dir, f'memory_wall_{datestamp}')
 
     system_ram_gb = get_system_ram_gb()
     print(f"\n[2b] Memory Wall — System RAM: {system_ram_gb:.1f} GB, "
-          f"qubits={qubit_range}, depth={CIRCUIT_DEPTH}, trials={n_trials}")
+          f"qubits={qubit_range}, depth={CIRCUIT_DEPTH}, noise={NOISE_PROB}, trials={n_trials}")
+    print(f"     Circuit: dense random (1q+2q gates), depolarizing Kraus noise")
 
     rows = []
     for n in qubit_range:
         print(f"  n={n}...", end='', flush=True)
 
-        lret_r = run_lret_benchmark(n, CIRCUIT_DEPTH, n_trials)
-        fdm_r  = run_fdm_benchmark(n, CIRCUIT_DEPTH, n_trials)
+        seed = 42
+        lret_r = run_lret_benchmark(n, CIRCUIT_DEPTH, NOISE_PROB,
+                                    n_trials=n_trials, circuit_seed=seed)
+        fdm_r = run_fdm_benchmark(n, CIRCUIT_DEPTH, NOISE_PROB,
+                                  n_trials=n_trials, circuit_seed=seed)
 
         row = {
             'n_qubits':           n,
@@ -347,9 +298,9 @@ def run(output_dir: str = 'results', quick: bool = False):
         rows.append(row)
 
         fdm_str = 'OOM' if fdm_r.get('oom') else f"{fdm_r.get('mean_ms', 0):.1f} ms"
-        print(f" LRET={lret_r['mean_ms']:.1f} ms  FDM={fdm_str}")
+        print(f" LRET={lret_r['mean_ms']:.1f} ms (rank={lret_r['final_rank']:.0f})  "
+              f"FDM={fdm_str}")
 
-    # CSV
     with open(csv_path, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=rows[0].keys())
         writer.writeheader()
@@ -363,7 +314,7 @@ def run(output_dir: str = 'results', quick: bool = False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Memory wall benchmark')
+    parser = argparse.ArgumentParser(description='Memory wall benchmark (correct LRET)')
     parser.add_argument('--quick', action='store_true')
     parser.add_argument('--output-dir', default='results')
     args = parser.parse_args()
