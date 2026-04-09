@@ -47,7 +47,7 @@ except ImportError:
 # ──────────────────────────────────────────────────────────────
 # Configuration
 # ──────────────────────────────────────────────────────────────
-QUBIT_RANGE_FULL  = [4, 6, 8, 10, 12]
+QUBIT_RANGE_FULL  = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]
 QUBIT_RANGE_QUICK = [4, 6, 8]
 THREAD_COUNTS     = [1, 2, 4, 8, 16]
 CIRCUIT_DEPTH     = 13
@@ -55,6 +55,7 @@ NOISE_PROB        = 0.001
 EPSILON           = 1e-4
 N_TRIALS_FULL     = 3
 N_TRIALS_QUICK    = 2
+TIMEOUT_SECONDS   = 7200.0  # 2 hours per trial
 
 # ──────────────────────────────────────────────────────────────
 # C++ backend detection
@@ -175,7 +176,13 @@ def run_cpp_benchmark(n_qubits, depth, noise_prob, n_threads, mode_config,
         }
 
         t0 = time.perf_counter()
-        result = simulate_json(circuit_json, use_native=True)
+        try:
+            result = simulate_json(circuit_json, use_native=True,
+                                   timeout=TIMEOUT_SECONDS)
+        except MemoryError:
+            return {'oom': True, 'oom_reason': 'C++ MemoryError'}
+        except Exception as exc:
+            return {'oom': True, 'oom_reason': f'C++ error: {exc}'}
         elapsed_ms = (time.perf_counter() - t0) * 1000
 
         times_ms.append(elapsed_ms)
@@ -186,6 +193,7 @@ def run_cpp_benchmark(n_qubits, depth, noise_prob, n_threads, mode_config,
         'std_ms':     float(np.std(times_ms)),
         'final_rank': float(np.mean(ranks)),
         'peak_mb':    (2 ** n_qubits) * int(np.mean(ranks)) * 16 / 1e6,
+        'oom':        False,
     }
 
 
@@ -323,29 +331,80 @@ def _run_numpy_only(qubit_range, n_trials, csv_path, fig_base):
     return all_rows
 
 
+CSV_FIELDS_CPP = [
+    'mode', 'n_qubits', 'n_threads', 'mean_ms', 'std_ms',
+    'speedup_vs_baseline', 'peak_memory_mb', 'final_rank', 'status',
+]
+
+
+def _write_csv(csv_path, rows, fields):
+    with open(csv_path, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fields)
+        writer.writeheader()
+        for r in rows:
+            writer.writerow({k: r.get(k, '') for k in fields})
+
+
 def _run_with_cpp(qubit_range, n_trials, csv_path, fig_base, output_dir):
-    """Run with C++ backend: real parallel modes and thread counts."""
+    """Run with C++ backend: real parallel modes and thread counts.
+
+    Baseline = C++ baseline mode at 1 thread (numpy is too slow at N>=14 to
+    serve as a meaningful denominator). All speedups are vs that baseline.
+    Per-row intermediate CSV save. If a run OOMs we skip remaining configs at
+    that N and continue to smaller-cost work.
+    """
     MODES = {
         'baseline': ({}, 'Baseline'),
-        'iterative_compression': ({'use_iterative_compression': True}, 'Iterative Compression'),
-        'full_opt': ({'use_iterative_compression': True, 'use_cp_decomposition': True,
+        'iterative_compression': ({'use_iterative_compression': True},
+                                  'Iterative Compression'),
+        'full_opt': ({'use_iterative_compression': True,
+                      'use_cp_decomposition': True,
                       'use_morton_order': True}, 'All Optimisations'),
     }
 
     all_rows = []
-    baseline_cache = {}
+    baseline_cache = {}  # n_qubits → baseline 1-thread mean_ms
 
+    print(f"  Building per-N C++ baseline (mode=baseline, threads=1)...")
     for n in qubit_range:
-        r = run_numpy_benchmark(n, CIRCUIT_DEPTH, NOISE_PROB, n_trials=1)
+        print(f"    n={n:2d} baseline...", end='', flush=True)
+        r = run_cpp_benchmark(n, CIRCUIT_DEPTH, NOISE_PROB, 1, {},
+                              n_trials=1, circuit_seed=42)
+        if r.get('oom'):
+            print(f" OOM ({r.get('oom_reason','')}) — stopping at this N")
+            baseline_cache[n] = float('nan')
+            # Stop adding qubits — anything bigger will also OOM
+            qubit_range = [m for m in qubit_range if m <= n]
+            break
         baseline_cache[n] = r['mean_ms']
+        print(f" {r['mean_ms']:.1f} ms (rank={r['final_rank']:.0f})")
 
+    print(f"\n  Sweeping {len(qubit_range)} qubit counts × {len(MODES)} modes "
+          f"× {len(THREAD_COUNTS)} thread counts")
     for n in qubit_range:
+        if not np.isfinite(baseline_cache.get(n, float('nan'))):
+            continue
         for mode_key, (mode_config, mode_label) in MODES.items():
             for n_threads in THREAD_COUNTS:
-                print(f"  n={n} mode={mode_key} t={n_threads}...", end='', flush=True)
+                print(f"  n={n:2d} mode={mode_key:22s} t={n_threads:2d}...",
+                      end='', flush=True)
 
                 r = run_cpp_benchmark(n, CIRCUIT_DEPTH, NOISE_PROB, n_threads,
                                       mode_config, n_trials=n_trials)
+
+                if r.get('oom'):
+                    row = {
+                        'mode': mode_key, 'n_qubits': n, 'n_threads': n_threads,
+                        'mean_ms': float('nan'), 'std_ms': float('nan'),
+                        'speedup_vs_baseline': float('nan'),
+                        'peak_memory_mb': float('nan'),
+                        'final_rank': float('nan'),
+                        'status': f"oom:{r.get('oom_reason','')}",
+                    }
+                    all_rows.append(row)
+                    _write_csv(csv_path, all_rows, CSV_FIELDS_CPP)
+                    print(f" OOM ({r.get('oom_reason','')})")
+                    continue
 
                 speedup = baseline_cache[n] / max(r['mean_ms'], 1e-6)
                 row = {
@@ -357,16 +416,13 @@ def _run_with_cpp(qubit_range, n_trials, csv_path, fig_base, output_dir):
                     'speedup_vs_baseline': speedup,
                     'peak_memory_mb':     r['peak_mb'],
                     'final_rank':         r['final_rank'],
+                    'status':             'ok',
                 }
                 all_rows.append(row)
-                print(f" {r['mean_ms']:.1f} ms (x{speedup:.2f})")
+                _write_csv(csv_path, all_rows, CSV_FIELDS_CPP)
+                print(f" {r['mean_ms']:8.1f} ms (x{speedup:.2f})")
 
-    with open(csv_path, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=all_rows[0].keys())
-        writer.writeheader()
-        writer.writerows(all_rows)
-    print(f"\n  CSV: {csv_path}")
-
+    print(f"\n  Final CSV: {csv_path}  ({len(all_rows)} rows)")
     return all_rows
 
 

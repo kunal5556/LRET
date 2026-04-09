@@ -96,6 +96,7 @@ def simulate_json(
     *,
     export_state: bool = False,
     use_native: bool = True,
+    timeout: float = 600.0,
 ) -> Dict[str, Any]:
     """Run a quantum circuit through QLRET and return results.
 
@@ -142,7 +143,7 @@ def simulate_json(
     # Try subprocess backend
     exe = _find_executable()
     if exe is not None:
-        return _simulate_subprocess(circuit, export_state)
+        return _simulate_subprocess(circuit, export_state, timeout=timeout)
 
     # No backend available
     raise QLRETError(
@@ -157,7 +158,9 @@ def simulate_json(
 # ---------------------------------------------------------------------------
 
 
-def _simulate_subprocess(circuit: Dict[str, Any], export_state: bool) -> Dict[str, Any]:
+def _simulate_subprocess(
+    circuit: Dict[str, Any], export_state: bool, timeout: float = 600.0
+) -> Dict[str, Any]:
     """Execute via CLI subprocess."""
     exe = _find_executable()
     if exe is None:
@@ -185,7 +188,7 @@ def _simulate_subprocess(circuit: Dict[str, Any], export_state: bool) -> Dict[st
             cmd,
             capture_output=True,
             text=True,
-            timeout=600,  # 10 minute timeout
+            timeout=timeout,
         )
 
         if result.returncode != 0:

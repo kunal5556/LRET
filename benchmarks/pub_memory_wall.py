@@ -27,6 +27,9 @@ from _lret_core import (
     build_random_dense_circuit,
     build_cirq_circuit_from_layers,
     run_lret_simulation,
+    run_lret_cpp,
+    compute_purity_lret,
+    compute_trace_lret,
 )
 
 try:
@@ -47,8 +50,8 @@ except ImportError:
 # ──────────────────────────────────────────────────────────────
 # Configuration — matches paper parameters
 # ──────────────────────────────────────────────────────────────
-QUBIT_RANGE_FULL  = [4, 6, 8, 10, 12, 14, 16]
-QUBIT_RANGE_QUICK = [4, 6, 8, 10, 12]
+QUBIT_RANGE_FULL  = [4, 6, 8, 10, 12, 14, 16, 18, 20, 22]
+QUBIT_RANGE_QUICK = [4, 6, 8, 10]
 CIRCUIT_DEPTH     = 13
 NOISE_PROB        = 0.001       # Paper: p = 0.1%
 EPSILON           = 1e-4        # Paper: epsilon = 10^-4
@@ -56,6 +59,9 @@ N_TRIALS_FULL     = 3
 N_TRIALS_QUICK    = 1
 OOM_SENTINEL      = float('nan')
 BYTES_PER_COMPLEX128 = 16
+
+# Use the numpy reference LRET path for tiny systems, C++ for everything else.
+NUMPY_LRET_MAX_N = 6
 
 
 # ──────────────────────────────────────────────────────────────
@@ -89,23 +95,46 @@ def _get_rss_mb():
 # ──────────────────────────────────────────────────────────────
 
 def run_lret_benchmark(n_qubits, depth, noise_prob, n_trials=1, circuit_seed=42):
-    """Run LRET with proper Kraus noise + truncation. Track time and memory."""
+    """Run LRET with proper Kraus noise + truncation.
+
+    Uses the C++ quantum_sim backend for N > NUMPY_LRET_MAX_N (much faster
+    and lower-memory in-process), numpy reference for tiny N. Returns timing,
+    in-process peak memory delta, final rank, and trace/purity from the L
+    matrix of the LAST trial (cheap sanity diagnostics).
+    """
+    use_cpp = n_qubits > NUMPY_LRET_MAX_N
     times_ms, peak_mbs, ranks = [], [], []
+    L_last = None
 
     for trial in range(n_trials):
         rng = np.random.default_rng(circuit_seed + trial)
         circuit = build_random_dense_circuit(n_qubits, depth, rng)
 
         mem_before = _get_rss_mb()
-        L, elapsed_ms, max_rank = run_lret_simulation(
-            circuit, n_qubits, noise_prob, epsilon=EPSILON
-        )
+        try:
+            if use_cpp:
+                L, elapsed_ms, final_rank = run_lret_cpp(
+                    circuit, n_qubits, noise_prob, epsilon=EPSILON,
+                    timeout_s=7200.0, export_state=True,
+                )
+            else:
+                L, elapsed_ms, _max_rank = run_lret_simulation(
+                    circuit, n_qubits, noise_prob, epsilon=EPSILON
+                )
+                final_rank = L.shape[1]
+        except MemoryError:
+            return {'n_qubits': n_qubits, 'oom': True,
+                    'oom_reason': 'LRET MemoryError'}
         mem_after = _get_rss_mb()
 
-        peak_mb = max(mem_after - mem_before, lret_memory_mb(n_qubits, L.shape[1]))
+        peak_mb = max(mem_after - mem_before, lret_memory_mb(n_qubits, final_rank))
         times_ms.append(elapsed_ms)
         peak_mbs.append(peak_mb)
-        ranks.append(L.shape[1])
+        ranks.append(final_rank)
+        L_last = L
+
+    trace_diag = compute_trace_lret(L_last) if L_last is not None else float('nan')
+    purity_diag = compute_purity_lret(L_last) if L_last is not None else float('nan')
 
     return {
         'n_qubits':   n_qubits,
@@ -113,6 +142,9 @@ def run_lret_benchmark(n_qubits, depth, noise_prob, n_trials=1, circuit_seed=42)
         'std_ms':     float(np.std(times_ms)),
         'peak_mb':    float(np.mean(peak_mbs)),
         'final_rank': float(np.mean(ranks)),
+        'trace':      trace_diag,
+        'purity':     purity_diag,
+        'backend':    'cpp' if use_cpp else 'numpy',
         'oom':        False,
     }
 
@@ -259,56 +291,104 @@ def _plot(rows, fig_base, system_ram_gb):
 # Main runner
 # ──────────────────────────────────────────────────────────────
 
+CSV_FIELDS = [
+    'n_qubits', 'lret_backend',
+    'lret_memory_mb', 'lret_time_ms', 'lret_std_ms', 'lret_rank',
+    'lret_trace', 'lret_purity',
+    'fdm_memory_mb', 'fdm_theoretical_gb', 'fdm_time_ms', 'fdm_oom',
+    'system_ram_gb',
+]
+
+
+def _write_csv(csv_path, rows):
+    with open(csv_path, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+        writer.writeheader()
+        for r in rows:
+            writer.writerow({k: r.get(k, '') for k in CSV_FIELDS})
+
+
 def run(output_dir='results', quick=False):
     qubit_range = QUBIT_RANGE_QUICK if quick else QUBIT_RANGE_FULL
     n_trials = N_TRIALS_QUICK if quick else N_TRIALS_FULL
 
     os.makedirs(output_dir, exist_ok=True)
-    datestamp = datetime.datetime.now().strftime('%Y%m%d')
+    datestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
     csv_path = os.path.join(output_dir, f'memory_wall_{datestamp}.csv')
     fig_base = os.path.join(output_dir, f'memory_wall_{datestamp}')
 
     system_ram_gb = get_system_ram_gb()
-    print(f"\n[2b] Memory Wall — System RAM: {system_ram_gb:.1f} GB, "
-          f"qubits={qubit_range}, depth={CIRCUIT_DEPTH}, noise={NOISE_PROB}, trials={n_trials}")
-    print(f"     Circuit: dense random (1q+2q gates), depolarizing Kraus noise")
+    print(f"\n[2b Round 2] Memory Wall — System RAM: {system_ram_gb:.1f} GB")
+    print(f"  qubits={qubit_range}  depth={CIRCUIT_DEPTH}  noise={NOISE_PROB}  trials={n_trials}")
+    print(f"  LRET backend: numpy for N<={NUMPY_LRET_MAX_N}, C++ otherwise")
+    print(f"  CSV:   {csv_path}")
 
     rows = []
     for n in qubit_range:
-        print(f"  n={n}...", end='', flush=True)
+        print(f"  n={n:2d} ", end='', flush=True)
 
         seed = 42
-        lret_r = run_lret_benchmark(n, CIRCUIT_DEPTH, NOISE_PROB,
-                                    n_trials=n_trials, circuit_seed=seed)
+        try:
+            lret_r = run_lret_benchmark(n, CIRCUIT_DEPTH, NOISE_PROB,
+                                        n_trials=n_trials, circuit_seed=seed)
+        except MemoryError:
+            print("LRET MemoryError")
+            rows.append({'n_qubits': n, 'lret_time_ms': OOM_SENTINEL,
+                         'fdm_oom': True, 'system_ram_gb': system_ram_gb})
+            _write_csv(csv_path, rows)
+            break
+        except Exception as exc:
+            print(f"LRET failed: {exc}")
+            rows.append({'n_qubits': n, 'lret_time_ms': OOM_SENTINEL,
+                         'fdm_oom': True, 'system_ram_gb': system_ram_gb})
+            _write_csv(csv_path, rows)
+            continue
+
+        if lret_r.get('oom'):
+            print(f"LRET OOM ({lret_r.get('oom_reason','')})")
+            rows.append({'n_qubits': n, 'lret_time_ms': OOM_SENTINEL,
+                         'fdm_oom': True, 'system_ram_gb': system_ram_gb})
+            _write_csv(csv_path, rows)
+            break
+
         fdm_r = run_fdm_benchmark(n, CIRCUIT_DEPTH, NOISE_PROB,
                                   n_trials=n_trials, circuit_seed=seed)
 
         row = {
             'n_qubits':           n,
-            'fdm_memory_mb':      fdm_r.get('peak_mb', OOM_SENTINEL),
-            'fdm_theoretical_gb': fdm_r.get('theoretical_gb', fdm_memory_gb(n)),
-            'fdm_time_ms':        fdm_r.get('mean_ms', OOM_SENTINEL),
-            'fdm_oom':            fdm_r.get('oom', False),
+            'lret_backend':       lret_r.get('backend', 'cpp'),
             'lret_memory_mb':     lret_r['peak_mb'],
             'lret_time_ms':       lret_r['mean_ms'],
             'lret_std_ms':        lret_r['std_ms'],
             'lret_rank':          lret_r['final_rank'],
+            'lret_trace':         lret_r.get('trace', float('nan')),
+            'lret_purity':        lret_r.get('purity', float('nan')),
+            'fdm_memory_mb':      fdm_r.get('peak_mb', OOM_SENTINEL),
+            'fdm_theoretical_gb': fdm_r.get('theoretical_gb', fdm_memory_gb(n)),
+            'fdm_time_ms':        fdm_r.get('mean_ms', OOM_SENTINEL),
+            'fdm_oom':            fdm_r.get('oom', False),
             'system_ram_gb':      system_ram_gb,
         }
         rows.append(row)
+        _write_csv(csv_path, rows)  # crash-safe intermediate save
 
-        fdm_str = 'OOM' if fdm_r.get('oom') else f"{fdm_r.get('mean_ms', 0):.1f} ms"
-        print(f" LRET={lret_r['mean_ms']:.1f} ms (rank={lret_r['final_rank']:.0f})  "
-              f"FDM={fdm_str}")
+        fdm_str = 'OOM' if fdm_r.get('oom') else f"{fdm_r.get('mean_ms', 0):.1f}ms"
+        print(f"LRET={lret_r['mean_ms']:9.1f}ms rank={lret_r['final_rank']:5.1f} "
+              f"mem={lret_r['peak_mb']:6.1f}MB  FDM={fdm_str:>12}  "
+              f"trace={lret_r.get('trace',0):.4f} purity={lret_r.get('purity',0):.4f}")
 
-    with open(csv_path, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
-        writer.writeheader()
-        writer.writerows(rows)
-    print(f"\n  CSV: {csv_path}")
+    print(f"\n  Final CSV: {csv_path}  ({len(rows)} rows)")
 
-    if MATPLOTLIB_AVAILABLE:
-        _plot(rows, fig_base, system_ram_gb)
+    if MATPLOTLIB_AVAILABLE and rows:
+        # Filter to rows with full LRET data for plotting
+        plot_rows = [r for r in rows if isinstance(r.get('lret_time_ms'), (int, float))
+                     and np.isfinite(r.get('lret_time_ms', float('nan')))]
+        if plot_rows:
+            try:
+                _plot(plot_rows, fig_base, system_ram_gb)
+                print(f"  Figures: {fig_base}.{{png,pdf}}")
+            except Exception as exc:
+                print(f"  [warn] plotting failed: {exc}")
 
     return rows
 

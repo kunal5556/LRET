@@ -66,6 +66,9 @@ def apply_2q_gate(L, gate4x4, q1, q2, n_qubits):
     """Apply 4x4 gate to qubits (q1, q2) of L (dim x rank).
 
     Gate convention: row/col index = (q1_bit << 1) | q2_bit.
+    Bit-ordering: qubit 0 is the MOST significant bit of the flat dim=2^n
+    index — matches `apply_1q_gate`'s `L.reshape([2]*n + [rank])` convention
+    and Cirq's `qubit_order=LineQubit.range(n)` convention.
     Reference: gates_and_noise.cpp:267-313
     Complexity: O(4 * 2^n * rank).
     """
@@ -73,8 +76,9 @@ def apply_2q_gate(L, gate4x4, q1, q2, n_qubits):
     rank = L.shape[1]
     result = L.copy()
 
-    step_q1 = 1 << q1
-    step_q2 = 1 << q2
+    # MSB convention: qubit q occupies bit position (n_qubits - 1 - q)
+    step_q1 = 1 << (n_qubits - 1 - q1)
+    step_q2 = 1 << (n_qubits - 1 - q2)
 
     for base in range(dim):
         if (base & step_q1) != 0 or (base & step_q2) != 0:
@@ -241,24 +245,53 @@ def build_random_dense_circuit(n_qubits, depth, rng=None):
         # 1-qubit gates on every qubit
         for q in range(n_qubits):
             name = rng.choice(gate_names_1q)
+            params = []
             if name in GATES_1Q:
                 gate = GATES_1Q[name]
             elif name == 'RX':
-                gate = _rx(rng.uniform(0, 2 * np.pi))
+                theta = float(rng.uniform(0, 2 * np.pi))
+                params = [theta]
+                gate = _rx(theta)
             elif name == 'RY':
-                gate = _ry(rng.uniform(0, 2 * np.pi))
+                theta = float(rng.uniform(0, 2 * np.pi))
+                params = [theta]
+                gate = _ry(theta)
             elif name == 'RZ':
-                gate = _rz(rng.uniform(0, 2 * np.pi))
-            layer.append(('1q', gate, q))
+                theta = float(rng.uniform(0, 2 * np.pi))
+                params = [theta]
+                gate = _rz(theta)
+            # Format: ('1q', name, params, qubit, matrix)
+            layer.append(('1q', name, params, q, gate))
 
         # 2-qubit gates on adjacent pairs (alternating even/odd layers)
         start = d % 2
         for i in range(start, n_qubits - 1, 2):
             name = rng.choice(gate_names_2q)
-            layer.append(('2q', gates_2q[name], i, i + 1))
+            # Format: ('2q', name, q1, q2, matrix)
+            layer.append(('2q', name, i, i + 1, gates_2q[name]))
 
         circuit.append(layer)
     return circuit
+
+
+def _instr_unpack_1q(instr):
+    """Backward-compatible 1q instr unpacking. Returns (name, params, qubit, matrix).
+
+    Supports old format ('1q', matrix, q) and new format ('1q', name, params, q, matrix).
+    """
+    if len(instr) == 3:
+        return None, [], instr[2], instr[1]
+    return instr[1], instr[2], instr[3], instr[4]
+
+
+def _instr_unpack_2q(instr):
+    """Backward-compatible 2q instr unpacking. Returns (name, q1, q2, matrix).
+
+    Supports old format ('2q', matrix, q1, q2) and new format ('2q', name, q1, q2, matrix).
+    """
+    if len(instr) == 4:
+        return None, instr[2], instr[3], instr[1]
+    return instr[1], instr[2], instr[3], instr[4]
 
 
 def build_cirq_circuit_from_layers(circuit_layers, n_qubits, noise_prob):
@@ -267,15 +300,18 @@ def build_cirq_circuit_from_layers(circuit_layers, n_qubits, noise_prob):
 
     qubits = cirq.LineQubit.range(n_qubits)
     circuit = cirq.Circuit()
+    # Ensure ALL qubits are present in the circuit so the simulator allocates
+    # the full 2^n state — otherwise Cirq drops unreferenced qubits.
+    circuit.append([cirq.I.on(q) for q in qubits])
 
     for layer in circuit_layers:
         ops = []
         for instr in layer:
             if instr[0] == '1q':
-                _, gate, q = instr
+                _, _, q, gate = _instr_unpack_1q(instr)
                 ops.append(cirq.MatrixGate(gate).on(qubits[q]))
             elif instr[0] == '2q':
-                _, gate, q1, q2 = instr
+                _, q1, q2, gate = _instr_unpack_2q(instr)
                 ops.append(cirq.MatrixGate(gate).on(qubits[q1], qubits[q2]))
         circuit.append(ops)
 
@@ -317,10 +353,10 @@ def run_lret_simulation(circuit_layers, n_qubits, noise_prob, epsilon=1e-4, max_
         # Apply gates
         for instr in layer:
             if instr[0] == '1q':
-                _, gate, q = instr
+                _, _, q, gate = _instr_unpack_1q(instr)
                 L = apply_1q_gate(L, gate, q, n_qubits)
             elif instr[0] == '2q':
-                _, gate, q1, q2 = instr
+                _, q1, q2, gate = _instr_unpack_2q(instr)
                 L = apply_2q_gate(L, gate, q1, q2, n_qubits)
 
         # Apply noise (iterative per-qubit Kraus + truncation)
@@ -373,3 +409,201 @@ def compute_probability_distribution(L):
 def probability_tvd(prob_a, prob_b):
     """Total variation distance between probability distributions."""
     return 0.5 * np.sum(np.abs(prob_a - prob_b))
+
+
+# ──────────────────────────────────────────────────────────────
+# Sanity diagnostics: trace and purity (cheap, always-on)
+# ──────────────────────────────────────────────────────────────
+
+def compute_trace_lret(L):
+    """Tr(rho) = Tr(L L†) = ||L||_F². Should always equal 1.0."""
+    return float(np.real(np.sum(L.conj() * L)))
+
+
+def compute_purity_lret(L):
+    """Tr(rho²) = Tr(L L† L L†) = Tr((L†L)²) = ||L†L||_F²."""
+    G = L.conj().T @ L
+    return float(np.real(np.sum(G.conj() * G)))
+
+
+def compute_trace_dm(rho):
+    return float(np.real(np.trace(rho)))
+
+
+def compute_purity_dm(rho):
+    return float(np.real(np.trace(rho @ rho)))
+
+
+# ──────────────────────────────────────────────────────────────
+# Quantum fidelity F(rho, sigma) = (Tr sqrt(sqrt(rho) sigma sqrt(rho)))²
+# Implemented via SVD trick to avoid forming sqrt(rho_LRET) densely.
+# ──────────────────────────────────────────────────────────────
+
+def compute_fidelity(L_lret, rho_exact):
+    """Quantum fidelity between rho_LRET = L L† and dense rho_exact.
+
+    SVD-based path:
+      G = L† L = V D V†                       (rank x rank)
+      U = L V D^{-1/2}                        (dim x rank, orthonormal cols)
+      M = U† rho_exact U                      (rank x rank)
+      inner = sqrt(D) M sqrt(D)
+      F = (sum sqrt(eig(inner)))²
+
+    Cost: dominated by U† rho_exact U → O(rank · 4^n). Feasible up to N≈14.
+    Returns float in [0, 1] (within numerical noise).
+    """
+    # Eigendecompose Gram matrix
+    G = L_lret.conj().T @ L_lret
+    eigvals, V = np.linalg.eigh(G)
+    # Drop near-zero eigenvalues to avoid 1/0
+    keep = eigvals > eigvals.max() * 1e-12
+    if not np.any(keep):
+        return 0.0
+    eigvals = eigvals[keep]
+    V = V[:, keep]
+
+    # Orthonormal eigenbasis of rho in the support of L
+    inv_sqrt_d = 1.0 / np.sqrt(eigvals)
+    U = (L_lret @ V) * inv_sqrt_d  # broadcast on columns
+
+    # Project rho_exact into this basis
+    M = U.conj().T @ rho_exact @ U  # (r, r)
+
+    sqrt_d = np.sqrt(eigvals)
+    inner = (sqrt_d[:, None] * M) * sqrt_d[None, :]
+    # Hermitize against numerical drift
+    inner = 0.5 * (inner + inner.conj().T)
+
+    inner_eigs = np.linalg.eigvalsh(inner)
+    inner_eigs = np.clip(inner_eigs.real, 0.0, None)
+    f = float(np.sum(np.sqrt(inner_eigs)) ** 2)
+    # Numerical clamp
+    return min(max(f, 0.0), 1.0)
+
+
+# ──────────────────────────────────────────────────────────────
+# C++ backend wrapper: run LRET via quantum_sim.exe
+# ──────────────────────────────────────────────────────────────
+
+def _layers_to_native_ops(circuit_layers, n_qubits, noise_prob):
+    """Convert our layered circuit format into the C++ JSON op list.
+
+    Requires the new layer format that carries gate names + params (produced
+    by `build_random_dense_circuit`). Each layer is followed by a depolarizing
+    channel on every qubit (matching `build_cirq_circuit_from_layers`).
+    """
+    ops = []
+    for layer in circuit_layers:
+        for instr in layer:
+            if instr[0] == '1q':
+                name, params, q, _gate = _instr_unpack_1q(instr)
+                if name is None:
+                    raise ValueError(
+                        "C++ backend requires gate-name format from "
+                        "build_random_dense_circuit; got matrix-only instr."
+                    )
+                op = {"name": name, "wires": [int(q)]}
+                if params:
+                    op["params"] = [float(p) for p in params]
+                ops.append(op)
+            elif instr[0] == '2q':
+                name, q1, q2, _gate = _instr_unpack_2q(instr)
+                if name is None:
+                    raise ValueError(
+                        "C++ backend requires gate-name format from "
+                        "build_random_dense_circuit; got matrix-only instr."
+                    )
+                ops.append({"name": name, "wires": [int(q1), int(q2)]})
+        if noise_prob > 0:
+            for q in range(n_qubits):
+                ops.append({
+                    "name": "DEPOLARIZE",
+                    "wires": [int(q)],
+                    "params": [float(noise_prob)],
+                })
+    return ops
+
+
+def _bit_reverse_perm(n_qubits):
+    """Permutation that maps LSB-qubit-0 indexing → MSB-qubit-0 indexing.
+
+    For each flat index i in [0, 2^n), reverse its n-bit binary representation.
+    """
+    dim = 1 << n_qubits
+    perm = np.empty(dim, dtype=np.int64)
+    for i in range(dim):
+        r = 0
+        x = i
+        for _ in range(n_qubits):
+            r = (r << 1) | (x & 1)
+            x >>= 1
+        perm[i] = r
+    return perm
+
+
+def lret_state_from_cpp(cpp_result, n_qubits):
+    """Reconstruct L: dim x rank complex matrix from quantum_sim state payload.
+
+    The C++ backend uses LSB-on-qubit-0 indexing while our numpy/Cirq path uses
+    MSB-on-qubit-0. We apply a bit-reverse row permutation so the returned L
+    is directly comparable to `run_lret_simulation`'s output and to Cirq's
+    `final_density_matrix` (with `qubit_order=LineQubit.range(n)`).
+
+    Expects cpp_result['state'] = {'L_real': [[...]], 'L_imag': [[...]],
+                                   'rows': int, 'cols': int}
+    """
+    state = cpp_result.get('state')
+    if state is None:
+        raise RuntimeError("C++ result has no 'state' field — was export_state set?")
+    rows = int(state['rows'])
+    cols = int(state['cols'])
+    L_real = np.asarray(state['L_real'], dtype=float).reshape(rows, cols)
+    L_imag = np.asarray(state['L_imag'], dtype=float).reshape(rows, cols)
+    L = L_real + 1j * L_imag
+    expected_rows = 2 ** n_qubits
+    if L.shape[0] != expected_rows:
+        raise RuntimeError(
+            f"C++ L shape mismatch: got {L.shape}, expected ({expected_rows}, *)"
+        )
+    # Convert from C++ LSB convention to our MSB convention
+    perm = _bit_reverse_perm(n_qubits)
+    return L[perm, :]
+
+
+def run_lret_cpp(circuit_layers, n_qubits, noise_prob, epsilon=1e-4,
+                 timeout_s=3600.0, export_state=True):
+    """Run LRET via the C++ quantum_sim.exe subprocess.
+
+    Returns: (L_or_None, elapsed_ms, final_rank)
+      - L is None if export_state=False (just timing/rank).
+    """
+    import time
+    from python.qlret.api import simulate_json
+
+    ops = _layers_to_native_ops(circuit_layers, n_qubits, noise_prob)
+    circuit_json = {
+        "circuit": {
+            "num_qubits": int(n_qubits),
+            "operations": ops,
+        },
+        "config": {
+            "batch_size": 64,
+            "do_truncation": True,
+            "truncation_threshold": float(epsilon),
+        },
+    }
+
+    t0 = time.perf_counter()
+    result = simulate_json(circuit_json, export_state=export_state,
+                           use_native=True, timeout=timeout_s)
+    elapsed_ms = (time.perf_counter() - t0) * 1000.0
+
+    if result.get('status') != 'success':
+        raise RuntimeError(f"C++ simulate_json status={result.get('status')}")
+
+    final_rank = int(result.get('final_rank', 0))
+    L = lret_state_from_cpp(result, n_qubits) if export_state else None
+    # Prefer C++'s own internal timing if it was reported
+    if 'execution_time_ms' in result:
+        elapsed_ms = float(result['execution_time_ms'])
+    return L, elapsed_ms, final_rank

@@ -101,12 +101,13 @@ ALGORITHM_TIERS = {
                      'vqt', 'kernel_alignment', 'subsampling_qnn'],
 }
 
-N_QUBITS_DEFAULT = 4
+N_QUBITS_DEFAULT = 10
 N_EPOCHS_FULL    = 50
 N_EPOCHS_QUICK   = 10
 N_TRIALS_FULL    = 5
 N_TRIALS_QUICK   = 2
 NOISE_PROB       = 0.001
+PER_ALGO_TIMEOUT_S = 1800.0  # 30 min budget per algorithm
 
 
 # ──────────────────────────────────────────────────────────────
@@ -394,9 +395,41 @@ def plot_summary_heatmap(results, output_dir, datestamp):
 # Main runner
 # ──────────────────────────────────────────────────────────────
 
-def run(output_dir='results', quick=False, allow_synthetic=False):
+SUMMARY_FIELDS = [
+    'algo', 'competitor', 'noisy', 'n_qubits',
+    'lret_mean_ms', 'comp_mean_ms', 'time_ratio',
+    'lret_peak_mb', 'comp_peak_mb', 'memory_ratio',
+    'accuracy_ratio', 'pvalue', 'simulated', 'status',
+]
+
+
+def _write_summary_csv(path, results, n_qubits):
+    with open(path, 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=SUMMARY_FIELDS)
+        writer.writeheader()
+        for r in results:
+            row = {
+                'algo':           r.get('algo', ''),
+                'competitor':     r.get('competitor', ''),
+                'noisy':          r.get('noisy', False),
+                'n_qubits':       n_qubits,
+                'lret_mean_ms':   r.get('lret_mean_ms', ''),
+                'comp_mean_ms':   r.get('comp_mean_ms', ''),
+                'time_ratio':     r.get('time_ratio', ''),
+                'lret_peak_mb':   r.get('lret_peak_mb', ''),
+                'comp_peak_mb':   r.get('comp_peak_mb', ''),
+                'memory_ratio':   r.get('memory_ratio', ''),
+                'accuracy_ratio': r.get('accuracy_ratio', ''),
+                'pvalue':         r.get('pvalue', ''),
+                'simulated':      r.get('simulated', False),
+                'status':         r.get('status', 'ok'),
+            }
+            writer.writerow(row)
+
+
+def run(output_dir='results', quick=False, allow_synthetic=False, n_qubits=None):
     os.makedirs(output_dir, exist_ok=True)
-    datestamp = datetime.datetime.now().strftime('%Y%m%d')
+    datestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
     if not PENNYLANE_AVAILABLE:
         print("\n[2c] PennyLane is not installed — cannot run benchmark.")
@@ -410,31 +443,54 @@ def run(output_dir='results', quick=False, allow_synthetic=False):
 
     n_epochs = N_EPOCHS_QUICK if quick else N_EPOCHS_FULL
     n_trials = N_TRIALS_QUICK if quick else N_TRIALS_FULL
-    n_qubits = N_QUBITS_DEFAULT
+    if n_qubits is None:
+        n_qubits = N_QUBITS_DEFAULT
 
     algos = list(ALGORITHM_DEVICE_MAP.keys())
+    summary_path = os.path.join(output_dir, f'pennylane_summary_{datestamp}.csv')
 
     lret_mode = "qlret.mixed (real)" if QLRET_AVAILABLE else "SYNTHETIC (qlret missing)"
-    print(f"\n[2c] PennyLane 20-Algorithm Comparison — "
-          f"n={n_qubits}, epochs={n_epochs}, trials={n_trials}")
-    print(f"     LRET device: {lret_mode}")
+    print(f"\n[2c Round 2] PennyLane 20-Algorithm Comparison")
+    print(f"  n={n_qubits}  epochs={n_epochs}  trials={n_trials}  noise={NOISE_PROB}")
+    print(f"  LRET device: {lret_mode}")
+    print(f"  Summary CSV: {summary_path}")
 
     all_results = []
     for algo in algos:
-        print(f"  {algo}...", end='', flush=True)
+        print(f"  {algo:22s} ", end='', flush=True)
+        t0 = time.perf_counter()
         try:
             r = run_algorithm_comparison(algo, n_qubits, n_epochs, n_trials,
                                          allow_synthetic)
+            r['status'] = 'ok'
         except RuntimeError as exc:
-            print(f" SKIPPED ({exc})")
+            print(f"SKIPPED ({exc})")
+            all_results.append({'algo': algo, 'status': f'skipped: {exc}'})
+            _write_summary_csv(summary_path, all_results, n_qubits)
             continue
+        except MemoryError:
+            print("OOM")
+            all_results.append({'algo': algo, 'status': 'oom'})
+            _write_summary_csv(summary_path, all_results, n_qubits)
+            continue
+        except Exception as exc:
+            print(f"ERROR ({type(exc).__name__}: {exc})")
+            all_results.append({'algo': algo,
+                                'status': f'error: {type(exc).__name__}'})
+            _write_summary_csv(summary_path, all_results, n_qubits)
+            continue
+        elapsed_s = time.perf_counter() - t0
         all_results.append(r)
+        _write_summary_csv(summary_path, all_results, n_qubits)
         tag = ' [SIM]' if r['simulated'] else ''
-        print(f" time_ratio={r['time_ratio']:.2f}×  "
-              f"mem_ratio={r['memory_ratio']:.2f}  p={r['pvalue']:.3f}{tag}")
+        print(f"time_ratio={r['time_ratio']:.2f}x  "
+              f"mem_ratio={r['memory_ratio']:.2f}  p={r['pvalue']:.3f}  "
+              f"({elapsed_s:.1f}s){tag}")
 
+    # Filter out skipped/error rows for downstream plotting
+    all_results = [r for r in all_results if r.get('status', 'ok') == 'ok']
     if not all_results:
-        print("  No results — aborting.")
+        print("  No successful results — aborting plotting.")
         return []
 
     # Per-algo CSVs + figures
@@ -465,27 +521,7 @@ def run(output_dir='results', quick=False, allow_synthetic=False):
         if MATPLOTLIB_AVAILABLE:
             plot_per_algorithm(r, output_dir, datestamp)
 
-    summary_path = os.path.join(output_dir, f'pennylane_summary_{datestamp}.csv')
-    summary_rows = [{
-        'algo':           r['algo'],
-        'competitor':     r['competitor'],
-        'noisy':          r['noisy'],
-        'lret_mean_ms':   r['lret_mean_ms'],
-        'comp_mean_ms':   r['comp_mean_ms'],
-        'time_ratio':     r['time_ratio'],
-        'lret_peak_mb':   r['lret_peak_mb'],
-        'comp_peak_mb':   r['comp_peak_mb'],
-        'memory_ratio':   r['memory_ratio'],
-        'accuracy_ratio': r['accuracy_ratio'],
-        'pvalue':         r['pvalue'],
-        'simulated':      r['simulated'],
-    } for r in all_results]
-
-    with open(summary_path, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=summary_rows[0].keys())
-        writer.writeheader()
-        writer.writerows(summary_rows)
-    print(f"\n  Master summary: {summary_path}")
+    print(f"\n  Final summary CSV: {summary_path}")
 
     if MATPLOTLIB_AVAILABLE:
         plot_summary_heatmap(all_results, output_dir, datestamp)
@@ -497,11 +533,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--quick', action='store_true')
     parser.add_argument('--output-dir', default='results')
+    parser.add_argument('--n-qubits', type=int, default=None,
+                        help=f'Number of qubits (default: {N_QUBITS_DEFAULT})')
     parser.add_argument('--allow-synthetic', action='store_true',
                         help='Allow synthetic fallback when qlret.mixed is unavailable. '
                              'Results will be clearly labeled SIMULATED.')
     args = parser.parse_args()
-    run(args.output_dir, args.quick, args.allow_synthetic)
+    run(args.output_dir, args.quick, args.allow_synthetic, args.n_qubits)
 
 
 if __name__ == '__main__':
