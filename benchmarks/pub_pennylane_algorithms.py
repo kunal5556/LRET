@@ -101,13 +101,13 @@ ALGORITHM_TIERS = {
                      'vqt', 'kernel_alignment', 'subsampling_qnn'],
 }
 
-N_QUBITS_DEFAULT = 10
-N_EPOCHS_FULL    = 50
+N_QUBITS_DEFAULT = 8
+N_EPOCHS_FULL    = 30
 N_EPOCHS_QUICK   = 10
-N_TRIALS_FULL    = 5
+N_TRIALS_FULL    = 2
 N_TRIALS_QUICK   = 2
 NOISE_PROB       = 0.001
-PER_ALGO_TIMEOUT_S = 1800.0  # 30 min budget per algorithm
+PER_ALGO_TIMEOUT_S = None  # no timeout — run each algorithm to completion
 
 
 # ──────────────────────────────────────────────────────────────

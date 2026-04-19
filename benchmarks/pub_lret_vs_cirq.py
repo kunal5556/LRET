@@ -107,7 +107,7 @@ def run_lret_benchmark(n_qubits, depth, noise_prob, epsilon=EPSILON,
             try:
                 L, elapsed_ms, final_rank = run_lret_cpp(
                     circuit, n_qubits, noise_prob, epsilon=epsilon,
-                    timeout_s=7200.0, export_state=True,
+                    timeout_s=86400.0, export_state=True,
                 )
             except MemoryError:
                 return {'n_qubits': n_qubits, 'oom': True}

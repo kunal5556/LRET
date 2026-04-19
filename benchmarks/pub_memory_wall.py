@@ -115,7 +115,7 @@ def run_lret_benchmark(n_qubits, depth, noise_prob, n_trials=1, circuit_seed=42)
             if use_cpp:
                 L, elapsed_ms, final_rank = run_lret_cpp(
                     circuit, n_qubits, noise_prob, epsilon=EPSILON,
-                    timeout_s=7200.0, export_state=True,
+                    timeout_s=86400.0, export_state=True,
                 )
             else:
                 L, elapsed_ms, _max_rank = run_lret_simulation(

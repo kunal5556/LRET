@@ -55,7 +55,7 @@ NOISE_PROB        = 0.001
 EPSILON           = 1e-4
 N_TRIALS_FULL     = 3
 N_TRIALS_QUICK    = 2
-TIMEOUT_SECONDS   = 7200.0  # 2 hours per trial
+TIMEOUT_SECONDS   = 86400.0  # 24 hours per trial — no artificial ceiling
 
 # ──────────────────────────────────────────────────────────────
 # C++ backend detection
