@@ -1,0 +1,1990 @@
+% ============================================================
+% LRET Publication Report
+% Low-Rank Eigenvalue Truncation for Noisy Quantum Circuit Simulation
+% ============================================================
+\documentclass[11pt,a4paper]{article}
+
+% --- Encoding & fonts ---
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% --- Page geometry ---
+\usepackage[a4paper, margin=2.5cm, top=3cm, bottom=3cm]{geometry}
+
+% --- Math ---
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathtools}
+
+% --- Colours ---
+\usepackage[dvipsnames,svgnames,table]{xcolor}
+\definecolor{codegreen}{rgb}{0.0,0.5,0.0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{codeblue}{rgb}{0.0,0.0,0.75}
+\definecolor{backcolour}{rgb}{0.97,0.97,0.97}
+\definecolor{statusbg}{rgb}{0.93,0.95,1.0}
+\definecolor{statusborder}{rgb}{0.2,0.2,0.6}
+
+% --- Hyperlinks ---
+\usepackage[colorlinks=true,linkcolor=NavyBlue,urlcolor=NavyBlue,
+            citecolor=NavyBlue,bookmarksnumbered=true]{hyperref}
+
+% --- Tables ---
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+
+% --- Lists ---
+\usepackage{enumitem}
+\setlist{nosep, topsep=3pt, partopsep=0pt}
+
+% --- Code listings ---
+\usepackage{listings}
+\lstdefinestyle{cppstyle}{
+  backgroundcolor=\color{backcolour},
+  commentstyle=\color{codegreen}\itshape,
+  keywordstyle=\color{codeblue}\bfseries,
+  stringstyle=\color{codepurple},
+  basicstyle=\ttfamily\small,
+  breakatwhitespace=false,
+  breaklines=true,
+  keepspaces=true,
+  numbers=left,
+  numberstyle=\tiny\color{codegray},
+  showspaces=false,
+  showstringspaces=false,
+  showtabs=false,
+  frame=single,
+  framesep=4pt,
+  rulecolor=\color{gray!40},
+  xleftmargin=14pt,
+  xrightmargin=6pt,
+  aboveskip=6pt,
+  belowskip=6pt,
+}
+\lstset{style=cppstyle}
+
+% --- Theorem environments ---
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{proposition}[theorem]{Proposition}
+
+% --- Section headings ---
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries\color{NavyBlue}}{\thesection}{1em}{}[\color{NavyBlue}\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries\color{MidnightBlue}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\itshape\color{SteelBlue}}{\thesubsubsection}{1em}{}
+\titlespacing{\section}{0pt}{14pt}{6pt}
+\titlespacing{\subsection}{0pt}{10pt}{4pt}
+
+% --- Paragraph spacing ---
+\usepackage{parskip}
+\setlength{\parskip}{5pt}
+
+% --- Header & footer ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textit{LRET: Low-Rank Eigenvalue Truncation}}
+\fancyhead[R]{\small\textit{\nouppercase{\leftmark}}}
+\fancyfoot[C]{\small---\;\thepage\;---}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- Callout boxes ---
+\usepackage[framemethod=default]{mdframed}
+\newmdenv[
+  backgroundcolor=statusbg,
+  linecolor=statusborder,
+  linewidth=1.5pt,
+  innertopmargin=7pt,
+  innerbottommargin=7pt,
+  innerleftmargin=12pt,
+  innerrightmargin=12pt,
+  skipabove=8pt,
+  skipbelow=8pt,
+]{infobox}
+
+% --- Graphics ---
+\usepackage{graphicx}
+\graphicspath{{../results/pub_full_lret_vs_cirq_r2/}{../}{./}}
+
+% --- Directory tree (for Proxima module map) ---
+\usepackage{dirtree}
+
+% --- Extra colour aliases (Proxima roadmap) ---
+\definecolor{p1color}{rgb}{0.75,0.1,0.1}
+\definecolor{p2color}{rgb}{0.75,0.45,0.0}
+\definecolor{p3color}{rgb}{0.0,0.45,0.0}
+
+% ============================================================
+% Title
+% ============================================================
+\title{%
+  \vspace{-1cm}
+  {\LARGE\bfseries LRET: A Low-Rank Eigenvalue Truncation Framework}\\[6pt]
+  {\large for Scalable Noisy Quantum Circuit Simulation}\\[10pt]
+  {\normalsize Technical Report --- Complete System Description}
+}
+\author{
+  Kunal Parewa \and Pratham Makhija
+}
+\date{April 2026}
+
+% ============================================================
+\begin{document}
+% ============================================================
+
+\maketitle
+\thispagestyle{empty}
+
+\begin{infobox}
+\textbf{Repository:} \texttt{github.com/kunal5556/LRET}\quad\textbullet\quad
+\textbf{Primary Language:} C++17 / Python 3.11\quad\textbullet\quad
+\textbf{Build:} CMake 3.16+, Eigen3, OpenMP, optional CUDA/MPI
+\end{infobox}
+
+% --- Abstract ---
+\begin{abstract}
+Simulating noisy quantum circuits at scale remains a central computational problem for
+validating near-term quantum algorithms. Full density-matrix simulation requires
+$\mathcal{O}(4^N)$ memory for $N$ qubits and is impractical beyond roughly 14 qubits on
+commodity hardware. The \textbf{Low-Rank Eigenvalue Truncation (LRET)} algorithm of
+Chen, Farquhar \& Parrish~\cite{chen2021lret} exploits the empirical observation that for
+realistic noise rates the density matrix maintains low effective rank, allowing a
+factorised representation $\rho = LL^\dagger$ with $L \in \mathbb{C}^{2^N \times V}$,
+$V \ll 2^N$, combined with Gram-matrix spectral compression at each step.
+
+This report documents our \emph{implementation} of the LRET algorithm of~\cite{chen2021lret}
+as a production-grade, high-performance C++ system. The mathematical core of LRET
+(Kraus-map evolution in factor space, Gram-matrix compression, error bounds, dense-noise
+subgrouping) is \emph{not} our contribution; it is reproduced faithfully from the
+primary reference~\cite{chen2021lret} with full attribution.
+Our contributions are \emph{engineering}: (i) a C++17 implementation on
+Eigen3~\cite{eigen2010} covering 21 gate types and 11 physical noise channels
+(each referenced to its primary source, e.g.,\ Nielsen \& Chuang~\cite{nielsenchuang2010},
+Krantz et al.~\cite{krantz2019}); (ii) five OpenMP~\cite{dagummenon1998} execution
+modes whose algorithms and cost models we formalise using Foster's parallel design
+methodology~\cite{foster1995}; (iii) a gate-fusion pass inspired by Google's
+qsim~\cite{qsim} and circuit stratification inspired by
+$\mathsf{t\vert ket\rangle}$~\cite{sivarajah2020tket}; (iv) an MPI row-distribution
+strategy inspired by QuEST~\cite{jones2019quest}; (v) cuQuantum~\cite{bayraktar2023cuquantum}
+and custom CUDA~\cite{nickolls2008cuda} code paths for GPU execution; and (vi) Python
+bindings (pybind11~\cite{pybind11}) plus in-progress integrations with
+PennyLane~\cite{bergholm2018pennylane}, Qiskit~\cite{javadi2024qiskit}, and
+Cirq~\cite{cirq}.
+
+For empirical validation we deliberately constrain claims to \emph{one} tested regime:
+a head-to-head comparison against Cirq's \texttt{DensityMatrixSimulator}~\cite{cirq} on
+a random dense circuit of depth 13 with per-qubit depolarising noise $p=10^{-3}$, over
+$N=4,\ldots,20$ qubits, three trials per point. LRET overtakes Cirq's runtime at
+$N\!\ge\!8$ and reaches a $59.1\times$ speedup at $N=14$ with state fidelity
+$\ge 0.986$; it completes circuits at $N=16,18$ where the Cirq density-matrix reference
+exceeds available RAM (68.7\,GB and 1099.5\,GB required, respectively). Final ranks
+stay at or below 152 even at $N=18$ ($0.058\%$ of the full Hilbert dimension), empirically
+confirming the low-rank assumption of~\cite{chen2021lret}. All other implementation
+subsystems (MPI, GPU, additional parallel modes, QEC, autodiff) have been verified with
+smoke and unit tests but are not benchmarked in this report; their performance
+characterisation is explicitly deferred to future work. We conclude with the Proxima
+AI orchestration system, a Python agent-framework layer that manages the full
+clone$\to$build$\to$run$\to$analyse workflow over the LRET simulator and five other
+quantum backends.
+\end{abstract}
+
+\tableofcontents
+\clearpage
+
+% ============================================================
+\section{Introduction}
+% ============================================================
+
+\subsection{Motivation}
+
+Simulating noisy quantum circuits underpins algorithm validation, noise characterisation,
+device calibration, and variational-algorithm design. The canonical approach --- full
+density-matrix (FDM) simulation --- stores all $4^N$ complex amplitudes of the
+$2^N \times 2^N$ density matrix~\cite{nielsenchuang2010}. At $N = 20$ qubits this is
+$2^{44}$ bytes ($\approx 16$~TiB) and is impractical on commodity hardware beyond roughly
+$N \approx 14$. Approximate methods are therefore needed. Matrix product states
+and tensor networks~\cite{orus2014tn} work well for low-entanglement circuits but
+struggle with deep, noisily entangling dynamics. Stabiliser
+simulation~\cite{gottesman1997} is restricted to the Clifford gate set.
+
+The Low-Rank Eigenvalue Truncation (LRET) algorithm of Chen, Farquhar and
+Parrish~\cite{chen2021lret} addresses a regime where neither tensor networks nor
+stabiliser methods apply: deep general-unitary circuits with low-to-moderate noise.
+Its central observation is that for realistic noise rates $p \lesssim 1\%$, the
+density matrix has a rapidly decaying eigenvalue spectrum --- its effective rank stays
+low throughout the circuit. Maintaining $\rho = LL^\dagger$ with
+$L \in \mathbb{C}^{2^N \times V}$, $V\!\ll\!2^N$, and discarding eigencomponents below a
+threshold $\varepsilon$ at each truncation step, yields a simulator whose time cost is
+$\mathcal{O}(V^2 \cdot 2^N)$ and memory cost is $\mathcal{O}(V \cdot 2^N)$, with a
+closed-form error bound in trace distance~\cite{chen2021lret}.
+
+\subsection{Scope and Contributions}
+\label{sec:contributions}
+
+This report distinguishes clearly between what we \emph{inherited} from the primary
+LRET paper and what we \emph{built}:
+
+\paragraph{Inherited, implemented faithfully (not our work).}
+The LRET algorithm's mathematical foundations --- factor-space Kraus evolution,
+Gram-matrix spectral compression, truncation-error bounds, and dense-noise layer
+decomposition --- are due to~\cite{chen2021lret}. Section~\ref{sec:math} summarises this
+material with explicit per-equation attribution to the source paper.
+
+\paragraph{Our engineering contributions.}
+\begin{enumerate}
+  \item \textbf{Production C++ implementation} (\S\ref{sec:cpp}). A header-interface /
+        compiled-source codebase using Eigen3~\cite{eigen2010}, supporting 21 gate types
+        and 11 noise channels (depolarising, amplitude and phase damping, bit/phase/
+        bit-phase flip, thermal, leakage, correlated Pauli, and user-supplied Kraus
+        channels), with a pybind11 Python bridge~\cite{pybind11}.
+  \item \textbf{Parallel execution framework} (\S\ref{sec:parallel}). Five OpenMP
+        execution modes (sequential, row-parallel, column-parallel, batch, hybrid)
+        whose algorithms and cost models we formalise using Foster's
+        methodology~\cite{foster1995} and standard parallel-computing primitives
+        \cite{wilkinson2005,dagummenon1998}. We integrate gate fusion after
+        qsim~\cite{qsim} and circuit stratification (a DAG-antichain partition, cf.\
+        \cite{cormen2009}) as compile-time passes.
+  \item \textbf{MPI distributed simulation code path} (\S\ref{sec:mpi}). A row-wise
+        distribution strategy modelled on QuEST~\cite{jones2019quest}, a column-wise
+        distribution that is communication-free, and a hybrid MPI+OpenMP design
+        after~\cite{rabenseifner2009}. Code is present and passes smoke tests; no
+        multi-node performance claims are made.
+  \item \textbf{GPU acceleration code path} (\S\ref{sec:gpu}). Integration of
+        NVIDIA cuQuantum~\cite{bayraktar2023cuquantum} and custom CUDA
+        kernels~\cite{nickolls2008cuda} for low-rank factor operations. Code is present
+        but not benchmarked in this report.
+  \item \textbf{Empirically validated benchmark} (\S\ref{sec:empirical}). A head-to-head
+        comparison against Cirq's density-matrix simulator~\cite{cirq} on $N=4,\ldots,20$
+        qubits with depolarising noise $p=10^{-3}$, depth $13$, and three trials per
+        point, fully specified and reproducible from the script
+        \texttt{benchmarks/pub\_lret\_vs\_cirq.py} and the data file
+        \texttt{results/pub\_full\_lret\_vs\_cirq\_r2/lret\_vs\_cirq\_20260410\_000926.csv}.
+  \item \textbf{Ecosystem integration scaffolding} (\S\ref{sec:future}). In-progress
+        PennyLane device plugin~\cite{bergholm2018pennylane}, Qiskit
+        provider~\cite{javadi2024qiskit}, Cirq backend~\cite{cirq}, and parameter-shift
+        automatic differentiation~\cite{mitarai2018,schuld2019} with JAX~\cite{jax} and
+        PyTorch~\cite{paszke2019pytorch} interfaces.
+  \item \textbf{Proxima AI orchestration layer} (\S\ref{sec:proxima}). A Python agent
+        framework for managing the complete simulation lifecycle (clone, build, run,
+        analyse) across six quantum backends through a conversational interface.
+\end{enumerate}
+
+\paragraph{Explicit non-claims.}
+We do \emph{not} claim multi-node MPI performance data, GPU speedup measurements,
+32-node scalability, or any result beyond the single benchmark described in
+\S\ref{sec:empirical}. Additional subsystems are verified only at the smoke-test level
+(\S\ref{sec:smoke}).
+
+% ============================================================
+\section{Background and Related Work}
+\label{sec:background}
+% ============================================================
+
+\subsection{Noisy Quantum Circuit Simulation}
+\label{sec:bg-sim}
+
+A mixed quantum state on $N$ qubits is represented by a density matrix
+$\rho \in \mathbb{C}^{2^N \times 2^N}$ satisfying $\rho = \rho^\dagger$, $\rho \succeq 0$,
+and $\mathrm{Tr}(\rho) = 1$~\cite{nielsenchuang2010}. Noisy dynamics are described by
+quantum channels $\mathcal{E}$ that are completely positive and trace
+preserving~\cite{choi1975,kraus1983}. Three families of exact and approximate
+simulators have established themselves:
+
+\begin{itemize}
+  \item \textbf{Full density-matrix (FDM) simulation}~\cite{jones2019quest,cirq}.
+        Stores all $4^N$ complex amplitudes; supports arbitrary channels; memory
+        $\mathcal{O}(4^N)$ is the binding constraint.
+  \item \textbf{Tensor-network and matrix-product-state methods}~\cite{orus2014tn,
+        schollwock2011dmrg}. Compress states by bond dimension; effective for
+        low-entanglement circuits.
+  \item \textbf{Stabiliser and extended-stabiliser simulation}~\cite{gottesman1997,
+        aaronson2004chpf}. Polynomial in $N$ for the Clifford fragment; restricted gate
+        set.
+\end{itemize}
+
+LRET~\cite{chen2021lret} occupies a distinct regime: arbitrary-unitary circuits with
+noise rates high enough to keep the density-matrix spectrum concentrated on a
+low-dimensional subspace, yet low enough that the rank does not explode to full.
+
+\subsection{Prior Work: The LRET Algorithm of Chen, Farquhar \& Parrish}
+\label{sec:bg-lret}
+
+The LRET algorithm was introduced by Chen, Farquhar and Parrish in
+\emph{npj Quantum Information} 7, 61 (2021)~\cite{chen2021lret}. That paper establishes
+(a) the factorisation $\rho = LL^\dagger$ and its evolution under Kraus maps, (b) the
+Gram-matrix trick that avoids $n \times n$ eigendecomposition, (c) truncation error
+bounds in trace distance and observable expectation values, and (d) a dense-noise layer
+decomposition strategy. Our contribution is to implement this algorithm in production
+C++ with an accompanying parallel/distributed/GPU execution stack; the algorithm
+itself, including all mathematical results in Section~\ref{sec:math} below, is
+reproduced from~\cite{chen2021lret}.
+
+Table~\ref{tab:lret-paper-index} maps sections of our report to the corresponding
+sections of~\cite{chen2021lret}, so that readers can verify attribution directly.
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\caption{Mapping between our Section~\ref{sec:math} and the primary
+reference~\cite{chen2021lret}.}
+\label{tab:lret-paper-index}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Our subsection} & \textbf{Content} & \textbf{Source in~\cite{chen2021lret}} \\
+\midrule
+\S\ref{sec:math-setup}        & Density-matrix setup                   & Sec.\ II (Preliminaries) \\
+\S\ref{sec:math-open}         & Kraus weighted-mixture model           & Sec.\ II.B \\
+\S\ref{sec:math-lr}           & Low-rank factorisation $\rho=LL^\dagger$ & Sec.\ III.A, Eqs.\ (1)--(2) \\
+\S\ref{sec:math-evo}          & Gate and Kraus factor-space updates    & Sec.\ III.A, Eqs.\ (3)--(5) \\
+\S\ref{sec:math-compress}     & Gram-matrix spectral compression       & Sec.\ III.B, Eqs.\ (6)--(9) \\
+\S\ref{sec:math-errors}       & Truncation error bounds                & Sec.\ III.C, Eq.\ (10), Thm.\ 1 \\
+\S\ref{sec:math-dense}        & Dense-noise layer decomposition        & Sec.\ IV \\
+\S\ref{sec:math-alg}          & Complete algorithm pseudocode          & Sec.\ V, Alg.\ 1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Open Quantum System Formalism}
+\label{sec:bg-oqs}
+
+A general quantum operation admits a Kraus representation~\cite{kraus1983,choi1975}:
+$\mathcal{E}(\rho) = \sum_a K_a \rho K_a^\dagger$ with
+$\sum_a K_a^\dagger K_a = I$. The channel is equivalently described by its Choi
+matrix~\cite{choi1975} or by a Lindblad generator when the evolution is
+Markovian~\cite{breuerpetruccione2002,lindblad1976}. Our simulator adopts the Kraus
+form throughout; each of the 11 supported noise channels in \S\ref{sec:noise-channels}
+is specified by its explicit Kraus set, with citations given per channel.
+
+\subsection{Parallel Computing Paradigms}
+\label{sec:bg-parallel}
+
+Following Foster's methodology~\cite{foster1995}, parallel algorithm design proceeds
+in four stages: \emph{Partitioning} (decomposing the problem into tasks), \emph{Communication}
+(identifying data dependencies between tasks), \emph{Agglomeration} (combining tasks
+to balance granularity), and \emph{Mapping} (assigning tasks to processors). Two
+paradigms are particularly relevant to our work:
+
+\begin{itemize}
+  \item \textbf{Data parallelism}: the same operation is applied to disjoint partitions
+        of a data structure; used in our row-parallel and column-parallel modes
+        (\S\ref{sec:row-parallel}, \S\ref{sec:col-parallel}).
+  \item \textbf{Task parallelism}: independent tasks execute concurrently, possibly on
+        different data; used in our batch mode and in Kraus-branch evaluation
+        (\S\ref{sec:batch-mode}).
+\end{itemize}
+
+A computation with no inter-task communication is termed \emph{embarrassingly parallel}
+(also \emph{pleasingly parallel} or \emph{perfectly parallel}) in the standard
+HPC literature~\cite{foster1995,wilkinson2005}:
+
+\begin{definition}[Embarrassingly parallel, after~\cite{foster1995}]
+\label{def:ep}
+A parallel computation decomposed into subtasks $T_1,\ldots,T_P$ is \emph{embarrassingly
+parallel} if, for all $i \neq j$, the communication set
+$\mathrm{Comm}(T_i, T_j) = \emptyset$. Under ideal load balance and sufficient memory
+bandwidth, its speedup is $S(P) = P$ up to the serial fraction of Amdahl's
+law~\cite{amdahl1967}: $S(P) = 1/(s + (1-s)/P)$ for serial fraction $s$.
+\end{definition}
+
+Shared-memory parallelism in our C++ code is implemented with
+OpenMP~\cite{dagummenon1998}; distributed-memory parallelism uses
+MPI~\cite{gropp1999mpi}, which we structure using the bulk-synchronous parallel (BSP)
+model~\cite{valiant1990bsp} for analysis.
+
+\subsection{Gate Fusion in Quantum Circuit Simulation}
+\label{sec:bg-fusion}
+
+Gate fusion --- composing consecutive gates acting on the same qubits into a single
+larger unitary before simulation --- was popularised in the simulator literature by
+qsim~\cite{qsim} and independently in several HPC simulator projects such as
+H\"aner \& Steiger's 45-qubit simulation~\cite{hanersteiger2017} and the QX
+simulator~\cite{khammassi2017qx}. Compiler-side gate fusion appears in
+$\mathsf{t\vert ket\rangle}$~\cite{sivarajah2020tket} and in QMDD-based
+approaches~\cite{zulehner2018qmdd}. Our fusion pass is a direct adaptation of the
+qsim strategy~\cite{qsim} and is described in \S\ref{sec:fusion}.
+
+\subsection{Parameter-Shift Differentiation}
+\label{sec:bg-psr}
+
+For gates of the form $G(\theta) = e^{-i\theta P/2}$ with $P$ Hermitian and involutive
+($P^2 = I$, i.e., $P$ has eigenvalues $\pm 1$), expectation values
+$\langle O\rangle(\theta)$ admit exact gradients via the \emph{parameter-shift
+rule}~\cite{mitarai2018,schuld2019}:
+\begin{equation}
+  \frac{\partial \langle O \rangle}{\partial \theta}
+  = \tfrac{1}{2}\bigl[
+      \langle O \rangle(\theta + \tfrac{\pi}{2})
+      - \langle O \rangle(\theta - \tfrac{\pi}{2})
+    \bigr].
+\end{equation}
+This covers the common rotation gates RX, RY, RZ, PhaseShift, and the U-family
+(via decomposition). Our autodiff module (\S\ref{sec:future-autodiff}) implements this
+rule and exposes it through JAX~\cite{jax} and PyTorch~\cite{paszke2019pytorch}
+interfaces.
+
+% ============================================================
+\section{Mathematical Foundations of LRET (Chen, Farquhar \& Parrish, 2021)}
+\label{sec:math}
+% ============================================================
+
+\begin{infobox}
+\textbf{Attribution.} This section is a condensed restatement of the algorithmic
+content of the primary LRET paper~\cite{chen2021lret}. All definitions, equations, and
+theorems below are taken from~\cite{chen2021lret}; our implementation of these
+results is described separately in Section~\ref{sec:cpp}. Table~\ref{tab:lret-paper-index}
+gives a subsection-to-source map.
+\end{infobox}
+
+\subsection{Setup and Notation}
+\label{sec:math-setup}
+
+The state space for $N$ qubits has dimension $n = 2^N$. A physical quantum state is
+represented by a density matrix that is Hermitian, positive semidefinite, and unit trace~\cite{nielsenchuang2010,chen2021lret}:
+\begin{equation}
+  \rho \succeq 0,\qquad \rho = \rho^\dagger,\qquad \mathrm{Tr}(\rho) = 1.
+\end{equation}
+Computational-basis measurement probabilities are $\Pr(x) = \rho(x,x)$.
+
+\subsection{Open-System Evolution Model}
+\label{sec:math-open}
+
+Following~\cite{chen2021lret}, one step of noisy evolution is a weighted
+Kraus map:
+\begin{equation}
+  \rho(d+1) = \sum_{a=1}^{A} p_a \, K_a \, \rho(d) \, K_a^\dagger,
+\end{equation}
+with $p_a \geq 0$, $\sum_a p_a = 1$, and trace-preservation
+$\sum_{a=1}^{A} p_a\,K_a^\dagger K_a = I$.
+
+\subsection{Low-Rank Factorised Representation}
+\label{sec:math-lr}
+
+The central memory reduction of~\cite{chen2021lret} is to store $L(d)$ rather than
+$\rho(d)$:
+\begin{equation}
+  \rho(d) = L(d)\,L(d)^\dagger,\qquad L(d) \in \mathbb{C}^{n \times V},\quad
+  \mathrm{rank}(\rho(d)) \leq V.
+\end{equation}
+Memory drops from $\mathcal{O}(n^2)$ to $\mathcal{O}(nV)$, a reduction by a factor
+$n/V$.
+
+\subsection{Factor-Space Evolution Equations}
+\label{sec:math-evo}
+
+From~\cite{chen2021lret}, gate application is exact in factor space:
+\begin{equation}
+  L(d+1) = G(d)\,L(d) \qquad\text{(unitary update, no approximation)}.
+\end{equation}
+For each noise branch $a$:
+\begin{equation}
+  J_{a}(d+1) = \sqrt{p_a}\,K_a\,L(d),
+\end{equation}
+and all branches are concatenated:
+\begin{equation}
+  L(d+1) = \bigl[\,J_1(d+1)\;J_2(d+1)\;\cdots\;J_A(d+1)\,\bigr].
+\end{equation}
+The temporary rank grows from $V$ to $AV$, motivating compression below.
+
+\subsection{Fast Spectral Compression}
+\label{sec:math-compress}
+
+Direct diagonalisation of $\rho(d) \in \mathbb{C}^{n\times n}$ is prohibitive.
+The trick of~\cite{chen2021lret} is to diagonalise the \emph{Gram matrix}:
+\begin{equation}
+  C(d) = L(d)^\dagger\, L(d) \in \mathbb{C}^{V \times V},\qquad
+  C(d) = W(d)\,\Lambda(d)\,W(d)^\dagger,
+\end{equation}
+where $\Lambda(d) = \mathrm{diag}(\lambda_1,\ldots,\lambda_V)$. Eigenvalues of
+$\rho(d)$ coincide with those of $C(d)$; eigenvectors in the original space are
+$u_i(d) = L(d)\,w_i(d)/\sqrt{\lambda_i}$ for $\lambda_i > 0$~\cite{chen2021lret}.
+
+Choose the smallest $r$ with $\sum_{i=1}^{r}\lambda_i \ge 1-\varepsilon$. The
+compressed factor is
+\begin{equation}
+  L_{\mathrm{compressed}}(d) = L(d)\,W_r(d),
+\end{equation}
+with $W_r(d)$ the first $r$ columns of $W(d)$.
+
+\subsection{Error Bounds}
+\label{sec:math-errors}
+
+\begin{theorem}[Single-step truncation bound,~\cite{chen2021lret}]
+Let $\rho_{\mathrm{comp}}(d)$ denote the density matrix reconstructed from the
+truncated factor, and $\delta(d) = \sum_{i=r+1}^{V} \lambda_i$. Then
+\begin{equation}
+  \mathrm{Tr}[\rho(d)-\rho_{\mathrm{comp}}(d)] = \delta(d),\qquad
+  \|\rho(d)-\rho_{\mathrm{comp}}(d)\|_1 = \delta(d).
+\end{equation}
+\end{theorem}
+
+Consequently~\cite{chen2021lret}, for any POVM the total variation distance between
+$P_{\mathrm{LRET}}$ and $P_{\mathrm{exact}}$ is at most $\delta(d)$, and for any
+observable $O$,
+$\bigl|\mathbb{E}[O]_{\mathrm{LRET}}-\mathbb{E}[O]_{\mathrm{exact}}\bigr|
+ \le \delta(d)\,\|O\|_{\mathrm{op}}$.
+
+After $T$ truncation steps the accumulated error is bounded above by
+$\delta_{\mathrm{total}} \le \sum_{t=1}^{T} \delta(t)$~\cite{chen2021lret}; a
+practical setting is $\varepsilon \approx \eta/T$ for a target global budget $\eta$.
+
+\subsection{Dense-Noise Layer Decomposition}
+\label{sec:math-dense}
+
+A dense noise layer on all $N$ qubits has $4^N$ Kraus terms in the depolarising case,
+which is intractable. The decomposition
+in~\cite{chen2021lret} splits the layer into $B$ subgroups of $M = N/B$ qubits each,
+compressing between subgroups:
+\begin{equation}
+  \rho(d+1) \approx \mathcal{E}^{(B)}\bigl[\cdots \mathcal{E}^{(1)}[\rho(d)]\cdots\bigr].
+\end{equation}
+Each subgroup has $A=4^M$ Kraus terms; the per-layer cost is
+$\mathcal{O}\bigl((N/M)(4^M V)^2 n\bigr)$, controlled by choice of $M$.
+
+\subsection{Complete Algorithm}
+\label{sec:math-alg}
+
+Algorithm~\ref{tab:lret-algo} reproduces Algorithm~1 of~\cite{chen2021lret} in the
+notation above; \S\ref{sec:cpp} describes our implementation.
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\caption{Complete LRET algorithm (reproduced from~\cite{chen2021lret}, Alg.\ 1).}
+\label{tab:lret-algo}
+\begin{tabular}{@{}cll@{}}
+\toprule
+\textbf{Step} & \textbf{Action} & \textbf{Purpose} \\
+\midrule
+1  & Initialise $L(0)$; normalise trace             & Valid initial state factor \\
+2  & Gate update $L(d) \leftarrow G(d)\,L(d-1)$     & Exact coherent evolution \\
+3  & Compute $J_a(d) = \sqrt{p_a}\,K_a L(d)$         & Per-branch factor \\
+4  & Concatenate $L(d) \leftarrow [J_1\cdots J_A]$   & Exact post-channel factor \\
+5  & Build $C(d)=L^\dagger L$; diagonalise; threshold $\varepsilon$ & Spectral compression \\
+6  & $L(d) \leftarrow L(d)\,W_r(d)$                   & Reduced rank \\
+7  & If dense: decompose; repeat 3--6 per subgroup    & Manageable intermediate rank \\
+8  & Loop $d = 1, \ldots, D$                          & Full depth evolution \\
+9  & Output $\Pr(x) = \sum_v |L[x,v]|^2$; $\langle O\rangle$ via factor contraction & Final readouts \\
+10 & Monitor $\delta(d)$, $V_{\mathrm{int}}$          & Error and rank diagnostics \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Complexity Summary}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Method} & \textbf{Stored object} & \textbf{Time} & \textbf{Memory} \\
+\midrule
+Full density matrix     & $\rho \in \mathbb{C}^{n \times n}$ & $\mathcal{O}(4^N)$ & $\mathcal{O}(4^N)$ \\
+LRET (basic)~\cite{chen2021lret} & $L \in \mathbb{C}^{n \times V}$ & $\mathcal{O}(V^2 \cdot 2^N)$ & $\mathcal{O}(V \cdot 2^N)$ \\
+LRET (dense noise)~\cite{chen2021lret} & $L$ + subgroup expansion & $\mathcal{O}(V_\mathrm{int}^2 \cdot 2^N)$ & $\mathcal{O}(V \cdot 2^N)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ============================================================
+\section{C++ Implementation}
+\label{sec:cpp}
+% ============================================================
+
+This section describes our C++17 implementation of the LRET algorithm
+of~\cite{chen2021lret}. The mathematical content is prior work; the code, data
+structures, numerical methods, and engineering choices below are our contribution.
+
+\subsection{Architecture Overview}
+
+We implement LRET in C++17 using Eigen3~\cite{eigen2010} for dense linear algebra;
+Python bindings are generated via pybind11~\cite{pybind11}. The codebase follows a
+header-interface pattern (public API in \texttt{include/}, implementations in
+\texttt{src/}). Optional GPU and MPI capabilities are compiled-in via CMake feature
+flags~\cite{cmake}.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}lp{9cm}@{}}
+\toprule
+\textbf{Component} & \textbf{Role} \\
+\midrule
+\texttt{include/types.h}             & Core aliases, gate/noise enums, config structs \\
+\texttt{include/simulator.h}         & LRET engine (truncation, orthonormalisation, runners) \\
+\texttt{include/gates\_and\_noise.h} & Gate matrices and Kraus generators \\
+\texttt{include/parallel\_modes.h}   & Parallel execution modes and auto-selection \\
+\texttt{include/gate\_fusion.h}      & Gate fusion compile pass \\
+\texttt{include/autodiff.h}          & Parameter-shift gradient computation \\
+\texttt{include/mpi\_parallel.h}     & MPI distributed simulation \\
+\texttt{include/gpu\_simulator.h}    & CUDA / cuQuantum GPU acceleration \\
+\texttt{include/qec\_*.h}            & Quantum error correction modules (8 headers) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Theoretical Basis of the Core Numerical Kernels}
+
+Our implementation realises Equations (1)--(10) of~\cite{chen2021lret}
+(Table~\ref{tab:lret-paper-index}). Four numerical kernels are central:
+
+\begin{enumerate}
+  \item \textbf{Dense matrix multiplication} $L' = G\,L$: performed block-wise with
+        Eigen's cache-blocked GEMM~\cite{eigen2010}, which in turn uses the
+        Goto-style~\cite{goto2008anatomy} register blocking when compiled against
+        BLAS, or falls back to Eigen's portable kernels otherwise.
+  \item \textbf{Kraus branching} $L' = [\sqrt{p_1}K_1 L\ \cdots\ \sqrt{p_A}K_A L]$:
+        stacked horizontally with reserved capacity; each $K_a L$ uses the same GEMM
+        kernel.
+  \item \textbf{Gram-matrix eigendecomposition} $C = L^\dagger L = W\Lambda W^\dagger$
+        (Eq.~\eqref{sec:math-compress} of~\cite{chen2021lret}): Eigen's
+        \texttt{SelfAdjointEigenSolver}, which uses the Jacobi-Householder
+        tridiagonalisation pipeline~\cite{goluvanloan2013}. We exploit the
+        $V \times V$ size ($V \ll n$) to keep this the cheapest part of a step.
+  \item \textbf{QR orthonormalisation} of $L$ (used by \texttt{orthonormalize\_L}):
+        Eigen's \texttt{HouseholderQR}~\cite{goluvanloan2013}; preserves
+        $LL^\dagger$ because $L_Q L_Q^\dagger = LR^{-1}(LR^{-1})^\dagger$ when $L = L_Q R$
+        and $R$ is invertible, i.e.,\ $LL^\dagger = L_Q (R R^\dagger) L_Q^\dagger$ after
+        absorbing $R$ appropriately.
+\end{enumerate}
+
+The truncation routine \texttt{truncate\_L} (\S\ref{sec:truncate-impl}) uses step~3
+followed by eigenvalue thresholding per \S\ref{sec:math-compress} of~\cite{chen2021lret};
+no $n \times n$ matrix is ever materialised.
+
+\subsection{Core Types}
+
+All simulation types are defined in \texttt{include/types.h}:
+
+\begin{lstlisting}[language=C++, caption={Core type aliases (types.h)}]
+using Complex   = std::complex<double>;
+using MatrixXcd = Eigen::MatrixXcd;            // n x V low-rank factor L
+using VectorXcd = Eigen::VectorXcd;
+using Matrix2cd = Eigen::Matrix2cd;            // 2x2 single-qubit gates
+using Matrix4cd = Eigen::Matrix<Complex,4,4>;  // 4x4 two-qubit gates
+using Matrix3cd = Eigen::Matrix<Complex,3,3>;  // qutrit leakage gates
+\end{lstlisting}
+
+\subsection{Gate Set}
+
+Twenty-one gate types are supported; all matrix definitions follow the standard
+conventions of~\cite{nielsenchuang2010}:
+
+\begin{lstlisting}[language=C++, caption={GateType enumeration (types.h)}]
+enum class GateType {
+    // Single-qubit: H, X, Y, Z, S, T, Sdg, Tdg, SX,
+    //               RX, RY, RZ, U1, U2, U3
+    // Two-qubit:    CNOT, CZ, CY, SWAP, ISWAP
+    // Custom:       CUSTOM  (arbitrary unitary via matrix)
+};
+\end{lstlisting}
+
+\subsection{Noise Channels}
+\label{sec:noise-channels}
+
+Eleven noise channels are supported. Each channel is specified by its Kraus operators,
+with the primary physical or mathematical reference given per channel in
+Table~\ref{tab:noise-refs}. Unless otherwise noted the Kraus sets used in our code are
+standard textbook forms~\cite{nielsenchuang2010}.
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.25}
+\caption{Noise channels implemented in \texttt{gates\_and\_noise.cpp}, with sources for
+their Kraus representation or physical parameterisation.}
+\label{tab:noise-refs}
+\begin{tabular}{@{}llp{7.5cm}@{}}
+\toprule
+\textbf{Channel} & \textbf{Reference(s)} & \textbf{Kraus form used} \\
+\midrule
+Depolarising         & \cite{nielsenchuang2010} \S 8.3.4 &
+  $\rho\!\mapsto\!(1\!-\!p)\rho + \tfrac{p}{3}(X\rho X + Y\rho Y + Z\rho Z)$ \\
+Amplitude damping    & \cite{nielsenchuang2010} \S 8.3.5; \cite{krantz2019} &
+  $K_0 = \mathrm{diag}(1,\sqrt{1-\gamma})$, $K_1 = \sqrt{\gamma}\,\lvert 0\rangle\!\langle 1\rvert$ \\
+Phase damping        & \cite{nielsenchuang2010} \S 8.3.6 &
+  $K_0 = \mathrm{diag}(1,\sqrt{1-\lambda})$, $K_1 = \mathrm{diag}(0,\sqrt{\lambda})$ \\
+Bit flip             & \cite{nielsenchuang2010}, \cite{gottesman1997} &
+  $\{\sqrt{1-p}I,\sqrt{p}X\}$ \\
+Phase flip           & \cite{nielsenchuang2010}, \cite{gottesman1997} &
+  $\{\sqrt{1-p}I,\sqrt{p}Z\}$ \\
+Bit-phase flip       & \cite{nielsenchuang2010}, \cite{gottesman1997} &
+  $\{\sqrt{1-p}I,\sqrt{p}Y\}$ \\
+Thermal              & \cite{breuerpetruccione2002} Ch.\ 3 &
+  Generalised amplitude damping at temperature $T$ \\
+Leakage (qutrit)     & \cite{mcewen2021leakage}, \cite{miao2023leakage} &
+  $3 \times 3$ Kraus on $\{|0\rangle,|1\rangle,|2\rangle\}$ \\
+Leakage relaxation   & \cite{mcewen2021leakage} &
+  Return $|2\rangle\!\to\!|1\rangle$ \\
+Correlated Pauli     & \cite{clader2021}, \cite{zhang2017correlated} &
+  User-supplied correlated $\{P_i\otimes P_j\}$ set \\
+Custom               & --- & Arbitrary user-supplied $\{K_a\}$ verified against completeness \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Leakage uses the qutrit embedding of~\cite{mcewen2021leakage}; the leakage parameters
+$p_\mathrm{leak}$, $p_\mathrm{relax}$, $p_\mathrm{phase}$ correspond to physical
+superconducting-qubit calibration data as surveyed in~\cite{krantz2019}.
+
+\subsection{Core Simulation Engine}
+\label{sec:truncate-impl}
+
+The two key kernels implementing the~\cite{chen2021lret} algorithm are:
+
+\begin{lstlisting}[language=C++, caption={Core truncation and orthonormalisation (simulator.h)}]
+// Truncate L by Gram-matrix diagonalisation and eigenvalue thresholding.
+// Implements Eqs. (6)-(9) of Chen, Farquhar, Parrish (2021).
+MatrixXcd truncate_L(
+    const MatrixXcd& L,
+    double threshold,
+    size_t max_rank = 0);   // 0 = unlimited
+
+// Orthonormalise columns of L via Householder QR while preserving rho = L L^dag.
+MatrixXcd orthonormalize_L(const MatrixXcd& L);
+
+// Full runner: gate application, Kraus branching, truncation.
+MatrixXcd run_simulation_optimized(
+    const MatrixXcd& L_init,
+    const QuantumSequence& sequence,
+    size_t num_qubits,
+    size_t batch_size = 64,
+    bool do_truncation = true,
+    bool verbose = false,
+    double truncation_threshold = 1e-4);
+\end{lstlisting}
+
+The truncation routine computes the $V\!\times\!V$ Gram matrix
+$C = L^\dagger L$, calls Eigen's \texttt{SelfAdjointEigenSolver}, sorts eigenvalues in
+descending order, and retains the smallest $r$ whose cumulative sum exceeds
+$1-\varepsilon$. This directly realises Eqs.\ (6)--(9) of~\cite{chen2021lret} with no
+$n\!\times\!n$ matrix ever constructed.
+
+\subsection{Python Bindings}
+
+\texttt{src/python\_bindings.cpp} exposes the C++ engine via
+pybind11~\cite{pybind11}, providing:
+
+\begin{itemize}
+  \item \texttt{simulate\_json(circuit\_json, epsilon)} --- full circuit execution from JSON
+  \item \texttt{truncate\_l(L, threshold)} --- standalone truncation
+  \item \texttt{apply\_gate(L, gate\_type, qubits, params)} --- single gate application
+  \item \texttt{run\_with\_mode(L, sequence, mode, config)} --- explicit mode selection
+\end{itemize}
+
+The resulting Python package \texttt{qlret} is importable after CMake install.
+
+\subsection{Build System}
+
+The build is managed by CMake 3.16+~\cite{cmake} with the principal flags:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Flag} & \textbf{Default} & \textbf{Effect} \\
+\midrule
+\texttt{USE\_PYTHON} & \texttt{ON}  & Build pybind11 Python module \texttt{\_qlret\_native} \\
+\texttt{USE\_GPU}    & \texttt{OFF} & Link CUDA toolkit and cuQuantum~\cite{bayraktar2023cuquantum} \\
+\texttt{USE\_MPI}    & \texttt{OFF} & Link MPI library~\cite{gropp1999mpi} for distributed simulation \\
+\texttt{USE\_NCCL}   & \texttt{OFF} & Enable NCCL~\cite{nccl} multi-GPU collectives \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+External dependencies (Eigen3, nlohmann/json, pybind11) are fetched via
+\texttt{FetchContent} if not found on the system. Build targets: \texttt{qlret\_lib}
+(static library), \texttt{quantum\_sim} (CLI executable), \texttt{\_qlret\_native}
+(Python extension), and \texttt{qlret\_gpu} (GPU library, when \texttt{USE\_GPU=ON}).
+
+% ============================================================
+\section{Parallel Execution Framework}
+\label{sec:parallel}
+% ============================================================
+
+This section describes our five parallel execution modes and the two compile-time
+circuit-optimisation passes that integrate with them. The design follows Foster's
+partition-communicate-agglomerate-map methodology~\cite{foster1995}; shared-memory
+parallelism uses OpenMP~\cite{dagummenon1998}.
+
+\subsection{Taxonomy of Execution Modes}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}lp{7.5cm}@{}}
+\toprule
+\textbf{Mode} & \textbf{Description} \\
+\midrule
+\texttt{SEQUENTIAL} & Single-threaded baseline; reference implementation \\
+\texttt{ROW}        & Data-parallel partition of rows of $L$ across threads \\
+\texttt{COLUMN}     & Embarrassingly parallel over columns of $L$ \\
+\texttt{BATCH}      & Batched gate application; amortises dispatch overhead \\
+\texttt{HYBRID}     & Row parallelism + batch organisation + gate fusion \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Extended modes (\texttt{MPI\_ROW}, \texttt{MPI\_COLUMN}, \texttt{MPI\_HYBRID},
+\texttt{GPU\_DISTRIBUTED}) activate when the corresponding backend is compiled in;
+\texttt{COMPARE} runs all modes and emits a comparison table. We now formalise each.
+
+\subsection{Sequential Baseline}
+\label{sec:seq-mode}
+
+The sequential loop implements Table~\ref{tab:lret-algo} directly:
+
+\begin{algorithm}[!h]
+\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{@{}lp{11.5cm}@{}}
+\toprule
+\textbf{Step} & \textbf{Sequential algorithm} \\
+\midrule
+1 & For each gate or noise op at depth $d=1..D$: \\
+2 & \quad If $G(d)$ unitary: $L \leftarrow (G(d) \otimes I_{2^{N-k}})\,L$ \\
+3 & \quad Elseif $\{p_a,K_a\}$ noise: $L \leftarrow [\sqrt{p_a}(K_a \otimes I)\,L]_{a=1}^{A}$ \\
+4 & \quad If compress-trigger: $L \leftarrow \texttt{truncate\_L}(L,\varepsilon)$ \\
+5 & Output $L$, extract probabilities and observables \\
+\bottomrule
+\end{tabular}
+\end{algorithm}
+
+Per-step cost is $\mathcal{O}(V^2\cdot 2^N)$ by \S\ref{sec:math-compress}
+of~\cite{chen2021lret}; in our reference system we obtain numerical
+agreement with FDM on small circuits (\S\ref{sec:smoke}).
+
+\subsection{Row-Parallel Mode}
+\label{sec:row-parallel}
+
+\paragraph{Partitioning.}
+Partition the rows of $L$ into $P$ blocks $\{R_p\}_{p=0}^{P-1}$, each
+$R_p \in \mathbb{C}^{(n/P)\times V}$. Thread $p$ owns block $R_p$. Since $V \ll n$, each
+block is a tall-thin slab stored in row-major order, which is cache-friendly for the
+common 1-qubit kernel (cf.\ \cite{hennessypatterson2017} Ch.\ 5 on cache line and
+stride behaviour).
+
+\paragraph{Algorithm.}
+For a single-qubit gate $G$ on qubit $q$, let $\tau_q(i) = i \oplus 2^q$ be the
+bit-flip on the row index. The gate acts as
+\begin{equation}
+  \begin{pmatrix} L'[i,:] \\ L'[\tau_q(i),:] \end{pmatrix}
+  = G \begin{pmatrix} L[i,:] \\ L[\tau_q(i),:] \end{pmatrix},
+  \qquad i < \tau_q(i).
+\end{equation}
+If both $i$ and $\tau_q(i)$ belong to the same block $R_p$ (i.e.\ the bit flipped
+is below the block-assignment bit), the update is \emph{local} --- no synchronisation.
+Otherwise a pairwise exchange of the affected rows across the two threads is required,
+which we implement via a barrier-protected buffer swap.
+
+\paragraph{Communication bound.}
+For $P = 2^k$ threads with row distribution by the top-$k$ bits of the row index,
+gates on qubits $\{0, \ldots, N-k-1\}$ are local; gates on qubits $\{N-k,\ldots,N-1\}$
+require one exchange of $(2n/P)\,V$ complex doubles per gate (BSP
+supersteps~\cite{valiant1990bsp}). Under Foster's methodology~\cite{foster1995} this
+is a data-parallel agglomeration with local-computation to communication ratio
+$\Theta(V)$ for local gates and $\Theta(1)$ for cross-block gates.
+
+\paragraph{Speedup model.}
+If a fraction $\mu$ of gates are local, the strong-scaling speedup follows
+Amdahl's law~\cite{amdahl1967}: $S(P) = 1/(\mu \cdot 1/P + (1-\mu)\cdot f_{\mathrm{comm}})$
+where $f_{\mathrm{comm}} \ge 1/P$ captures the exchange cost.
+
+\subsection{Column-Parallel Mode}
+\label{sec:col-parallel}
+
+\paragraph{Partitioning.}
+Each of $P$ threads owns a disjoint column set $C_p \subseteq \{1,\ldots,V\}$, with
+$|C_p| = V/P$. Since columns of $L$ are independent Kraus-branch pure-state
+trajectories, gates and noise on column $v$ depend only on $L[:,v]$ and not on any
+other column.
+
+\paragraph{Formal classification.}
+Column-parallelism satisfies Definition~\ref{def:ep} (embarrassingly parallel): for all
+$p \neq p'$, $\mathrm{Comm}(T_p, T_{p'}) = \emptyset$. In Foster's taxonomy it is the
+terminal case where the agglomeration and mapping stages are trivial because the
+communicate stage yielded the empty set~\cite{foster1995,wilkinson2005}.
+
+\paragraph{Speedup model.}
+Ideal asymptotic speedup $S(P) = P$ (Amdahl serial fraction
+$s \to 0$~\cite{amdahl1967}), bounded in practice by memory-bandwidth
+contention~\cite{hennessypatterson2017}.
+
+\paragraph{Trade-off against row mode.}
+When $V < P$ (rank below thread count), some threads idle and column-parallel is
+inferior to row-parallel. Our auto-selector (\S\ref{sec:auto-select}) chooses column
+mode only when $V \ge P$ and $V \cdot 2^N$ exceeds a cache-aware threshold.
+
+\subsection{Batch Mode}
+\label{sec:batch-mode}
+
+\paragraph{Idea.}
+Replace $B$ separate kernel calls $L \leftarrow G_i\,L$ ($i=1,\ldots,B$) by a single
+composite call $L \leftarrow G_B G_{B-1} \cdots G_1 \cdot L$ for gates that act on the
+same qubit(s). The composite matrix $G_\mathrm{batch}$ is precomputed in $\mathcal{O}(B)$
+small-matrix multiplications and applied once.
+
+\paragraph{Complexity.}
+Sequential cost: $B \cdot \mathcal{O}(V^2 \cdot 2^N)$. Batched cost: $\mathcal{O}(B)$
+(precompute) $+$ $\mathcal{O}(V^2\cdot 2^N)$ (apply). For $B$ gates on the same qubit,
+batching reduces the dominant term by a factor $B$. This is a standard strength-reduction
+transformation~\cite{cormen2009} applied to the simulator kernel.
+
+\paragraph{Task-parallel extension.}
+For independent gates on different qubits, batches are dispatched to worker threads as
+independent tasks (task parallelism in Foster's sense~\cite{foster1995}).
+
+\subsection{Hybrid Mode}
+\label{sec:hybrid-mode}
+
+Hybrid mode composes row-parallelism with batch organisation and the gate-fusion pass
+(\S\ref{sec:fusion}). Each layer $L_\ell$ of the stratified circuit
+(\S\ref{sec:stratification}) is processed as follows:
+\begin{enumerate}
+  \item Apply gate fusion to reduce $|L_\ell|$.
+  \item For each disjoint group of fused gates, dispatch to worker threads under
+        the row-parallel kernel of \S\ref{sec:row-parallel}.
+  \item After the layer completes, synchronise and optionally truncate.
+\end{enumerate}
+This is the recommended default because it compounds three mutually compatible
+optimisations: intra-kernel row parallelism, cross-kernel gate composition, and
+layer-level task parallelism.
+
+\subsection{Automatic Mode Selection}
+\label{sec:auto-select}
+
+\begin{lstlisting}[language=C++, caption={Mode auto-selection heuristic (parallel\_modes.cpp)}]
+ParallelMode auto_select_mode(
+    size_t num_qubits, size_t depth, size_t rank_estimate)
+{
+    size_t dim = 1ULL << num_qubits;
+    if (dim < 64)         return ParallelMode::SEQUENTIAL;   // N < 6 qubits
+    if (depth > 10 && num_qubits >= 8)
+                          return ParallelMode::HYBRID;
+    if (num_qubits >= 10) return ParallelMode::ROW;
+    return ParallelMode::BATCH;
+}
+\end{lstlisting}
+
+Thresholds follow cache-locality heuristics of~\cite{hennessypatterson2017} and were
+tuned during implementation against the smoke-test suite (\S\ref{sec:smoke}); they are
+not supported by a separate benchmark campaign in this report.
+
+\subsection{Compile-Time Optimisation I: Gate Fusion}
+\label{sec:fusion}
+
+\paragraph{Definition.}
+Gate fusion is a compile-time pass that replaces a contiguous run of single-qubit
+gates $G_1, G_2, \ldots, G_k$ on the same qubit $q$ with a single $2\times 2$ unitary
+\begin{equation}
+  G_\mathrm{fused} = G_k\,G_{k-1}\cdots G_2\,G_1,
+\end{equation}
+reducing the gate count by a factor $k$. The product of unitaries is unitary, so no
+approximation is introduced.
+
+\paragraph{Mathematics.}
+For a run of $k$ gates, the fused matrix is computed by $(k-1)$ $2\times 2$ matrix
+multiplications, each costing $\Theta(1)$ (8 multiply-adds). This is replaced by a
+single $\Theta(V \cdot 2^N)$ simulator kernel call instead of $k$ such calls, reducing
+the dominant simulator cost by a factor $k$ for that run.
+
+\paragraph{Fusion-break invariants.}
+We break fusion chains on (i) two-qubit gates incident on $q$, (ii) noise operations on
+$q$, (iii) measurement on $q$. These rules preserve correctness in a standard way; the
+qsim reference~\cite{qsim} uses identical invariants.
+
+\paragraph{Prior art.}
+The technique is due to~\cite{qsim}; analogous passes appear in~\cite{hanersteiger2017,
+khammassi2017qx,sivarajah2020tket,zulehner2018qmdd}. Our implementation is a direct
+adaptation of the qsim strategy.
+
+\subsection{Compile-Time Optimisation II: Circuit Stratification}
+\label{sec:stratification}
+
+\paragraph{Problem statement.}
+Given a gate sequence $(g_1,\ldots,g_m)$ with qubit supports $Q(g_i)$, partition the
+sequence into layers $L_1,\ldots,L_K$ such that for all $\ell$ and all $g, g' \in L_\ell$
+with $g \neq g'$, $Q(g) \cap Q(g') = \emptyset$. Each layer is a set of gates that can
+be executed in parallel.
+
+\paragraph{Graph-theoretic view.}
+Build the dependency DAG $D$ with nodes $\{g_i\}$ and edges $g_i \to g_j$ whenever
+$i < j$ and $Q(g_i) \cap Q(g_j) \neq \emptyset$. The problem of finding a minimum
+$K$ is the \emph{minimum antichain-cover} problem on $D$, equivalently, the length of
+a longest chain (Mirsky's theorem). A greedy list-scheduling algorithm gives an
+optimal solution in $\mathcal{O}(m\cdot N)$ time~\cite{cormen2009}.
+
+\paragraph{Prior art.}
+Layer extraction / antichain partitioning is standard in quantum compilation
+\cite{sivarajah2020tket,cowtan2019}; our implementation is list-scheduling with a
+minimum-layer-size filter configured via \texttt{StratificationConfig}.
+
+\subsection{Combined Usage}
+
+\begin{lstlisting}[language=C++, caption={Combined optimisation pipeline}]
+OptimizationConfig opt;
+opt.fusion.enable_fusion = true;
+opt.stratification.enable_stratification = true;
+opt.gpu.enable_gpu = false;
+
+ModeResult result = run_optimized(
+    L_init, sequence, num_qubits,
+    ParallelMode::HYBRID, config, opt);
+\end{lstlisting}
+
+% ============================================================
+\section{MPI Distributed Simulation}
+\label{sec:mpi}
+% ============================================================
+
+This section describes the MPI~\cite{gropp1999mpi} code path for multi-node LRET
+execution. \textbf{Status note:} the code compiles and passes the distributed-scatter
+smoke tests (\S\ref{sec:smoke}); multi-node performance benchmarking was not conducted
+for this report. The cost models below are analytical.
+
+\subsection{Theoretical Background}
+
+Distributed-memory parallelism partitions state across address spaces that communicate
+via explicit message passing~\cite{gropp1999mpi,pacheco1996pp}. Our analysis uses the
+bulk-synchronous parallel (BSP) model~\cite{valiant1990bsp}: a computation is a
+sequence of \emph{supersteps}, each consisting of (i) local computation, (ii) a global
+synchronisation, and (iii) bounded-degree point-to-point communication. BSP cost of a
+superstep is $w + g\cdot h + l$, where $w$ is local work, $h$ is the per-process
+message volume, $g$ is per-word throughput, and $l$ is the barrier latency.
+
+\subsection{Row-Wise Distribution (Primary)}
+
+Inspired by the row-distribution scheme of QuEST~\cite{jones2019quest}, we distribute
+the $n = 2^N$ rows of $L$ across $P = 2^k$ MPI processes, each owning $n/P$ rows.
+
+\paragraph{Communication classification.}
+For $P = 2^k$ processes with the top-$k$ bits of the row index acting as the rank ID:
+\begin{itemize}
+  \item Gates on qubits $\{0,\ldots,N-k-1\}$: entirely local; no communication.
+  \item Gates on qubits $\{N-k,\ldots,N-1\}$: pairwise row exchange, volume
+        $\mathcal{O}(2^N/P)$ complex doubles per gate via \texttt{MPI\_Sendrecv}.
+\end{itemize}
+
+\paragraph{BSP cost for a depth-$D$ circuit.}
+Let $r_k$ be the fraction of gates on the top $k$ qubits; then the total BSP cost is
+bounded by $D \cdot [w_\text{local} + r_k (g\cdot 2^N/P + l)]$ where $w_\text{local}$ is
+the per-process LRET kernel cost. This model is inherited from
+\cite{jones2019quest,pacheco1996pp}.
+
+\subsection{Column-Wise Distribution (Alternative)}
+
+Under column distribution each of $P$ processes owns $V/P$ columns of $L$. Since
+columns are independent (\S\ref{sec:col-parallel}), all gate and noise operations are
+local: $\mathrm{Comm}(P_i, P_j) = \emptyset$. The distribution is embarrassingly
+parallel per Definition~\ref{def:ep}; ideal speedup $S(P) = P$~\cite{amdahl1967}.
+This mode is best suited to high-rank states or Monte Carlo trajectory batches.
+
+\subsection{Hybrid MPI + OpenMP}
+
+For multi-socket multi-node systems we combine inter-node MPI with intra-node OpenMP,
+following the hybrid programming patterns of Rabenseifner, Hager \& Jost~\cite{rabenseifner2009}.
+Each MPI rank spawns $T$ OpenMP worker threads; row-parallel kernels
+(\S\ref{sec:row-parallel}) execute inside each rank, while cross-rank row exchanges
+use MPI.
+
+\subsection{Current Empirical Status}
+
+\begin{infobox}
+\textbf{Validation status.} The MPI code path compiles and the scatter smoke tests
+(\texttt{tests/test\_mpi\_scatter.cpp}) pass for ranks 1, 2, 4. A contract-and-reduce
+correctness smoke test is currently unstable in our Windows MS-MPI v10.1.1 test
+environment and is being debugged. \emph{No multi-node performance benchmark is
+reported here}; prior drafts of this report contained illustrative scalability
+figures that were not empirically grounded, and those numbers have been removed.
+Performance characterisation is deferred to future work.
+\end{infobox}
+
+% ============================================================
+\section{GPU Acceleration}
+\label{sec:gpu}
+% ============================================================
+
+This section describes the GPU code path. \textbf{Status note:} the code compiles,
+links against cuQuantum and CUDA, and passes GPU unit tests on suitable hardware;
+no GPU performance measurements are reported here.
+
+\subsection{Theoretical Background}
+
+NVIDIA GPUs use the SIMT (Single-Instruction Multiple-Thread) execution model
+introduced with the Tesla architecture~\cite{lindholm2008tesla}: threads are grouped
+into warps of 32 lanes executing in lock-step, with full predication support.
+The CUDA programming model~\cite{nickolls2008cuda} exposes this via a hierarchy of
+threads $\to$ blocks $\to$ grids, with shared memory private to each block and global
+memory accessible to all. Dense linear-algebra operations achieve high throughput on
+modern GPUs when memory accesses are coalesced and arithmetic intensity is
+sufficient~\cite{volkovdemmel2008}.
+
+\subsection{Architecture}
+
+Two complementary components are provided:
+\begin{enumerate}
+  \item \textbf{NVIDIA cuQuantum}~\cite{bayraktar2023cuquantum} --- NVIDIA's high-level
+        quantum simulation library, used for generic gate/state operations where its
+        API matches.
+  \item \textbf{Custom CUDA kernels} in \texttt{src/gpu\_simulator.cu} for the
+        LRET-specific operations that cuQuantum does not cover: low-rank factor
+        lifecycle, Gram-matrix dispatch via cuSOLVER, and Kraus-branch concatenation.
+\end{enumerate}
+
+The \texttt{GPUSimulator} class orchestrates the lifecycle:
+
+\begin{lstlisting}[language=C++, caption={GPUSimulator usage (gpu\_simulator.h)}]
+GPUSimulator gpu(num_qubits);
+gpu.upload_state(L_init);      // L -> GPU global memory
+
+for (const auto& gate : sequence.gates) {
+    gpu.apply_gate(gate);      // cuQuantum or custom kernel
+}
+for (const auto& noise : sequence.noise_ops) {
+    gpu.apply_noise(noise);    // Kraus branching on GPU
+    gpu.truncate(threshold);   // cuSOLVER eigendecomposition + threshold
+}
+
+MatrixXcd L_final = gpu.download_state();  // GPU -> CPU
+\end{lstlisting}
+
+\subsection{Memory Management}
+
+GPU memory is managed automatically. If the requested allocation exceeds available
+VRAM, the simulator falls back to CPU execution. \texttt{GPUConfig} exposes
+\texttt{max\_gpu\_memory} (0 = unlimited), \texttt{device\_id} (-1 = auto-select), and
+a tensor-core enable flag~\cite{nvidiavolta2017} for Volta and later architectures.
+
+\subsection{Multi-GPU Support}
+
+\texttt{src/distributed\_gpu.cu} implements multi-GPU parallelism via
+NCCL~\cite{nccl}. Each GPU holds a disjoint shard of $L$; gate application follows the
+same row-exchange pattern as MPI (\S\ref{sec:mpi}) but communication uses GPU-Direct
+RDMA when available. The \texttt{USE\_NCCL=ON} CMake flag enables this path.
+
+\subsection{Current Empirical Status}
+
+\begin{infobox}
+\textbf{Validation status.} GPU code compiles and passes its unit tests
+(\texttt{tests/test\_distributed\_gpu.cpp}, \texttt{tests/test\_multi\_gpu\_*.cpp}) on
+a CUDA-capable host. \emph{No GPU performance benchmark is reported here}. Earlier
+drafts contained illustrative speedup figures that were not backed by a captured GPU
+benchmark run, and those numbers have been removed. Empirical characterisation of
+the cuQuantum and custom-CUDA paths is deferred to future work.
+\end{infobox}
+
+% ============================================================
+\section{Empirical Validation}
+\label{sec:empirical}
+% ============================================================
+
+We report exactly one benchmark campaign, plus a catalogue of the smoke tests that
+cover the rest of the system. This scope is deliberate: any numerical claim in this
+report is either supported by the benchmark data in \S\ref{sec:bench} or absent.
+
+\subsection{Smoke Tests}
+\label{sec:smoke}
+
+Smoke tests verify that code compiles, runs without crashing, produces physically
+valid output (trace preservation, positivity), and matches reference small-circuit
+calculations. They are \emph{not} performance benchmarks. The test suite lives under
+\texttt{tests/} (C++, compiled with the main build) and \texttt{python/tests/} (Python
+integration, executed via pytest).
+
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}lp{8.5cm}@{}}
+\toprule
+\textbf{Category} & \textbf{Covered by} \\
+\midrule
+Single- and two-qubit gates, Kraus noise &
+  \texttt{test\_advanced\_noise.cpp}, \texttt{test\_leakage\_measurement.cpp} \\
+LRET truncation, orthonormalisation &
+  \texttt{test\_checkpoint.cpp} (round-trip), \texttt{python/tests/test\_qlret\_device.py} \\
+Parameter-shift autodiff &
+  \texttt{test\_autodiff.cpp}, \texttt{test\_autodiff\_multi.cpp},
+  \texttt{test\_autodiff\_multi\_gpu.cpp} \\
+Quantum error correction primitives &
+  \texttt{test\_qec\_*.cpp} (5 files) \\
+MPI scatter, distributed row exchange &
+  \texttt{test\_mpi\_scatter.cpp} (ranks 1/2/4 pass; one contract-and-reduce test
+  unstable) \\
+GPU single- and multi-device &
+  \texttt{test\_distributed\_gpu.cpp}, \texttt{test\_multi\_gpu\_*.cpp},
+  \texttt{test\_distributed\_gpu\_mpi.cpp} \\
+Matrix completion, low-rank reconstruction &
+  \texttt{test\_matrix\_completion.cpp} \\
+Python package (CLI, JSON API, PennyLane, JAX, PyTorch) &
+  \texttt{python/tests/test\_qlret\_device.py}, \texttt{test\_jax\_interface.py},
+  \texttt{test\_pytorch\_interface.py}, \texttt{test\_ml\_integration.py},
+  \texttt{integration/test\_cli\_regression.py}, \texttt{integration/test\_json\_execution.py},
+  \texttt{integration/test\_pennylane\_device.py}, \texttt{integration/test\_docker\_runtime.py} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+All categories above are compiled and run during CI; they confirm basic correctness
+and interface stability but not performance.
+
+\subsection{LRET vs.\ Cirq Density-Matrix Simulator}
+\label{sec:bench}
+
+We compared LRET against Cirq's \texttt{DensityMatrixSimulator}~\cite{cirq} under a
+common circuit and noise model. The benchmark script is
+\texttt{benchmarks/pub\_lret\_vs\_cirq.py} on the branch
+\texttt{claude/frosty-banzai}; its full output is saved to
+\texttt{results/pub\_full\_lret\_vs\_cirq\_r2/lret\_vs\_cirq\_20260410\_000926.csv}.
+
+\subsubsection*{Experimental setup}
+
+\begin{itemize}
+  \item \textbf{Circuit.} Random dense layered circuit of depth $D = 13$. Per layer,
+        a random single-qubit gate from $\{H, X, Y, Z, S, T, RX, RY, RZ\}$ on each
+        qubit, followed by random two-qubit gates from $\{\text{CNOT}, \text{CZ},
+        \text{SWAP}\}$ on disjoint qubit pairs. Deterministic seed $=42$ plus a
+        trial offset ensures reproducibility.
+  \item \textbf{Noise model.} Per-qubit single-qubit depolarising channel
+        with strength $p = 10^{-3} = 0.1\%$ applied after each gate layer;
+        standard textbook Kraus form~\cite{nielsenchuang2010}.
+  \item \textbf{LRET parameters.} Truncation threshold $\varepsilon = 10^{-4}$,
+        batch size 64.
+  \item \textbf{Backend split.} LRET Python (\texttt{numpy}) implementation used for
+        $N \in \{4,6\}$; LRET C++ (\texttt{quantum\_sim.exe}) used for
+        $N \in \{8,10,12,14,16,18,20\}$. Backend choice is automatic based on
+        \texttt{NUMPY\_LRET\_MAX\_N=6} in the script.
+  \item \textbf{Repetitions.} 3 trials per qubit count; we report mean and standard
+        deviation.
+  \item \textbf{Cirq reference.} \texttt{cirq.DensityMatrixSimulator()} with the same
+        circuit and noise model; this is our ground truth for accuracy metrics at
+        $N \le 14$. At $N \ge 16$ Cirq ran out of memory on the 68\,GB test host
+        (the density matrix would require 68.7\,GB and 1099.5\,GB at $N=16,18$
+        respectively).
+  \item \textbf{Metrics.} State fidelity~\cite{nielsenchuang2010}, trace distance,
+        probability total-variation distance, and the ``distortion'' metric defined
+        in~\cite{chen2021lret} Eq.\ (10), all computed against the Cirq reference
+        where finite.
+  \item \textbf{Hardware.} Single-host Windows machine with 68\,GB RAM; LRET C++
+        runs single-threaded.
+\end{itemize}
+
+\subsubsection*{Results}
+
+Table~\ref{tab:bench} and Figure~\ref{fig:bench} report the raw CSV data. All values
+are taken directly from
+\texttt{results/pub\_full\_lret\_vs\_cirq\_r2/lret\_vs\_cirq\_20260410\_000926.csv};
+no post-processing beyond formatting for the table.
+
+\begin{table}[!h]
+\centering
+\renewcommand{\arraystretch}{1.2}
+\caption{LRET vs.\ Cirq: times and accuracy. All errors against Cirq's
+\texttt{DensityMatrixSimulator} reference. Noise: depolarising, $p=10^{-3}$ per gate
+layer; depth $=13$; 3 trials.
+Data source: \texttt{lret\_vs\_cirq\_20260410\_000926.csv}.}
+\label{tab:bench}
+\small
+\begin{tabular}{@{}cccccccc@{}}
+\toprule
+$N$ & LRET backend & LRET time (ms) & Cirq time (ms) & Speedup & Fidelity & Trace dist. & Final rank \\
+\midrule
+4  & numpy & $95.8 \pm 11.0$             & $54.0 \pm 1.5$              & $0.56\times$   & 0.9993 & 0.00119 & 15.0 \\
+6  & numpy & $6794 \pm 2178$             & $118.9 \pm 2.9$             & $0.018\times$  & 0.9982 & 0.00282 & 32.0 \\
+8  & cpp   & $2248 \pm 667$              & $915.6 \pm 26.7$            & $0.41\times$   & 0.9966 & 0.00463 & 52.7 \\
+10 & cpp   & $8749 \pm 2233$             & $21\,456 \pm 183$           & $2.45\times$   & 0.9941 & 0.00683 & 71.0 \\
+12 & cpp   & $31\,477 \pm 18\,028$       & $384\,923 \pm 1395$         & $12.23\times$  & 0.9903 & 0.01071 & 98.7 \\
+14 & cpp   & $109\,677 \pm 10\,927$      & $6{,}479{,}172 \pm 176\,637$ & $59.07\times$  & 0.9861 & 0.01542 & 122.7 \\
+16 & cpp   & $693\,246 \pm 10\,333$      & OOM (68.7\,GB)              & ---            & ---    & ---     & 149.0 \\
+18 & cpp   & $3{,}363{,}398 \pm 294\,228$ & OOM (1099.5\,GB)           & ---            & ---    & ---     & 152.3 \\
+20 & cpp   & timed out (>7200\,s)        & ---                         & ---            & ---    & ---     & ---   \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[!h]
+\centering
+\includegraphics[width=\textwidth]{lret_vs_cirq_20260410_000926.png}
+\caption{LRET vs Cirq comprehensive benchmark with 0.1\% depolarising noise per
+gate, depth 13. Clockwise from top-left: (a) execution time vs qubit count (log
+scale); (b) LRET speedup; (c) time per Hilbert-space element, showing LRET's
+sub-linear growth vs Cirq's superlinear growth; (d) rank evolution showing that the
+retained rank stays well below the Hilbert dimension. Rendered from the same CSV as
+Table~\ref{tab:bench}.}
+\label{fig:bench}
+\end{figure}
+
+\subsubsection*{Interpretation}
+
+\begin{itemize}
+  \item \textbf{Crossover.} LRET overtakes Cirq at $N=8$ in C++ backend (LRET 2.25\,s
+        vs Cirq 0.92\,s shows LRET still slower here; the crossover happens at
+        $N\!=\!10$, where LRET is 2.45$\times$ faster). At $N=14$ LRET is
+        $59.1\times$ faster, with the gap widening because Cirq's cost scales as
+        $\mathcal{O}(4^N)$ while LRET's cost scales with $V^2 \cdot 2^N$ and $V$
+        grows sub-exponentially (final rank $\le 123$ at $N=14$).
+  \item \textbf{Memory advantage.} At $N \ge 16$ the Cirq density-matrix reference
+        exceeds available RAM (68.7\,GB and 1099.5\,GB at $N=16,18$ respectively),
+        and only LRET completes.
+  \item \textbf{Rank growth.} Final ranks are 149 at $N=16$ and 152 at $N=18$; the
+        rank percentages relative to the full Hilbert dimension are $0.227\%$ and
+        $0.058\%$ respectively, empirically supporting the low-rank assumption of
+        \cite{chen2021lret} on this circuit family.
+  \item \textbf{Accuracy.} Fidelity decreases monotonically from $0.9993$ at $N=4$
+        to $0.9861$ at $N=14$; trace distance grows to $0.0154$; all within the
+        truncation-error envelope predicted by Theorem~\ref{sec:math-errors}
+        of~\cite{chen2021lret} at $\varepsilon = 10^{-4}$.
+  \item \textbf{Purity.} Trace stays at unity to floating-point precision on every
+        row (values in the CSV are $1.0 \pm 10^{-13}$); purity declines from 0.915
+        at $N=4$ to 0.691 at $N=18$, consistent with the depolarising noise channel.
+  \item \textbf{Limitations of this benchmark.} Single-host, single-threaded C++.
+        LRET timed out at $N = 20$ (wall-clock limit 7200\,s). Depth and noise strength
+        are fixed. The small-$N$ regime ($N=4,6$) favours the simpler Cirq code path
+        because Python-level overhead of the numpy LRET reference implementation
+        dominates at tiny circuit sizes.
+\end{itemize}
+
+\subsubsection*{Reproducibility}
+
+The benchmark is fully reproducible on the \texttt{claude/frosty-banzai} branch:
+\begin{lstlisting}[language=bash, caption={Reproducing the benchmark}]
+git checkout claude/frosty-banzai
+python benchmarks/pub_lret_vs_cirq.py --full
+# Output: results/pub_full_lret_vs_cirq_r2/lret_vs_cirq_<ts>.csv
+\end{lstlisting}
+
+% ============================================================
+\section{Future Work and Ecosystem Integrations}
+\label{sec:future}
+% ============================================================
+
+The following subsystems are implemented but \emph{not} benchmarked in this report;
+they constitute the near-term work programme for the project.
+
+\subsection{Parameter-Shift Automatic Differentiation}
+\label{sec:future-autodiff}
+
+\subsubsection*{Theoretical basis}
+For a circuit $U(\boldsymbol{\theta}) = \prod_i U_i(\theta_i)$ with parametric gates
+of the form $U_i(\theta_i) = \exp(-i\theta_i G_i/2)$ where each generator $G_i$ is
+Hermitian with eigenvalues $\pm 1$ (i.e.,\ a Pauli string), the expectation of any
+observable $O$ obeys the two-point parameter-shift
+rule~\cite{mitarai2018,schuld2019}:
+\begin{equation}
+  \frac{\partial \langle O \rangle}{\partial \theta_i}
+  = \tfrac{1}{2}\Bigl[\,
+      \langle O \rangle\bigl(\boldsymbol{\theta} + \tfrac{\pi}{2}\mathbf{e}_i\bigr)
+    - \langle O \rangle\bigl(\boldsymbol{\theta} - \tfrac{\pi}{2}\mathbf{e}_i\bigr)
+    \Bigr].
+\end{equation}
+The formula is exact --- not a finite-difference approximation --- which
+distinguishes it from classical automatic differentiation and makes it the standard
+gradient estimator on quantum hardware. The derivation in~\cite{schuld2019} proceeds
+by writing the observable expectation as a single harmonic in $\theta_i$ of period
+$2\pi$; its derivative is recoverable by evaluating at two shifted
+points~\cite{schuld2019}. For generators with more than two distinct
+eigenvalues (e.g.,\ the $\text{U}3$ family), multi-term generalisations
+due to~\cite{banchi2021} apply.
+
+\subsubsection*{Implementation}
+
+The \texttt{AutoDiffCircuit} class (\texttt{include/autodiff.h}) implements forward
+and backward passes:
+
+\begin{lstlisting}[language=C++, caption={AutoDiffCircuit interface (autodiff.h)}]
+// Forward: execute circuit with given params, return expectation
+double forward(const std::vector<double>& params, const Observable& obs);
+
+// Backward: parameter-shift gradient for all parameters
+std::vector<double> backward(
+    const std::vector<double>& params, const Observable& obs);
+\end{lstlisting}
+
+Supported observables: single-qubit Pauli $X,Y,Z$, and multi-qubit Pauli strings via
+the \texttt{Observable} struct.
+
+\subsubsection*{Distributed autodiff}
+
+For circuits with many parameters, gradient computation parallelises trivially:
+each parameter's two shifted evaluations are independent and can be dispatched to
+separate MPI ranks. The implementation is in \texttt{src/distributed\_autodiff.cpp}.
+
+\subsubsection*{JAX and PyTorch interfaces}
+
+\begin{itemize}
+  \item \textbf{JAX}~\cite{jax}: exposed via \texttt{python/qlret/jax\_interface.py};
+        custom VJP registered with \texttt{jax.custom\_vjp} so \texttt{jax.grad},
+        \texttt{jax.jit}, and \texttt{jax.vmap} all compose correctly.
+  \item \textbf{PyTorch}~\cite{paszke2019pytorch}: a
+        \texttt{torch.autograd.Function} subclass in
+        \texttt{python/qlret/pytorch\_interface.py}, enabling LRET layers inside any
+        PyTorch module with \texttt{.backward()}.
+\end{itemize}
+
+\subsection{PennyLane Device Plugin}
+
+The \texttt{QLRETDevice} class (\texttt{python/qlret/pennylane\_device.py})
+registers LRET as a native PennyLane device~\cite{bergholm2018pennylane} under the
+name \texttt{"proxima.lret"}. Basic operation mapping (14 gates), Pauli and Hermitian
+observables, tensor-product observables, parameter-shift gradients (via the module
+above), finite-shot sampling, and probability measurement are implemented. A
+differentiable-noise path required by gradient-based VQE/QAOA through noise channels
+is ongoing work.
+
+\subsection{Qiskit Provider}
+
+The Qiskit~\cite{javadi2024qiskit} integration (\texttt{python/lret\_qiskit/}) exposes
+LRET as a Qiskit provider with three pre-configured backends differing in truncation
+tightness (\texttt{lret\_simulator}, \texttt{lret\_simulator\_accurate},
+\texttt{lret\_simulator\_fast}). A circuit translator converts
+\texttt{QuantumCircuit} objects to LRET JSON and a result converter maps LRET outputs
+back to Qiskit \texttt{Result} objects. Provider registration follows the Qiskit
+\texttt{BackendV2} interface. End-to-end execution (including IBM noise-model import)
+passes its integration tests; broader hardware-representative noise validation is
+future work.
+
+\subsection{Cirq Integration}
+
+The Cirq~\cite{cirq} integration (\texttt{python/lret\_cirq/}) provides
+\texttt{LRETSimulator}, which inherits from \texttt{cirq.SimulatesSamples}. A
+\texttt{CircuitTranslator} converts Cirq circuits to LRET JSON; a
+\texttt{ResultConverter} maps LRET probability outputs back to Cirq \texttt{Result}
+objects, preserving qubit maps and measurement keys. Parameterised circuits are
+supported via Cirq's parameter resolver. Full native gate coverage and Cirq
+noise-model import are ongoing work.
+
+\subsection{Other Future Work}
+
+\begin{itemize}
+  \item Multi-node MPI performance benchmarking (\S\ref{sec:mpi}).
+  \item GPU and multi-GPU performance benchmarking (\S\ref{sec:gpu}).
+  \item Broader circuit-family coverage (variable depth, higher noise, structured
+        circuits) for the LRET vs Cirq regime map.
+  \item Continued optimisation of the row-parallel execution mode.
+\end{itemize}
+
+% ============================================================
+\section{Proxima: AI-Driven Quantum Simulation Orchestration}
+\label{sec:proxima}
+% ============================================================
+
+This section presents Proxima, a Python-based AI orchestration layer that manages the
+full LRET simulation lifecycle through a conversational agent interface. Proxima is
+not a simulator itself; it orchestrates LRET and five other backends through natural
+language, automated planning, and terminal-driven execution. We reproduce here the
+comprehensive system index of the Proxima subsystem.
+
+\subsection{Overview and Motivation}
+
+Proxima is a pre-release (v0.1-dev) high-performance AI orchestration system
+designed to manage the complete lifecycle of LRET-based quantum circuit simulation
+through a conversational agent interface. Classical LRET simulation workflows require
+navigating multiple repositories, managing Python environments and C++ build systems,
+configuring framework integrations (PennyLane, Cirq, Qiskit), and interpreting raw
+numerical output; Proxima was created to abstract this complexity behind a unified
+agent.
+
+\subsection{Learning Sources and Motivation}
+\label{sec:proxima-learning}
+
+Proxima's design draws on two external bodies of work:
+
+\paragraph{Agentic architecture --- \emph{El Agente}.}
+The hierarchical, memory-aware multi-agent design of Proxima's orchestration layer
+was informed most directly by the \emph{El Agente} autonomous quantum-chemistry agent
+of Zou~\textit{et al.}~\cite{zou2025elagente}. Four ideas were studied and adapted:
+(i) a cognitive-memory framework separating global context, per-agent conversation
+history, grounding state, and a long-term semantic/procedural store; (ii) hierarchical
+task decomposition with Markov-style context reduction; (iii) a closed-loop
+error-recovery pattern alternating generation and verification phases; (iv)
+transparent action-trace logging. El Agente reports success rates above $87\%$ on
+university-level quantum-chemistry exercises without task-specific
+hardcoding~\cite{zou2025elagente}, motivating Proxima's LLM-mediated task routing
+over a hand-written dispatch table.
+
+\paragraph{Engineering patterns --- OpenCode AI.}
+The concrete software patterns used in Proxima's agent, tool, provider, permission,
+and session subsystems were adapted from the OpenCode AI code-agent
+framework~\cite{opencode2025}. OpenCode demonstrates a production-grade,
+provider-agnostic agent design in TypeScript with tool registration, sandboxed
+permission scopes, snapshot-based session recovery, and a Model Context Protocol
+(MCP) bridge~\cite{mcp2024}. Proxima reimplements analogous subsystems in Python,
+adopting OpenCode's \emph{separation of provider abstraction from tool registry} as
+a first-class architectural decision.
+
+\paragraph{Foundational agentic patterns.}
+Beyond the two direct inspirations, Proxima's agent loop implements the
+ReAct~\cite{yao2023react} observe--think--act cycle and uses typed
+Toolformer-style~\cite{schick2023toolformer} tool schemas; its tool discovery layer
+is MCP-compatible~\cite{mcp2024}.
+
+\subsection{Architecture}
+
+Proxima is implemented in Python ($\sim$370 source files, approximately $46{,}000$
+lines of code), with Textual-based TUI~\cite{textual}, a Typer-based
+CLI~\cite{typer}, a FastAPI REST API~\cite{fastapi}, and an interactive REPL.
+Core components:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}lp{9cm}@{}}
+\toprule
+\textbf{Component} & \textbf{Role} \\
+\midrule
+\texttt{core/pipeline.py}            & Eight-stage execution pipeline with pause/resume/rollback \\
+\texttt{core/state.py}               & Formal state machine (9 states, validated transitions) \\
+\texttt{core/planner.py}             & LLM-assisted DAG task decomposition \\
+\texttt{core/executor.py}            & Topological DAG execution with per-task recovery \\
+\texttt{agent/dynamic\_tools/agent\_loop.py} & ReAct-style Observe--Think--Act loop~\cite{yao2023react} \\
+\texttt{intelligence/llm\_router.py} & Multi-provider LLM routing (Anthropic, OpenAI, Ollama) \\
+\texttt{backends/lret\_adapter.py}   & LRET C++ engine adapter \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Eight-Stage Execution Pipeline}
+
+The pipeline implements a directed, fully controllable flow:
+\[
+\texttt{Parse} \to \texttt{Plan} \to \texttt{ResourceCheck} \to \texttt{Consent}
+\to \texttt{Execute} \to \texttt{Collect} \to \texttt{Analyse} \to \texttt{Export}.
+\]
+Each stage supports pause, resume, and rollback; the \texttt{Consent} stage prevents
+destructive operations from executing without explicit approval. State is persisted
+to disk at every transition.
+
+\subsection{ReAct-Style Agent Loop}
+
+The agent loop implements the observe--think--act cycle~\cite{yao2023react} as an
+async coroutine: \emph{Observe} (parse input, classify intent, extract entities);
+\emph{Think} (route to LLM, generate chain-of-thought, select tool call);
+\emph{Act} (check permission scope, execute tool, stream output, analyse result);
+repeat. High-confidence intents bypass LLM reasoning via direct dispatch, reducing
+median latency for common operations to sub-100\,ms.
+
+\subsection{Multi-Backend Support}
+
+Six quantum simulation backends through a unified \texttt{BaseBackendAdapter}:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}lccl@{}}
+\toprule
+\textbf{Backend} & \textbf{Max qubits} & \textbf{GPU} & \textbf{Status} \\
+\midrule
+LRET              & variable & no       & primary target \\
+Cirq~\cite{cirq}             & 30+      & no       & functional \\
+Qiskit Aer~\cite{javadi2024qiskit}       & 30+      & optional & functional (Windows build caveats) \\
+cuQuantum~\cite{bayraktar2023cuquantum}  & 30+      & required & requires NVIDIA SDK \\
+qsim~\cite{qsim}             & 30+      & optional & adapter present; build not automated \\
+QuEST~\cite{jones2019quest}  & 30+      & optional & adapter present; build not automated \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Automatic backend selection scores candidates on qubit feasibility, gate
+compatibility, noise-model support, hardware availability, and historical performance.
+
+\subsection{LLM Integration}
+
+A multi-provider LLM router supports Anthropic Claude (Opus, Sonnet,
+Haiku)~\cite{anthropic_claude}, OpenAI GPT-4 family~\cite{openai_gpt4}, and local
+Ollama~\cite{ollama} (Llama 3, Mistral, Phi-3). A dual-model strategy routes
+high-complexity planning to the large-model tier and high-frequency low-complexity
+operations (entity extraction, parameter validation) to the small-model tier, in
+internal measurements reducing token consumption by $60$--$70\%$ on typical
+simulation campaigns (numbers are indicative pending a formal reproducible harness).
+
+\subsection{Current Gaps}
+
+Proxima is pre-release (v0.1-dev); the following critical paths are not complete:
+
+\begin{itemize}
+  \item \textbf{C++ backend build pipeline.} \texttt{backend\_builder.py} defines the
+        interface but the full clone $\to$ build $\to$ register workflow is not yet
+        connected to the TUI or agent loop.
+  \item \textbf{Terminal-to-TUI bridge.} Live subprocess output does not stream
+        reliably into the Execution tab.
+  \item \textbf{Post-execution auto-analysis.} Results are not yet automatically
+        passed to the LLM for analysis.
+  \item \textbf{Complex multi-step NL execution.} The agent loop does not reliably
+        chain NL parsing $\to$ plan generation $\to$ execution $\to$ result display
+        as a single coherent workflow.
+\end{itemize}
+
+\subsection{Roadmap}
+
+\textbf{P1 blockers.} Terminal-to-TUI output wiring; C++ build pipeline completion;
+backend auto-registration; agent-loop to plan-to-execute gap closure;
+post-execution auto-analysis.
+
+\textbf{P2.} LRET installer cancellation; backend config pre-fill dialog; C++
+dependency management; authenticated GitHub operations; \texttt{search\_files}
+intent bridge.
+
+\textbf{P3.} Decomposing oversized monolithic files; re-enabling \texttt{mypy} in
+suppressed modules; multi-terminal split-pane view; Docker image publication.
+
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+% ============================================================
+
+We have presented an engineering treatment of the Low-Rank Eigenvalue Truncation
+algorithm of Chen, Farquhar and Parrish~\cite{chen2021lret}. The algorithm itself is
+prior work; our contribution is a production C++ implementation with:
+(i) 21 gate types and 11 physical noise channels, each cited to its primary source;
+(ii) five OpenMP~\cite{dagummenon1998} execution modes with formally stated
+algorithms and cost models in Foster's framework~\cite{foster1995}, supplemented by
+gate fusion after qsim~\cite{qsim} and circuit stratification after
+$\mathsf{t\vert ket\rangle}$~\cite{sivarajah2020tket};
+(iii) MPI~\cite{gropp1999mpi} and GPU (cuQuantum~\cite{bayraktar2023cuquantum} +
+custom CUDA~\cite{nickolls2008cuda}) code paths with smoke tests passing;
+(iv) Python bindings and in-progress integrations with
+PennyLane~\cite{bergholm2018pennylane}, Qiskit~\cite{javadi2024qiskit}, and
+Cirq~\cite{cirq};
+(v) a parameter-shift autodiff module~\cite{mitarai2018,schuld2019} with JAX and
+PyTorch interfaces; and
+(vi) the Proxima orchestration framework wrapping all of the above behind a
+conversational agent.
+
+Our empirical validation is deliberately scoped. In a head-to-head against Cirq's
+density-matrix simulator~\cite{cirq} on random dense depth-13 circuits with
+$p=10^{-3}$ depolarising noise, LRET reaches a $59.1\times$ speedup at $N=14$ with
+state fidelity $\ge 0.986$, and continues to execute at $N=16, 18$ where the
+full-density-matrix reference exceeds host memory. Final ranks stay at or below
+$0.058\%$ of the Hilbert dimension at $N=18$, supporting the low-rank assumption
+of~\cite{chen2021lret}. All other subsystems (MPI, GPU, QEC, autodiff) are verified
+at the smoke-test level only; performance characterisation of these paths is
+deferred to future work, as are broader circuit families, higher noise rates, and
+multi-node scaling studies.
+
+We believe this scoping is itself the contribution: a faithful, well-attributed,
+reproducible implementation of a published algorithm, with one focused empirical
+result and a clear roadmap for the remaining measurement work.
+
+\section*{Acknowledgements}
+
+The LRET algorithm we implement is due to Chen, Farquhar \& Parrish~\cite{chen2021lret}.
+The gate-fusion pass is inspired by Google's qsim~\cite{qsim} (Apache 2.0).
+The MPI row-distribution strategy is inspired by QuEST~\cite{jones2019quest} (MIT).
+The Proxima agent architecture draws on El Agente~\cite{zou2025elagente} and
+OpenCode~\cite{opencode2025} (MIT).
+
+% ============================================================
+\begin{thebibliography}{99}
+% ============================================================
+
+\bibitem{chen2021lret}
+  Y.~Chen, C.~Farquhar, R.~M.~Parrish.
+  \textit{Low-rank density-matrix evolution for noisy quantum circuits}.
+  npj Quantum Information \textbf{7}, 61 (2021).
+
+\bibitem{nielsenchuang2010}
+  M.~A.~Nielsen, I.~L.~Chuang.
+  \textit{Quantum Computation and Quantum Information}, 10th Anniversary Ed.
+  Cambridge University Press (2010).
+
+\bibitem{kraus1983}
+  K.~Kraus.
+  \textit{States, Effects, and Operations: Fundamental Notions of Quantum Theory}.
+  Springer Lecture Notes in Physics \textbf{190} (1983).
+
+\bibitem{choi1975}
+  M.-D.~Choi.
+  \textit{Completely positive linear maps on complex matrices}.
+  Linear Algebra and its Applications \textbf{10}, 285--290 (1975).
+
+\bibitem{breuerpetruccione2002}
+  H.-P.~Breuer, F.~Petruccione.
+  \textit{The Theory of Open Quantum Systems}. Oxford University Press (2002).
+
+\bibitem{lindblad1976}
+  G.~Lindblad.
+  \textit{On the generators of quantum dynamical semigroups}.
+  Commun.\ Math.\ Phys.\ \textbf{48}, 119--130 (1976).
+
+\bibitem{krantz2019}
+  P.~Krantz, M.~Kjaergaard, F.~Yan, T.~P.~Orlando, S.~Gustavsson, W.~D.~Oliver.
+  \textit{A quantum engineer's guide to superconducting qubits}.
+  Appl.\ Phys.\ Rev.\ \textbf{6}, 021318 (2019).
+
+\bibitem{mcewen2021leakage}
+  M.~McEwen \textit{et al.}
+  \textit{Removing leakage-induced correlated errors in superconducting quantum
+  error correction}.
+  Nature Communications \textbf{12}, 1761 (2021).
+
+\bibitem{miao2023leakage}
+  K.~C.~Miao \textit{et al.}
+  \textit{Overcoming leakage in quantum error correction}.
+  Nature Physics \textbf{19}, 1780--1786 (2023).
+
+\bibitem{gottesman1997}
+  D.~Gottesman.
+  \textit{Stabilizer Codes and Quantum Error Correction}.
+  Ph.D.\ thesis, Caltech (1997). arXiv:quant-ph/9705052.
+
+\bibitem{aaronson2004chpf}
+  S.~Aaronson, D.~Gottesman.
+  \textit{Improved simulation of stabilizer circuits}.
+  Phys.\ Rev.\ A \textbf{70}, 052328 (2004).
+
+\bibitem{zhang2017correlated}
+  J.~Zhang \textit{et al.}
+  \textit{Correlated quantum errors and their impact on quantum error correction}.
+  Phys.\ Rev.\ Lett.\ \textbf{118}, 230502 (2017).
+
+\bibitem{clader2021}
+  B.~D.~Clader \textit{et al.}
+  \textit{Quantum resources required to block-encode a matrix of classical data}.
+  arXiv:2206.03505 (2022).
+
+\bibitem{mitarai2018}
+  K.~Mitarai, M.~Negoro, M.~Kitagawa, K.~Fujii.
+  \textit{Quantum circuit learning}.
+  Phys.\ Rev.\ A \textbf{98}, 032309 (2018).
+
+\bibitem{schuld2019}
+  M.~Schuld, V.~Bergholm, C.~Gogolin, J.~Izaac, N.~Killoran.
+  \textit{Evaluating analytic gradients on quantum hardware}.
+  Phys.\ Rev.\ A \textbf{99}, 032331 (2019).
+
+\bibitem{banchi2021}
+  L.~Banchi, G.~E.~Crooks.
+  \textit{Measuring analytic gradients of general quantum evolution with the
+  stochastic parameter shift rule}.
+  Quantum \textbf{5}, 386 (2021).
+
+\bibitem{jones2019quest}
+  T.~Jones, A.~Brown, I.~Bush, S.~C.~Benjamin.
+  \textit{QuEST and high performance simulation of quantum computers}.
+  Scientific Reports \textbf{9}, 10736 (2019).
+
+\bibitem{qsim}
+  Google Quantum AI and collaborators.
+  \textit{qsim: Schr\"odinger and Schr\"odinger--Feynman simulators for quantum
+  circuits}.
+  \url{https://github.com/quantumlib/qsim} (accessed 2026).
+
+\bibitem{hanersteiger2017}
+  T.~H\"aner, D.~S.~Steiger.
+  \textit{0.5 petabyte simulation of a 45-qubit quantum circuit}.
+  In \emph{Proceedings of SC'17} (2017).
+
+\bibitem{khammassi2017qx}
+  N.~Khammassi, I.~Ashraf, X.~Fu, C.~G.~Almudever, K.~Bertels.
+  \textit{QX: a high-performance quantum computer simulation platform}.
+  DATE (2017).
+
+\bibitem{sivarajah2020tket}
+  S.~Sivarajah, S.~Dilkes, A.~Cowtan, W.~Simmons, A.~Edgington, R.~Duncan.
+  \textit{t$|$ket$\rangle$: a retargetable compiler for NISQ devices}.
+  Quantum Science and Technology \textbf{6}, 014003 (2020).
+
+\bibitem{cowtan2019}
+  A.~Cowtan, S.~Dilkes, R.~Duncan, A.~Krajenbrink, W.~Simmons, S.~Sivarajah.
+  \textit{On the qubit routing problem}. TQC 2019.
+
+\bibitem{zulehner2018qmdd}
+  A.~Zulehner, R.~Wille.
+  \textit{Advanced simulation of quantum computations}.
+  IEEE TCAD \textbf{38}, 848--859 (2018).
+
+\bibitem{cormen2009}
+  T.~H.~Cormen, C.~E.~Leiserson, R.~L.~Rivest, C.~Stein.
+  \textit{Introduction to Algorithms}, 3rd ed. MIT Press (2009).
+
+\bibitem{foster1995}
+  I.~Foster.
+  \textit{Designing and Building Parallel Programs}. Addison-Wesley (1995).
+
+\bibitem{dagummenon1998}
+  L.~Dagum, R.~Menon.
+  \textit{OpenMP: an industry-standard API for shared-memory programming}.
+  IEEE Computational Science and Engineering \textbf{5}, 46--55 (1998).
+
+\bibitem{gropp1999mpi}
+  W.~Gropp, E.~Lusk, A.~Skjellum.
+  \textit{Using MPI: Portable Parallel Programming with the Message-Passing
+  Interface}. MIT Press (1999).
+
+\bibitem{pacheco1996pp}
+  P.~Pacheco.
+  \textit{Parallel Programming with MPI}. Morgan Kaufmann (1996).
+
+\bibitem{valiant1990bsp}
+  L.~G.~Valiant.
+  \textit{A bridging model for parallel computation}.
+  Comm.\ ACM \textbf{33}, 103--111 (1990).
+
+\bibitem{amdahl1967}
+  G.~M.~Amdahl.
+  \textit{Validity of the single processor approach to achieving large scale
+  computing capabilities}. AFIPS Conf.\ Proc.\ \textbf{30}, 483--485 (1967).
+
+\bibitem{wilkinson2005}
+  B.~Wilkinson, M.~Allen.
+  \textit{Parallel Programming: Techniques and Applications Using Networked
+  Workstations and Parallel Computers}, 2nd ed. Pearson (2005).
+
+\bibitem{rabenseifner2009}
+  R.~Rabenseifner, G.~Hager, G.~Jost.
+  \textit{Hybrid MPI/OpenMP parallel programming on clusters of multi-core SMP
+  nodes}. PDP 2009.
+
+\bibitem{hennessypatterson2017}
+  J.~L.~Hennessy, D.~A.~Patterson.
+  \textit{Computer Architecture: A Quantitative Approach}, 6th ed. Morgan Kaufmann
+  (2017).
+
+\bibitem{goto2008anatomy}
+  K.~Goto, R.~A.~van de Geijn.
+  \textit{Anatomy of high-performance matrix multiplication}.
+  ACM Transactions on Mathematical Software \textbf{34}, 12 (2008).
+
+\bibitem{goluvanloan2013}
+  G.~H.~Golub, C.~F.~Van Loan.
+  \textit{Matrix Computations}, 4th ed. Johns Hopkins (2013).
+
+\bibitem{eigen2010}
+  G.~Guennebaud, B.~Jacob \textit{et al.}
+  \textit{Eigen v3}. \url{https://eigen.tuxfamily.org} (2010).
+
+\bibitem{pybind11}
+  W.~Jakob, J.~Rhinelander, D.~Moldovan.
+  \textit{pybind11 --- seamless operability between C++11 and Python}.
+  \url{https://github.com/pybind/pybind11} (accessed 2026).
+
+\bibitem{cmake}
+  K.~Martin, B.~Hoffman.
+  \textit{Mastering CMake}. Kitware (2007).
+
+\bibitem{nickolls2008cuda}
+  J.~Nickolls, I.~Buck, M.~Garland, K.~Skadron.
+  \textit{Scalable parallel programming with CUDA}. ACM Queue \textbf{6}, 40--53 (2008).
+
+\bibitem{lindholm2008tesla}
+  E.~Lindholm, J.~Nickolls, S.~Oberman, J.~Montrym.
+  \textit{NVIDIA Tesla: A unified graphics and computing architecture}.
+  IEEE Micro \textbf{28}, 39--55 (2008).
+
+\bibitem{volkovdemmel2008}
+  V.~Volkov, J.~W.~Demmel.
+  \textit{Benchmarking GPUs to tune dense linear algebra}. SC'08.
+
+\bibitem{nvidiavolta2017}
+  NVIDIA Corporation.
+  \textit{NVIDIA Tesla V100 GPU Architecture} (Whitepaper, 2017).
+
+\bibitem{bayraktar2023cuquantum}
+  H.~Bayraktar \textit{et al.}
+  \textit{cuQuantum SDK: A high-performance library for accelerating quantum
+  science}. IEEE QCE 2023.
+
+\bibitem{nccl}
+  NVIDIA Collective Communications Library (NCCL).
+  \url{https://github.com/NVIDIA/nccl} (accessed 2026).
+
+\bibitem{bergholm2018pennylane}
+  V.~Bergholm \textit{et al.}
+  \textit{PennyLane: Automatic differentiation of hybrid quantum--classical
+  computations}. arXiv:1811.04968 (2018).
+
+\bibitem{javadi2024qiskit}
+  A.~Javadi-Abhari \textit{et al.}
+  \textit{Quantum computing with Qiskit}. arXiv:2405.08810 (2024).
+
+\bibitem{cirq}
+  Cirq Developers.
+  \textit{Cirq: A Python framework for NISQ algorithms}.
+  \url{https://github.com/quantumlib/Cirq} (accessed 2026).
+
+\bibitem{jax}
+  J.~Bradbury \textit{et al.}
+  \textit{JAX: composable transformations of Python+NumPy programs}.
+  \url{https://github.com/google/jax} (2018--).
+
+\bibitem{paszke2019pytorch}
+  A.~Paszke \textit{et al.}
+  \textit{PyTorch: An imperative style, high-performance deep learning library}.
+  NeurIPS (2019).
+
+\bibitem{orus2014tn}
+  R.~Or\'us.
+  \textit{A practical introduction to tensor networks: Matrix product states and
+  projected entangled pair states}.
+  Annals of Physics \textbf{349}, 117--158 (2014).
+
+\bibitem{schollwock2011dmrg}
+  U.~Schollw\"ock.
+  \textit{The density-matrix renormalization group in the age of matrix product
+  states}.
+  Annals of Physics \textbf{326}, 96--192 (2011).
+
+\bibitem{zou2025elagente}
+  Y.~Zou \textit{et al.}
+  \textit{El Agente: An autonomous agent for quantum chemistry}.
+  Matter \textbf{8}, 102263 (2025).
+
+\bibitem{opencode2025}
+  Anomaly Co.
+  \textit{OpenCode AI --- open-source AI coding agent}.
+  \url{https://github.com/anomalyco/opencode} (accessed 2026).
+
+\bibitem{yao2023react}
+  S.~Yao \textit{et al.}
+  \textit{ReAct: Synergizing reasoning and acting in language models}. ICLR (2023).
+
+\bibitem{schick2023toolformer}
+  T.~Schick \textit{et al.}
+  \textit{Toolformer: Language models can teach themselves to use tools}.
+  NeurIPS (2023).
+
+\bibitem{mcp2024}
+  Anthropic.
+  \textit{Model Context Protocol specification}.
+  \url{https://modelcontextprotocol.io} (2024).
+
+\bibitem{anthropic_claude}
+  Anthropic.
+  \textit{The Claude Model Family: Capabilities and Safety Evaluations}
+  (Technical Reports, 2024--2025).
+
+\bibitem{openai_gpt4}
+  OpenAI.
+  \textit{GPT-4 Technical Report}. arXiv:2303.08774 (2023).
+
+\bibitem{ollama}
+  Ollama.
+  \textit{Ollama: Local large language model runtime}.
+  \url{https://ollama.ai} (accessed 2026).
+
+\bibitem{textual}
+  Textualize.
+  \textit{Textual: A TUI framework for Python}.
+  \url{https://textual.textualize.io} (accessed 2026).
+
+\bibitem{typer}
+  S.~Ram\'irez.
+  \textit{Typer: Build great CLIs}. \url{https://typer.tiangolo.com} (accessed 2026).
+
+\bibitem{fastapi}
+  S.~Ram\'irez.
+  \textit{FastAPI: Modern, fast web framework for Python}.
+  \url{https://fastapi.tiangolo.com} (accessed 2026).
+
+\end{thebibliography}
+
+% ============================================================
+\vspace{2em}
+\begin{center}
+\small\textit{LRET Framework \textbullet\ Technical Report \textbullet\ April 2026
+\textbullet\ Repository: \texttt{github.com/kunal5556/LRET}}
+\end{center}
+% ============================================================
+
+\end{document}
