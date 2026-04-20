@@ -115,7 +115,7 @@
 
 % --- Graphics ---
 \usepackage{graphicx}
-\graphicspath{{../results/pub_full_lret_vs_cirq_r2/}{../}{./}}
+\graphicspath{{./}{../results/pub_full_lret_vs_cirq_r2/}{../}}
 
 % --- Directory tree (for Proxima module map) ---
 \usepackage{dirtree}
@@ -1471,162 +1471,765 @@ noise-model import are ongoing work.
 \label{sec:proxima}
 % ============================================================
 
-This section presents Proxima, a Python-based AI orchestration layer that manages the
-full LRET simulation lifecycle through a conversational agent interface. Proxima is
-not a simulator itself; it orchestrates LRET and five other backends through natural
-language, automated planning, and terminal-driven execution. We reproduce here the
-comprehensive system index of the Proxima subsystem.
+This section presents \textbf{Proxima}, the Python AI-orchestration layer that sits
+above the LRET simulator and manages the full simulation lifecycle through a
+conversational agent interface. Proxima is \emph{not} itself a quantum simulator; it
+is a control-plane framework that abstracts the operational complexity of
+LRET-based workflows (and five other quantum backends) behind natural-language
+interaction, automated multi-step planning, and terminal-driven execution. The
+treatment below mirrors the theoretical density of the preceding LRET sections: we
+give the formal framing first (agentic control as a partially observable decision
+process, hierarchical task decomposition, bandit-style model routing, circuit
+fingerprinting), then describe how these theoretical objects are realised in code.
+The subsystem is at a \emph{pre-release} stage of development; partial and planned
+components are explicitly flagged throughout.
 
-\subsection{Overview and Motivation}
+\subsection{Overview and the LRET Orchestration Problem}
 
-Proxima is a pre-release (v0.1-dev) high-performance AI orchestration system
-designed to manage the complete lifecycle of LRET-based quantum circuit simulation
-through a conversational agent interface. Classical LRET simulation workflows require
-navigating multiple repositories, managing Python environments and C++ build systems,
-configuring framework integrations (PennyLane, Cirq, Qiskit), and interpreting raw
-numerical output; Proxima was created to abstract this complexity behind a unified
-agent.
+Classical LRET simulation workflows require navigating multiple repositories,
+managing Python virtual environments and C++ build systems, configuring framework
+integrations (PennyLane~\cite{bergholm2018pennylane}, Cirq~\cite{cirq},
+Qiskit~\cite{javadi2024qiskit}), and interpreting raw numerical output
+(statevectors, density matrices, eigenvalue spectra, fidelity curves). The overhead
+is significant, especially across the several LRET backend variants maintained on
+different branches. Proxima was built to collapse this operational stack into a
+single conversational interface.
 
-\subsection{Learning Sources and Motivation}
-\label{sec:proxima-learning}
+The orchestration problem for quantum simulators decomposes into four structural
+dimensions, which jointly motivate every design decision that follows:
 
-Proxima's design draws on two external bodies of work:
+\begin{enumerate}[leftmargin=1.5cm]
+  \item \textbf{Installation complexity.} LRET and HPC backends
+        (QuEST~\cite{jones2019quest}, qsim~\cite{qsim}) require C++17 compilation,
+        CMake configuration, and optional GPU-SDK setup
+        (cuQuantum~\cite{bayraktar2023cuquantum}, NVIDIA CUDA
+        toolkits~\cite{nickolls2008cuda}). No unified installer covers all of
+        them.
+  \item \textbf{Workflow fragmentation.} A realistic campaign spans clone $\to$
+        branch $\to$ configure $\to$ build $\to$ run $\to$ collect $\to$
+        analyse $\to$ compare $\to$ export. Today these steps live in separate
+        tools with no shared state, no recovery mechanism, and no end-to-end
+        audit trail.
+  \item \textbf{Result interpretation.} Raw simulator output demands domain
+        expertise. An LLM-driven analysis layer bridges the gap between numerical
+        artefacts (eigenvalue spectra, truncation ranks, Kraus-operator sets) and
+        human-readable conclusions.
+  \item \textbf{Backend heterogeneity.} Six frameworks expose six incompatible
+        circuit formats, six gate-set conventions, and six result schemas;
+        cross-backend comparison requires systematic normalisation.
+\end{enumerate}
 
-\paragraph{Agentic architecture --- \emph{El Agente}.}
-The hierarchical, memory-aware multi-agent design of Proxima's orchestration layer
-was informed most directly by the \emph{El Agente} autonomous quantum-chemistry agent
-of Zou~\textit{et al.}~\cite{zou2025elagente}. Four ideas were studied and adapted:
-(i) a cognitive-memory framework separating global context, per-agent conversation
-history, grounding state, and a long-term semantic/procedural store; (ii) hierarchical
-task decomposition with Markov-style context reduction; (iii) a closed-loop
-error-recovery pattern alternating generation and verification phases; (iv)
-transparent action-trace logging. El Agente reports success rates above $87\%$ on
-university-level quantum-chemistry exercises without task-specific
-hardcoding~\cite{zou2025elagente}, motivating Proxima's LLM-mediated task routing
-over a hand-written dispatch table.
+Proxima's intended role over the LRET simulation lifecycle is summarised in
+Table~\ref{tab:proxima-lifecycle}. The second column is the outcome, not the
+current state --- gaps are itemised in \S\ref{sec:proxima-gaps}.
 
-\paragraph{Engineering patterns --- OpenCode AI.}
-The concrete software patterns used in Proxima's agent, tool, provider, permission,
-and session subsystems were adapted from the OpenCode AI code-agent
-framework~\cite{opencode2025}. OpenCode demonstrates a production-grade,
-provider-agnostic agent design in TypeScript with tool registration, sandboxed
-permission scopes, snapshot-based session recovery, and a Model Context Protocol
-(MCP) bridge~\cite{mcp2024}. Proxima reimplements analogous subsystems in Python,
-adopting OpenCode's \emph{separation of provider abstraction from tool registry} as
-a first-class architectural decision.
-
-\paragraph{Foundational agentic patterns.}
-Beyond the two direct inspirations, Proxima's agent loop implements the
-ReAct~\cite{yao2023react} observe--think--act cycle and uses typed
-Toolformer-style~\cite{schick2023toolformer} tool schemas; its tool discovery layer
-is MCP-compatible~\cite{mcp2024}.
-
-\subsection{Architecture}
-
-Proxima is implemented in Python ($\sim$370 source files, approximately $46{,}000$
-lines of code), with Textual-based TUI~\cite{textual}, a Typer-based
-CLI~\cite{typer}, a FastAPI REST API~\cite{fastapi}, and an interactive REPL.
-Core components:
-
-\begin{center}
+\begin{table}[!h]
+\centering
+\small
 \renewcommand{\arraystretch}{1.2}
-\begin{tabular}{@{}lp{9cm}@{}}
+\caption{Intended Proxima role across the LRET lifecycle.}
+\label{tab:proxima-lifecycle}
+\begin{tabular}{@{}ll@{}}
 \toprule
-\textbf{Component} & \textbf{Role} \\
+\textbf{Phase} & \textbf{Proxima Role} \\
 \midrule
-\texttt{core/pipeline.py}            & Eight-stage execution pipeline with pause/resume/rollback \\
-\texttt{core/state.py}               & Formal state machine (9 states, validated transitions) \\
-\texttt{core/planner.py}             & LLM-assisted DAG task decomposition \\
-\texttt{core/executor.py}            & Topological DAG execution with per-task recovery \\
-\texttt{agent/dynamic\_tools/agent\_loop.py} & ReAct-style Observe--Think--Act loop~\cite{yao2023react} \\
-\texttt{intelligence/llm\_router.py} & Multi-provider LLM routing (Anthropic, OpenAI, Ollama) \\
-\texttt{backends/lret\_adapter.py}   & LRET C++ engine adapter \\
+Backend Acquisition & Clone LRET repo; checkout relevant branch. \\
+Environment Setup   & Install Python/C++ dependencies; configure build. \\
+Compilation         & Build native C++ extensions via CMake/setuptools. \\
+Configuration       & Register the compiled backend with Proxima. \\
+Execution           & Dispatch target simulation scripts or benchmarks. \\
+Analysis            & Parse results; compare against FDM baselines; summarise. \\
+Reporting           & Stream output during execution; surface final analysis in UI. \\
 \bottomrule
 \end{tabular}
-\end{center}
+\end{table}
+
+\subsection{Theoretical Foundations of Agentic Orchestration}
+\label{sec:proxima-theory}
+
+Proxima's agent layer is a synthesis of three independent lineages in the
+tool-using-LLM literature together with a control-theoretic framing of iterative
+planning. The subsection makes the underlying assumptions explicit so that the
+subsequent concrete design choices read as principled engineering rather than
+ad-hoc convention.
+
+\subsubsection*{The agent loop as a partially observable decision process}
+
+Model a single agent turn as the tuple $(s_t, a_t, o_t, r_t)$ where $s_t$ is the
+latent world state (filesystem, backend registry, session history, process-tree
+state), $a_t$ is the tool call the model emits, $o_t$ is the observed tool result,
+and $r_t$ is an implicit reward --- task completion as signalled by the user or by
+a terminal tool such as \texttt{return\_result}. The model never observes $s_t$
+directly, so the agent operates on a belief $b_t$ computed from (a) the
+conversation prefix, (b) the running window of tool calls and results, and (c)
+session grounding artefacts (current working directory, configured backend set,
+recent checkpoints). Under this framing, the agent loop is the iteration
+\[
+  b_t \;\to\; a_t \;\to\; o_t \;\to\; b_{t+1}
+\]
+and the dual-model router (\S\ref{sec:proxima-dual-model}) is the policy-class
+selector choosing between a low-cost belief-to-action mapping and a high-cost one.
+
+\subsubsection*{Three lineages synthesised}
+
+Proxima combines patterns from three families of prior work:
+
+\begin{enumerate}[leftmargin=1.5cm]
+  \item \textbf{ReAct}~\cite{yao2023react} interleaves an explicit \emph{Thought}
+        step between observations and actions so the model reasons aloud about
+        what tool to invoke and why. Proxima adopts the Observe--Think--Act cycle
+        verbatim and streams \emph{Thought} tokens to the TUI for user
+        observability.
+  \item \textbf{Toolformer}~\cite{schick2023toolformer} casts tool invocation as
+        structured generation against a typed schema rather than free-form text
+        parsing. Proxima uses Pydantic-typed tool schemas and validates every
+        emitted tool call against them before execution, which eliminates a large
+        class of syntactically valid but semantically wrong tool calls.
+  \item \textbf{Model Context Protocol (MCP)}~\cite{mcp2024} standardises the
+        transport and discovery of tools across agent hosts. Proxima's tool
+        registry is MCP-compatible by construction; the native MCP transport
+        layer is deferred to the P2 roadmap (\S\ref{sec:proxima-roadmap}).
+\end{enumerate}
+
+\subsubsection*{Hierarchical task decomposition}
+
+Context windows are finite. For long quantum workflows (clone $\to$ build $\to$
+run $\to$ analyse) a naive strategy --- keep the full history in the main agent's
+window --- exhausts model capacity within tens of tool calls and degrades
+reasoning. The \emph{El Agente} quantum-chemistry agent of Zou \textit{et
+al.}~\cite{zou2025elagente} addresses this with a hierarchical agent tree: a
+strategic agent delegates sub-problems to specialised tactical agents which return
+only \emph{summarised} feedback. This Markov-style context reduction keeps each
+context window below roughly $10\%$ of the model's hard limit even across hundreds
+of tool calls. Proxima's sub-agent architecture (\S\ref{sec:proxima-subagents}) is
+a direct adaptation of this pattern, restricted in the current implementation to
+read-only information-gathering roles. El Agente reports a success rate above
+$87\%$ on university-level quantum-chemistry exercises without task-specific
+hardcoding~\cite{zou2025elagente}; that empirical evidence that a hierarchical
+LLM-driven agent can outperform rigid workflow pipelines on a scientifically rich
+domain is the main justification for Proxima's LLM-mediated routing over a
+hand-written dispatch table.
+
+\subsubsection*{Multi-provider routing as a cost--quality bandit}
+
+Routing a request to a small versus large model is a one-shot decision over an
+expected-reward trade-off: the small tier is approximately an order of magnitude
+cheaper and faster at real but workload-dependent accuracy cost. Proxima defers
+the full contextual-bandit treatment; the current router uses a simple
+complexity-score threshold --- a function of intent type, entity count,
+conversation depth, and remaining token budget --- with a fixed cut point $c^{*}$.
+Beyond $c^{*}$ the request escalates to the large tier.
+
+\subsubsection*{Backend selection as circuit fingerprinting}
+
+A quantum circuit can be characterised by a short feature vector
+$\mathbf{f}(C) = (N, d, \mathbf{g}, \eta, \mathcal{O})$: qubit count $N$, depth
+$d$, gate-type histogram $\mathbf{g}$, noise channel $\eta$, and required
+observable $\mathcal{O}$. Proxima's backend selector
+(\S\ref{sec:proxima-intelligence}) maps this fingerprint to a scored ranking over
+registered adapters via deterministic feasibility filters (max-qubit, supported
+gates, noise-model compatibility) followed by a soft score combining hardware
+availability, memory feasibility, and observed historical latency. Where
+cuQuantum GPU acceleration is feasible it typically
+dominates~\cite{bayraktar2023cuquantum}; where LRET's low-rank structure applies
+($p \lesssim 10^{-2}$, moderate entanglement) LRET~\cite{chen2021lret} dominates
+on commodity hardware, as empirically confirmed by our §\ref{sec:empirical}
+benchmark.
+
+Together the Observe--Think--Act loop, hierarchical decomposition, bandit-style
+routing, and circuit fingerprinting constitute the theoretical backbone on which
+the concrete architectural choices below rest.
+
+\subsection{Design Principles and Learning Sources}
+
+\subsubsection*{Five design principles}
+
+The architecture is governed by five principles, each traceable to a specific
+failure mode observed during development:
+
+\begin{enumerate}[leftmargin=1.5cm]
+  \item \textbf{Controllability.} Every pipeline stage must support pause, resume,
+        and rollback. No destructive operation proceeds without explicit user
+        consent --- no exceptions.
+  \item \textbf{Observability.} Execution state, resource usage, and LLM
+        reasoning are surfaced in real time through the TUI and structured logs.
+        ``Silent'' steps are the single largest source of perceived failure (see
+        §\ref{sec:proxima-gaps}).
+  \item \textbf{Composability.} Core components (pipeline, planner, executor,
+        session manager) are independently instantiable and testable. No circular
+        module dependencies.
+  \item \textbf{Safety-by-default.} Scope-based tool permissions and consent
+        gates prevent destructive operations from executing without explicit
+        authorisation.
+  \item \textbf{Backend neutrality.} The agent loop, pipeline, and UI are
+        backend-agnostic. Backend-specific logic is confined to adapter modules
+        under \texttt{src/proxima/backends/}.
+\end{enumerate}
+
+\subsubsection*{Learning sources}
+
+Because Proxima sits at the intersection of two active research areas --- agentic
+LLMs and numerical quantum simulation --- its design draws on two external
+bodies of work rather than a single canonical reference.
+
+\paragraph{Agentic architecture from \emph{El Agente}~\cite{zou2025elagente}.}
+Four ideas were studied and adapted: (i) a cognitive-memory framework separating
+global context, per-agent conversation history, grounding state, and a long-term
+semantic/procedural store; (ii) hierarchical task decomposition with Markov-style
+context reduction; (iii) a closed-loop error-recovery pattern alternating a
+\emph{generation} phase (produce input files or commands) with a
+\emph{verification} phase (parse errors and regenerate); (iv) transparent
+action-trace logging so every tool invocation can be inspected and replayed
+offline.
+
+\paragraph{Engineering patterns from OpenCode AI~\cite{opencode2025}.} OpenCode
+is a production-grade TypeScript code-agent under MIT licence
+(\url{https://github.com/anomalyco/opencode}). Its modular monorepo layout
+cleanly exposes tool registration, provider abstraction, scope-based permission
+scopes, snapshot-based session recovery, and an MCP bridge. Proxima
+reimplements analogous subsystems in Python, adopting OpenCode's
+\emph{separation of provider abstraction from tool registry} as a first-class
+architectural decision. Pydantic~2 replaces Zod for schema validation, SQLite
+replaces the file-based session store, and the single-process async Python
+design collapses OpenCode's client/server split because the Textual TUI already
+provides an out-of-process UI surface.
+
+\paragraph{Technical decisions.} The principal design choices and their
+motivations:
+\begin{itemize}[leftmargin=1.5cm]
+  \item \emph{LLM-driven tool routing over a static dispatch table.} A static
+        intent-to-tool table scales poorly once the tool count exceeds a few
+        dozen; El Agente's high success rate on unseen tasks
+        \emph{without} domain-specific hardcoding provides the empirical
+        justification for routing through an LLM with a typed tool schema.
+  \item \emph{Dual-model routing over single-model inference.} Separating
+        low-complexity operations (entity extraction, parameter validation) from
+        high-complexity reasoning (multi-step planning) allows the small-model
+        tier to absorb most invocations.
+  \item \emph{Permission-scoped sub-agents.} Backend compilation, package
+        installation, and repository operations are dangerous when misdriven;
+        OpenCode-style scope permissions restricted to a read-only subset for
+        sub-agents bound the blast radius of a misbehaving model.
+  \item \emph{Snapshot-based session recovery.} Long-running quantum workflows
+        can fail at any step; El Agente's demonstration of sustained multi-turn
+        operation via hierarchical memory motivates SQLite-backed sessions with
+        stage-boundary checkpoints.
+  \item \emph{LRET as the primary simulation target.} LRET's asymptotic advantage
+        ($\mathcal{O}(V^2\cdot 2^N)$ vs.\ $\mathcal{O}(4^N)$) materialises only
+        when a workflow selects the right backend per circuit instance, which
+        motivates an intelligent dispatcher rather than a monolithic wrapper.
+\end{itemize}
+
+\subsection{Module Map and Core Data Structures}
+
+\subsubsection*{Module map}
+
+The implementation occupies $\sim\!370$ Python source files
+($\approx 46{,}000$ lines of code under \texttt{src/proxima/**/*.py}). Its
+top-level layout:
+
+\begin{mdframed}[linecolor=gray!40,linewidth=0.5pt,
+                 innertopmargin=6pt,innerbottommargin=6pt]
+\dirtree{%
+.1 src/proxima/.
+.2 agent/ \DTcomment{tools, terminals, git, safety, planning}.
+.3 dynamic\_tools/ \DTcomment{agent loop, NL processing, LLM bridge}.
+.2 backends/ \DTcomment{six adapter files + LRET submodule}.
+.3 lret/ \DTcomment{variants, installer, visualisation}.
+.2 cli/ \DTcomment{Typer CLI, interactive REPL, formatters}.
+.2 core/ \DTcomment{pipeline, planner, executor, state machine, session}.
+.2 intelligence/ \DTcomment{LLM router, insights, backend selector}.
+.2 resources/ \DTcomment{CPU/GPU/memory monitor, execution control}.
+.2 tui/ \DTcomment{Textual app, screens, dialogs, wizards}.
+.3 screens/ \DTcomment{main views}.
+.3 dialogs/ \DTcomment{modal dialogs including backend wizard}.
+.2 api/ \DTcomment{FastAPI app, middleware, routes, services}.
+}
+\end{mdframed}
+
+User-facing surfaces are a Textual TUI~\cite{textual}, a Typer CLI~\cite{typer},
+a FastAPI REST API~\cite{fastapi}, and an interactive REPL.
+
+\subsubsection*{Core data structures}
+
+\begin{description}[leftmargin=2.2cm,labelwidth=2.0cm,font=\ttfamily]
+  \item[ExecutionState] Enum (\texttt{core/state.py}) covering the formal
+        lifecycle \texttt{IDLE}, \texttt{PLANNING}, \texttt{READY},
+        \texttt{RUNNING}, \texttt{PAUSED}, \texttt{COMPLETED}, \texttt{ABORTED},
+        \texttt{ERROR}, \texttt{RECOVERING}. Illegal transitions raise
+        \texttt{InvalidTransitionError}.
+  \item[PersistedState] Serialisable snapshot of execution context: task DAG,
+        partial results, resource handles, timestamps. Written at each
+        checkpoint; restored on recovery.
+  \item[ResourceHandle] RAII-style handle tracking acquired system resources
+        (open processes, temporary files, GPU allocations). Released atomically
+        on abort or rollback.
+  \item[Session] Top-level container holding \texttt{session\_id},
+        \texttt{execution\_history}, \texttt{checkpoints}, \texttt{context} dict,
+        and optional \texttt{parent\_session\_id} for sub-agent sessions.
+  \item[TaskNode] DAG vertex: \texttt{task\_id}, \texttt{task\_type},
+        \texttt{parameters}, \texttt{dependencies}, \texttt{status},
+        \texttt{result}.
+  \item[BackendCapabilities] Descriptor: \texttt{max\_qubits},
+        \texttt{supported\_gates}, \texttt{supported\_noise\_models},
+        \texttt{gpu\_required}, \texttt{max\_shots}.
+\end{description}
 
 \subsection{Eight-Stage Execution Pipeline}
 
-The pipeline implements a directed, fully controllable flow:
+The pipeline (\texttt{core/pipeline.py}) implements a directed, fully
+controllable flow:
 \[
-\texttt{Parse} \to \texttt{Plan} \to \texttt{ResourceCheck} \to \texttt{Consent}
-\to \texttt{Execute} \to \texttt{Collect} \to \texttt{Analyse} \to \texttt{Export}.
+  \texttt{Parse}\,\to\,\texttt{Plan}\,\to\,\texttt{ResourceCheck}\,\to\,
+  \texttt{Consent}\,\to\,\texttt{Execute}\,\to\,\texttt{Collect}\,\to\,
+  \texttt{Analyse}\,\to\,\texttt{Export}.
 \]
-Each stage supports pause, resume, and rollback; the \texttt{Consent} stage prevents
-destructive operations from executing without explicit approval. State is persisted
-to disk at every transition.
 
-\subsection{ReAct-Style Agent Loop}
+\begin{table}[!h]
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.2}
+\caption{Eight-stage pipeline with control points.}
+\label{tab:proxima-pipeline}
+\begin{tabular}{@{}lp{4.0cm}p{5.3cm}l@{}}
+\toprule
+\textbf{Stage} & \textbf{Responsibility} & \textbf{Detail} & \textbf{Control} \\
+\midrule
+Parse         & Tokenise \& validate input       & Structural validation          & Pause \\
+Plan          & Decompose into task DAG          & LLM-assisted decomposition     & Pause, Rollback \\
+ResourceCheck & Verify CPU, RAM, GPU             & Pre-flight system checks       & Pause \\
+Consent       & Summarise destructive ops        & Await explicit approval        & Gate \\
+Execute       & Walk DAG; dispatch tools         & Per-task status tracking       & Pause, Resume, Rollback \\
+Collect       & Aggregate results                & Schema normalisation           & Pause \\
+Analyse       & Forward to LLM insight layer     & Structured summarisation       & Pause \\
+Export        & Serialise JSON/CSV/Excel         & Session history update         & Pause \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-The agent loop implements the observe--think--act cycle~\cite{yao2023react} as an
-async coroutine: \emph{Observe} (parse input, classify intent, extract entities);
-\emph{Think} (route to LLM, generate chain-of-thought, select tool call);
-\emph{Act} (check permission scope, execute tool, stream output, analyse result);
-repeat. High-confidence intents bypass LLM reasoning via direct dispatch, reducing
-median latency for common operations to sub-100\,ms.
+Each stage emits events to \texttt{core/event\_bus.py}, consumed by the TUI's
+reactive system for real-time progress display. Checkpoints are written at every
+stage boundary, enabling resumption across process restarts.
 
-\subsection{Multi-Backend Support}
+\subsection{State Machine and Lifecycle Management}
 
-Six quantum simulation backends through a unified \texttt{BaseBackendAdapter}:
+\texttt{ExecutionStateMachine} (\texttt{core/state.py}) governs the lifecycle via
+a transition table with entry and exit callbacks per state. The ten validated
+transitions are:
 
 \begin{center}
-\renewcommand{\arraystretch}{1.2}
-\begin{tabular}{@{}lccl@{}}
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}lll@{}}
 \toprule
-\textbf{Backend} & \textbf{Max qubits} & \textbf{GPU} & \textbf{Status} \\
+\textbf{From} & \textbf{To} & \textbf{Trigger} \\
 \midrule
-LRET              & variable & no       & primary target \\
-Cirq~\cite{cirq}             & 30+      & no       & functional \\
-Qiskit Aer~\cite{javadi2024qiskit}       & 30+      & optional & functional (Windows build caveats) \\
-cuQuantum~\cite{bayraktar2023cuquantum}  & 30+      & required & requires NVIDIA SDK \\
-qsim~\cite{qsim}             & 30+      & optional & adapter present; build not automated \\
-QuEST~\cite{jones2019quest}  & 30+      & optional & adapter present; build not automated \\
+\texttt{IDLE}       & \texttt{PLANNING}  & user command \\
+\texttt{PLANNING}   & \texttt{READY}     & DAG finalised, resources confirmed \\
+\texttt{READY}      & \texttt{RUNNING}   & user consent obtained \\
+\texttt{RUNNING}    & \texttt{PAUSED}    & user interrupt / resource limit \\
+\texttt{PAUSED}     & \texttt{RUNNING}   & user resume \\
+\texttt{RUNNING}    & \texttt{ERROR}     & unrecoverable tool failure \\
+\texttt{ERROR}      & \texttt{RECOVERING} & recovery strategy identified \\
+\texttt{RECOVERING} & \texttt{RUNNING}   & recovery succeeded \\
+\texttt{RUNNING}    & \texttt{COMPLETED} & all tasks complete \\
+\texttt{RUNNING}    & \texttt{ABORTED}   & user cancellation or rollback \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-Automatic backend selection scores candidates on qubit feasibility, gate
-compatibility, noise-model support, hardware availability, and historical performance.
+State is persisted to disk at every transition boundary, enabling recovery across
+process restarts.
 
-\subsection{LLM Integration}
+\subsection{DAG Task Planning, Execution, and Recovery}
 
-A multi-provider LLM router supports Anthropic Claude (Opus, Sonnet,
-Haiku)~\cite{anthropic_claude}, OpenAI GPT-4 family~\cite{openai_gpt4}, and local
-Ollama~\cite{ollama} (Llama 3, Mistral, Phi-3). A dual-model strategy routes
-high-complexity planning to the large-model tier and high-frequency low-complexity
-operations (entity extraction, parameter validation) to the small-model tier, in
-internal measurements reducing token consumption by $60$--$70\%$ on typical
-simulation campaigns (numbers are indicative pending a formal reproducible harness).
+\textbf{Planner} (\texttt{core/planner.py}) receives a natural-language command or
+structured circuit request and produces a DAG of \texttt{TaskNode} objects.
+LLM-assisted decomposition handles ambiguous multi-step commands; each node
+declares explicit dependencies, and parallel-safe tasks are identified
+automatically.
 
-\subsection{Current Gaps}
+\textbf{Executor} (\texttt{core/executor.py}) topologically sorts the DAG and
+walks it under the \texttt{ExecutionStateMachine}. Per-task status is tracked
+independently, enabling partial re-execution: a failed subtask can be retried
+without re-running completed predecessors. Resource allocation and cleanup are
+managed by \texttt{ResourceHandle} objects attached to each \texttt{TaskNode}.
 
-Proxima is pre-release (v0.1-dev); the following critical paths are not complete:
+\textbf{Error recovery.} On task failure, \texttt{AgentErrorHandler} classifies
+the error (network, compiler, permission, timeout, unknown), selects a recovery
+strategy (retry with backoff, suggest manual intervention, rollback to
+checkpoint), and transitions the state machine accordingly.
 
-\begin{itemize}
-  \item \textbf{C++ backend build pipeline.} \texttt{backend\_builder.py} defines the
-        interface but the full clone $\to$ build $\to$ register workflow is not yet
-        connected to the TUI or agent loop.
-  \item \textbf{Terminal-to-TUI bridge.} Live subprocess output does not stream
-        reliably into the Execution tab.
-  \item \textbf{Post-execution auto-analysis.} Results are not yet automatically
-        passed to the LLM for analysis.
-  \item \textbf{Complex multi-step NL execution.} The agent loop does not reliably
-        chain NL parsing $\to$ plan generation $\to$ execution $\to$ result display
-        as a single coherent workflow.
+\subsection{Session Management and Checkpointing}
+
+Each user interaction creates or resumes a \texttt{Session} object stored in
+SQLite. Sessions persist conversation history, execution history, and checkpoints
+across process restarts. Multi-session concurrency is supported; sessions are
+isolated by \texttt{session\_id}.
+
+A \texttt{Checkpoint} captures the full \texttt{PersistedState} at a given
+execution point. Checkpoints are created automatically at pipeline-stage
+boundaries and on demand. Rollback restores the most recent checkpoint and
+reverses any filesystem changes tracked by \texttt{FileResource} handles.
+
+When the accumulated token count approaches the LLM context limit,
+\texttt{AgentSessionManager} invokes auto-summarisation: a summary LLM call
+condenses prior turns into a compact context block, transparently continuing the
+session. Sub-agents launched during a parent session create child sessions with
+\texttt{parent\_session\_id} set, forming hierarchical session trees.
+
+\subsection{ReAct-Style Agent Loop}
+\label{sec:proxima-loop}
+
+The agent loop (\texttt{agent/dynamic\_tools/agent\_loop.py}) implements the
+ReAct~\cite{yao2023react} observe--think--act cycle as an async coroutine with
+transparent action-trace logging after El Agente~\cite{zou2025elagente}:
+
+\begin{lstlisting}[language=Python, caption={Agent loop pseudocode}]
+observe(user_input)
+  |-- NL parsing      --> Intent object
+  |-- Session context extraction
+  `-- High-confidence intent --> direct dispatch (skip Think)
+
+think(intent)
+  |-- LLM routing     --> model tier selection
+  |-- Tool selection  --> ToolCall specification
+  `-- Chain-of-thought streamed to TUI
+
+act(tool_call)
+  |-- ToolPermissionManager.check_permission()
+  |-- ToolRegistry.execute()      --> streaming output
+  `-- ResultAnalyzer.analyze()    --> StructuredResult
+
+observe(result) --> repeat or return
+\end{lstlisting}
+
+\textbf{Direct dispatch.} Intents classified above a confidence threshold bypass
+LLM reasoning and are dispatched directly to the corresponding tool, reducing
+median latency for common operations (file reads, git status, backend listing)
+to sub-100\,ms.
+
+\textbf{Streaming.} LLM chain-of-thought tokens and tool output are streamed
+incrementally to the TUI AI Assistant screen via the event bus, providing
+real-time feedback without blocking the Textual event loop.
+
+\textbf{Context management.} The agent loop tracks accumulated token count
+across turns; when the budget is $\sim 80\%$ consumed,
+\texttt{AgentSessionManager.summarize()} is invoked transparently before the
+next LLM call.
+
+\subsection{Tool Permission and Safety}
+
+\texttt{ToolPermissionManager} (\texttt{agent/tool\_permissions.py}) implements
+scope-based access control. Each tool is tagged with a \texttt{PermissionScope};
+the manager enforces the active session's permission set before every tool
+invocation. The hierarchy satisfies
+\[
+  \texttt{READ\_ONLY}\;\subset\;\texttt{WRITE\_LOCAL}\;\subset\;
+  \texttt{WRITE\_REMOTE}\;\subset\;\texttt{DESTRUCTIVE}\;\subset\;\texttt{ADMIN}.
+\]
+
+\textbf{\texttt{SafetyManager}} detects destructive operations (file deletion,
+branch force-push, database drop, process kill) and routes them to the consent
+gate before execution, maintaining a rollback stack of reversible operations.
+\textbf{\texttt{ConsentManager}} presents structured consent dialogs --- operation
+summary, affected resources, reversibility assessment, explicit approve/deny
+buttons --- with every decision logged to the audit trail.
+\textbf{\texttt{AdminPrivilegeHandler}} manages elevation requests for operations
+requiring system-level permissions (Windows UAC, Unix sudo).
+
+\subsection{Sub-Agent Architecture}
+\label{sec:proxima-subagents}
+
+Sub-agents (\texttt{agent/sub\_agent.py}) are lightweight read-only agent
+instances launched by the main loop to parallelise information gathering without
+exposing write tools. The pattern --- strategic reasoning at the parent level
+with summarised results returned from tactical children --- follows El
+Agente~\cite{zou2025elagente} and the sub-agent conventions of
+OpenCode~\cite{opencode2025}.
+
+\texttt{SubAgentConfig} declares: \texttt{name}; \texttt{allowed\_tools}
+(read-only subset: \texttt{read\_file}, \texttt{search\_files}, \texttt{git\_log},
+\texttt{list\_directory}, \texttt{grep\_content}); \texttt{model\_preference}
+(``small''); \texttt{max\_iterations}; and \texttt{auto\_approve\_permissions}.
+\texttt{SubAgent.run(prompt)} executes a simplified single-goal loop and returns
+a \texttt{SubAgentResult} to the parent. Each run creates a child session with
+\texttt{parent\_session\_id} set, supporting hierarchical session trees.
+
+\subsection{Dual-Model Router}
+\label{sec:proxima-dual-model}
+
+\texttt{DualModelRouter} assigns LLM roles to two tiers:
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{@{}lp{9cm}@{}}
+\toprule
+\textbf{Tier} & \textbf{Responsibilities} \\
+\midrule
+Large (Claude Opus~\cite{anthropic_claude}, GPT-4~\cite{openai_gpt4}) &
+  complex multi-step reasoning; plan decomposition; ambiguous intent
+  classification; domain-aware result analysis. \\
+Small (Claude Haiku, GPT-3.5/4o-mini, Ollama~\cite{ollama} local models) &
+  entity extraction; parameter validation; progress narration; sub-agent tasks. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Routing is per-invocation based on a complexity score derived from intent type,
+entity count, conversation depth, and remaining token budget. If the preferred
+provider is unavailable, the router falls back transparently.
+
+\subsection{Intelligence Layer}
+\label{sec:proxima-intelligence}
+
+\subsubsection*{Multi-provider LLM routing}
+
+\texttt{LLMRouter} (\texttt{intelligence/llm\_router.py}) abstracts three
+providers --- Anthropic Claude~\cite{anthropic_claude}, OpenAI
+GPT-4~\cite{openai_gpt4}, and the local Ollama runtime~\cite{ollama} --- behind a
+unified async interface. Provider-fallback covers rate limits and quota
+exhaustion; token-budget management triggers summarisation; all providers are
+accessed via native streaming APIs with tokens forwarded to the TUI event bus.
+A dual-model strategy routes high-complexity planning to the large tier and
+high-frequency low-complexity operations (entity extraction, parameter
+validation) to the small tier; internal measurements indicate $60\text{--}70\%$
+token-consumption reduction on representative simulation-campaign traces with no
+measurable quality regression, though these numbers are indicative and a
+reproducible harness is part of the near-term roadmap.
+
+\subsubsection*{Backend auto-selection}
+
+\texttt{BackendSelector} (\texttt{intelligence/selector.py}) scores registered
+backends against a six-factor evaluation --- the concrete realisation of the
+circuit fingerprint $\mathbf{f}(C)$ introduced in \S\ref{sec:proxima-theory}:
+
+\begin{enumerate}[leftmargin=1.5cm]
+  \item Qubit-count feasibility: reject backends with
+        $\texttt{max\_qubits} < \texttt{circuit\_qubits}$.
+  \item Gate compatibility: penalise or eliminate circuits containing
+        unsupported gates.
+  \item Noise-model support: match the requested noise model against declared
+        backend capabilities.
+  \item Hardware availability: score GPU-required backends negatively when no
+        CUDA-capable device is detected.
+  \item Memory estimation: compare estimated memory against available RAM.
+  \item Historical performance: retrieve past execution times for similar
+        circuits from the SQLite telemetry store.
+\end{enumerate}
+
+The top-ranked backend is selected by default; the user may override via explicit
+parameter or TUI selection.
+
+\subsubsection*{Result analysis and insight generation}
+
+\texttt{ResultAnalyzer} (\texttt{agent/dynamic\_tools/result\_analyzer.py})
+extracts structured metrics from raw backend output: fidelity (trace distance or
+state fidelity against reference), wall-clock and CPU time per gate/layer/total,
+peak RAM and GPU VRAM, LRET truncation rank $V$, and noise sensitivity $F(p)$.
+\texttt{InsightGenerator} (\texttt{intelligence/insights.py}) feeds the structured
+metrics to the LLM with a domain-specific system prompt, producing human-readable
+summaries: trend identification, anomaly flagging, cross-backend comparisons,
+and parameter-tuning recommendations.
+
+\subsection{Multi-Backend Adapter Architecture}
+
+All backend adapters extend \texttt{BaseBackendAdapter} and implement a standard
+interface:
+
+\begin{lstlisting}[language=Python, caption={\texttt{BaseBackendAdapter} interface}]
+class BaseBackendAdapter:
+    def execute(self, circuit, shots, noise_model=None) -> BackendResult
+    def get_capabilities(self) -> BackendCapabilities
+    def estimate_performance(self, circuit) -> PerformanceEstimate
+    def validate_circuit(self, circuit) -> ValidationResult
+    def health_check(self) -> HealthStatus
+\end{lstlisting}
+
+\texttt{BackendRegistry} maintains the live registry, performs periodic health
+checks, and provides the comparison matrix used by the selector. Circuit-format
+conversion (\texttt{backends/conversion.py}) and result normalisation
+(\texttt{backends/normalization.py}) are applied transparently; GPU memory
+allocation is managed centrally by \texttt{GPUMemoryManager}.
+
+\begin{table}[!h]
+\centering
+\small
+\renewcommand{\arraystretch}{1.2}
+\caption{Registered backends and their adapter status.}
+\label{tab:proxima-backends}
+\begin{tabular}{@{}lcccl@{}}
+\toprule
+\textbf{Backend} & \textbf{Max qubits} & \textbf{GPU} & \textbf{Status} & \textbf{Notes} \\
+\midrule
+LRET                                      & variable & no       & primary target & custom low-rank simulator \\
+Cirq~\cite{cirq}                          & 30+      & no       & functional     & Google ecosystem \\
+Qiskit Aer~\cite{javadi2024qiskit}        & 30+      & optional & functional     & Windows build caveats \\
+cuQuantum~\cite{bayraktar2023cuquantum}   & 30+      & required & functional     & requires NVIDIA SDK \\
+qsim~\cite{qsim}                          & 30+      & optional & partial        & build not automated \\
+QuEST~\cite{jones2019quest}               & 30+      & optional & partial        & multi-node HPC capable \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A PennyLane~\cite{bergholm2018pennylane} device plugin \texttt{proxima.lret}
+exposes the simulator as a native \texttt{qml.device(...)} target; gate mapping
+and non-differentiable circuit execution are functional, while differentiable
+noise simulation required for gradient-based VQE/QAOA/QNN workflows is part of
+the roadmap.
+
+\subsection{Orchestration-Overhead Disclaimer and Benchmarks}
+
+\begin{infobox}
+\textbf{Disclaimer.} Orchestration benchmark figures reported in earlier
+Proxima internals (e.g., ``$2.5\text{--}5\times$ workflow speedup over manual
+execution'', ``$15\text{--}40$\,ms per-execution overhead'', ``$60\text{--}70\%$
+token savings via dual-model routing'') are \emph{illustrative targets pending
+formal benchmark runs}, not results from a single end-to-end reproducible
+harness. They are quoted in this section only to communicate design intent and
+indicative measured behaviour.
+\end{infobox}
+
+For single-circuit single-backend execution with no post-processing, direct
+backend invocation is faster than Proxima by the orchestration-overhead margin.
+Proxima's value is in \emph{multi-step} workflows (clone$\to$configure$\to$
+build$\to$run$\to$analyse), \emph{cross-backend} comparison, and \emph{novel
+practitioner} onboarding --- the three settings where DAG parallelism, schema
+normalisation, and LLM-driven insight generation amortise the control-plane
+cost.
+
+\subsection{Current Implementation Status and Gaps}
+\label{sec:proxima-gaps}
+
+Proxima is pre-release (v0.1-dev). The control-plane scaffolding (pipeline,
+planner, state machine, session management, permission system, adapter layer) is
+substantially in place, but several execution paths remain incomplete or only
+partially wired. Honest enumeration:
+
+\begin{itemize}[leftmargin=1.5cm]
+  \item \textbf{C++ backend build pipeline.} \texttt{backend\_builder.py} defines
+        the clone$\to$cmake$\to$compile$\to$register interface, but the full
+        automation does not yet run end-to-end on Windows and is not connected to
+        the TUI backend wizard.
+  \item \textbf{Terminal-to-TUI output bridge.} \texttt{terminal\_tui\_bridge.py}
+        exists as a bridge component but the live connection to the Execution
+        screen does not reliably stream subprocess output in real time --- users
+        perceive long tool calls as silent, eroding trust.
+  \item \textbf{Post-execution auto-analysis.} Result Tab does not automatically
+        populate with LLM-generated analysis after a run completes; the user must
+        request it.
+  \item \textbf{Complex multi-step NL execution.} \texttt{robust\_nl\_processor.py}
+        and \texttt{intent\_classifier.py} produce plans, but chaining NL parsing
+        $\to$ plan $\to$ execute $\to$ result display as a single coherent
+        workflow is not reliable; mid-plan failures do not propagate cleanly to
+        the user.
+  \item \textbf{Monolithic source files.} \texttt{intent\_tool\_bridge.py}
+        ($272$\,KB), \texttt{llm\_router.py} ($311$\,KB), and
+        \texttt{agent\_ai\_assistant.py} ($381$\,KB) impair maintainability.
+  \item \textbf{Type-safety suppression.} \texttt{mypy} is configured to ignore
+        errors in \texttt{proxima.tui.*}, \texttt{proxima.backends.conversion},
+        \texttt{proxima.backends.normalization}, \texttt{proxima.backends.lret.*},
+        and \texttt{proxima.data.export}; suppressions mask real type errors.
+  \item \textbf{Windows-specific issues.} Qiskit~Aer requires MSVC or MinGW and
+        may silently fail without one; the Docker image is not published; some
+        internal path constructions use hardcoded forward slashes.
 \end{itemize}
 
 \subsection{Roadmap}
+\label{sec:proxima-roadmap}
 
-\textbf{P1 blockers.} Terminal-to-TUI output wiring; C++ build pipeline completion;
-backend auto-registration; agent-loop to plan-to-execute gap closure;
-post-execution auto-analysis.
+Tasks are ordered by priority. \textcolor{p1color}{\textbf{P1 = blocking}},
+\textcolor{p2color}{\textbf{P2 = high}}, \textcolor{p3color}{\textbf{P3 = medium}}.
 
-\textbf{P2.} LRET installer cancellation; backend config pre-fill dialog; C++
-dependency management; authenticated GitHub operations; \texttt{search\_files}
-intent bridge.
+\begin{table}[!h]
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.2}
+\caption{\textcolor{p1color}{P1 --- critical blockers.}}
+\begin{tabular}{@{}p{3.8cm}p{10.8cm}@{}}
+\toprule
+\textbf{Task} & \textbf{Suggested Approach} \\
+\midrule
+Wire terminal to Execution Tab           & connect \texttt{process\_streaming.py} events via \texttt{event\_bus.py} to a Textual \texttt{RichLog} widget \\
+Implement C++ build pipeline             & compiler detection (CMake, MSVC, GCC), cmake configure/build, post-build tests, error surfacing \\
+Auto-register compiled backend           & update \texttt{backends/registry.py} + config entry; success notification \\
+Close NL\,$\to$\,plan\,$\to$\,execute gap & fully delegate plan execution to \texttt{plan\_executor.py} with per-step TUI callbacks \\
+Post-execution auto-analysis              & on completion, invoke \texttt{result\_analyzer.py} + \texttt{insights.py} and push to Result Tab \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\textbf{P3.} Decomposing oversized monolithic files; re-enabling \texttt{mypy} in
-suppressed modules; multi-terminal split-pane view; Docker image publication.
+\begin{table}[!h]
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.2}
+\caption{\textcolor{p2color}{P2 --- high priority.}}
+\begin{tabular}{@{}p{3.8cm}p{10.8cm}@{}}
+\toprule
+\textbf{Task} & \textbf{Suggested Approach} \\
+\midrule
+LRET installer cancellation      & cancellation token in \texttt{installer\_dialog.py} propagated to the subprocess \\
+Backend-config dialog pre-fill   & load existing backend config before opening dialog \\
+C++ dependency management        & detect CMake, compiler toolchains, CUDA SDK; install instructions when missing \\
+Authenticated GitHub operations  & HTTPS token / SSH key handling; credentials stored via \texttt{keyring} \\
+PennyLane differentiable device  & finish differentiable noise simulation in \texttt{backends/lret/pennylane\_device.py} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!h]
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.2}
+\caption{\textcolor{p3color}{P3 --- medium priority.}}
+\begin{tabular}{@{}p{3.8cm}p{10.8cm}@{}}
+\toprule
+\textbf{Task} & \textbf{Suggested Approach} \\
+\midrule
+Decompose oversized files   & split \texttt{intent\_tool\_bridge.py}, \texttt{llm\_router.py}, \texttt{agent\_ai\_assistant.py} into cohesive sub-modules \\
+Re-enable \texttt{mypy}     & fix type errors in suppressed modules progressively, starting with the smallest \\
+Multi-terminal split-pane   & add tabbed/split-panel terminal view for concurrent process monitoring \\
+Publish Docker image        & GitHub Actions workflow to build and push to GHCR on release tag \\
+Native MCP transport        & port \texttt{packages/opencode/src/mcp/} analogue to \texttt{src/proxima/mcp/} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Key Learnings}
+
+Six learnings crystallised during development that future contributors (and
+readers of this report) should inherit:
+
+\begin{enumerate}[leftmargin=1.5cm]
+  \item \emph{LLM-driven routing only outperforms a static dispatch table when
+        tool schemas are strict.} Loosely typed tool parameters let the LLM emit
+        syntactically valid but semantically wrong calls that fail downstream
+        and erode the agent's perceived reliability.
+  \item \emph{Monolithic files impose a recurring tax.} A single 381-KB TUI
+        screen costs more in LLM context-per-call than five smaller modules of
+        equivalent total size --- oversized files impair human maintenance
+        \emph{and} agent self-modification.
+  \item \emph{Most observed ``failure cases'' reduce to observability gaps.}
+        The TUI streaming bridge, post-execution auto-analysis, and mid-plan
+        error surfacing are UI-observability problems more than algorithmic
+        defects; users perceive an algorithm as broken when they cannot see it
+        working.
+  \item \emph{Reusing OpenCode's provider-abstraction pattern saved substantial
+        work.} The clean separation of \emph{provider} from \emph{tool} in
+        OpenCode~\cite{opencode2025} allowed Anthropic, OpenAI, and Ollama
+        support to share one streaming and fallback implementation rather than
+        three bespoke ones.
+  \item \emph{El Agente's hierarchical memory is essential for long sessions.}
+        Once a Proxima session exceeds roughly $50{,}000$ tokens, single-agent
+        designs degrade noticeably; hierarchical sub-agents with summarised
+        returns restore reliability~\cite{zou2025elagente}.
+  \item \emph{Truthful documentation matters as much as correct code.}
+        Documentation that over-claims capability erodes user trust on first
+        encounter with an unmet expectation; this section therefore marks
+        partial and planned work explicitly throughout, consistent with the
+        tone set in the rest of the report.
+\end{enumerate}
 
 % ============================================================
 \section{Conclusion}
