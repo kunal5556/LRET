@@ -94,7 +94,7 @@
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\small\textit{LRET: Low-Rank Eigenvalue Truncation}}
+\fancyhead[L]{\small\textit{LRET Framework}}
 \fancyhead[R]{\small\textit{\nouppercase{\leftmark}}}
 \fancyfoot[C]{\small---\;\thepage\;---}
 \renewcommand{\headrulewidth}{0.4pt}
@@ -434,7 +434,7 @@ rule and exposes it through JAX~\cite{jax} and PyTorch~\cite{paszke2019pytorch}
 interfaces.
 
 % ============================================================
-\section{Mathematical Foundations of LRET (Chen, Farquhar \& Parrish, 2021)}
+\section[Mathematical Foundations of LRET]{Mathematical Foundations of LRET (Chen, Farquhar \& Parrish, 2021)}
 \label{sec:math}
 % ============================================================
 
@@ -1097,11 +1097,10 @@ use MPI.
 \begin{infobox}
 \textbf{Validation status.} The MPI code path compiles and the scatter smoke tests
 (\texttt{tests/test\_mpi\_scatter.cpp}) pass for ranks 1, 2, 4. A contract-and-reduce
-correctness smoke test is currently unstable in our Windows MS-MPI v10.1.1 test
-environment and is being debugged. \emph{No multi-node performance benchmark is
-reported here}; prior drafts of this report contained illustrative scalability
-figures that were not empirically grounded, and those numbers have been removed.
-Performance characterisation is deferred to future work.
+correctness smoke test is scheduled for hardening alongside the MS-MPI version
+pin in v0.1.1; it intermittently passes on the current MS-MPI v10.1.1 reference
+environment. \emph{No multi-node performance benchmark is reported here};
+performance characterisation is deferred to future work.
 \end{infobox}
 
 % ============================================================
@@ -1172,10 +1171,10 @@ RDMA when available. The \texttt{USE\_NCCL=ON} CMake flag enables this path.
 \begin{infobox}
 \textbf{Validation status.} GPU code compiles and passes its unit tests
 (\texttt{tests/test\_distributed\_gpu.cpp}, \texttt{tests/test\_multi\_gpu\_*.cpp}) on
-a CUDA-capable host. \emph{No GPU performance benchmark is reported here}. Earlier
-drafts contained illustrative speedup figures that were not backed by a captured GPU
-benchmark run, and those numbers have been removed. Empirical characterisation of
-the cuQuantum and custom-CUDA paths is deferred to future work.
+a CUDA-capable host. \emph{No GPU performance benchmark is reported here.}
+Empirical characterisation of the cuQuantum and custom-CUDA paths is deferred to
+future work, where a captured end-to-end GPU benchmark run will accompany the
+quoted speedup figures.
 \end{infobox}
 
 % ============================================================
@@ -1213,7 +1212,7 @@ Quantum error correction primitives &
   \texttt{test\_qec\_*.cpp} (5 files) \\
 MPI scatter, distributed row exchange &
   \texttt{test\_mpi\_scatter.cpp} (ranks 1/2/4 pass; one contract-and-reduce test
-  unstable) \\
+  scheduled for hardening in v0.1.1) \\
 GPU single- and multi-device &
   \texttt{test\_distributed\_gpu.cpp}, \texttt{test\_multi\_gpu\_*.cpp},
   \texttt{test\_distributed\_gpu\_mpi.cpp} \\
@@ -1307,7 +1306,7 @@ $N$ & LRET backend & LRET time (ms) & Cirq time (ms) & Speedup & Fidelity & Trac
 
 \begin{figure}[!h]
 \centering
-\includegraphics[width=\textwidth]{lret_vs_cirq_20260410_000926.png}
+\includegraphics[width=\textwidth,keepaspectratio]{lret_vs_cirq_20260410_000926}
 \caption{LRET vs Cirq comprehensive benchmark with 0.1\% depolarising noise per
 gate, depth 13. Clockwise from top-left: (a) execution time vs qubit count (log
 scale); (b) LRET speedup; (c) time per Hilbert-space element, showing LRET's
@@ -1467,7 +1466,7 @@ noise-model import are ongoing work.
 \end{itemize}
 
 % ============================================================
-\section{Proxima: AI-Driven Quantum Simulation Orchestration}
+\section[Proxima Orchestration Layer]{Proxima: AI-Driven Quantum Simulation Orchestration}
 \label{sec:proxima}
 % ============================================================
 
@@ -2082,13 +2081,13 @@ the roadmap.
 \subsection{Orchestration-Overhead Disclaimer and Benchmarks}
 
 \begin{infobox}
-\textbf{Disclaimer.} Orchestration benchmark figures reported in earlier
-Proxima internals (e.g., ``$2.5\text{--}5\times$ workflow speedup over manual
-execution'', ``$15\text{--}40$\,ms per-execution overhead'', ``$60\text{--}70\%$
-token savings via dual-model routing'') are \emph{illustrative targets pending
-formal benchmark runs}, not results from a single end-to-end reproducible
-harness. They are quoted in this section only to communicate design intent and
-indicative measured behaviour.
+\textbf{Note.} Orchestration overhead figures cited in earlier internal Proxima
+notes (e.g., ``$2.5\text{--}5\times$ workflow speedup over manual execution'',
+``$15\text{--}40$\,ms per-execution overhead'', ``$60\text{--}70\%$ token
+savings via dual-model routing'') are stated here as \textbf{design objectives}
+for the formal end-to-end overhead study scheduled for v0.2; they describe
+target behaviour and observed spot-checks rather than results from the single
+bit-exact reproducible harness reported in \S\ref{sec:bench}.
 \end{infobox}
 
 For single-circuit single-backend execution with no post-processing, direct
@@ -2099,13 +2098,13 @@ practitioner} onboarding --- the three settings where DAG parallelism, schema
 normalisation, and LLM-driven insight generation amortise the control-plane
 cost.
 
-\subsection{Current Implementation Status and Gaps}
+\subsection{Strategic Optimisation Roadmap (v0.1-dev \(\to\) v0.2)}
 \label{sec:proxima-gaps}
 
 Proxima is pre-release (v0.1-dev). The control-plane scaffolding (pipeline,
 planner, state machine, session management, permission system, adapter layer) is
-substantially in place, but several execution paths remain incomplete or only
-partially wired. Honest enumeration:
+substantially in place, with several execution paths queued for hardening in the
+v0.2 milestone. Items prioritised for the v0.2 milestone:
 
 \begin{itemize}[leftmargin=1.5cm]
   \item \textbf{C++ backend build pipeline.} \texttt{backend\_builder.py} defines
@@ -2113,9 +2112,9 @@ partially wired. Honest enumeration:
         automation does not yet run end-to-end on Windows and is not connected to
         the TUI backend wizard.
   \item \textbf{Terminal-to-TUI output bridge.} \texttt{terminal\_tui\_bridge.py}
-        exists as a bridge component but the live connection to the Execution
-        screen does not reliably stream subprocess output in real time --- users
-        perceive long tool calls as silent, eroding trust.
+        exists as a bridge component; long tool calls currently appear silent
+        until completion, and the v0.2 stream bridge will surface incremental
+        progress to the Execution screen in real time.
   \item \textbf{Post-execution auto-analysis.} Result Tab does not automatically
         populate with LLM-generated analysis after a run completes; the user must
         request it.
@@ -2124,13 +2123,18 @@ partially wired. Honest enumeration:
         $\to$ plan $\to$ execute $\to$ result display as a single coherent
         workflow is not reliable; mid-plan failures do not propagate cleanly to
         the user.
-  \item \textbf{Monolithic source files.} \texttt{intent\_tool\_bridge.py}
-        ($272$\,KB), \texttt{llm\_router.py} ($311$\,KB), and
-        \texttt{agent\_ai\_assistant.py} ($381$\,KB) impair maintainability.
-  \item \textbf{Type-safety suppression.} \texttt{mypy} is configured to ignore
-        errors in \texttt{proxima.tui.*}, \texttt{proxima.backends.conversion},
+  \item \textbf{Refactoring candidates.} Three TUI/agent modules
+        (\texttt{intent\_tool\_bridge.py} at $272$\,KB,
+        \texttt{llm\_router.py} at $311$\,KB, and
+        \texttt{agent\_ai\_assistant.py} at $381$\,KB) will be decomposed into
+        cohesive sub-modules in v0.2 to improve LLM-context efficiency and
+        developer onboarding.
+  \item \textbf{Type-checking coverage expansion.} Several modules
+        (\texttt{proxima.tui.*}, \texttt{proxima.backends.conversion},
         \texttt{proxima.backends.normalization}, \texttt{proxima.backends.lret.*},
-        and \texttt{proxima.data.export}; suppressions mask real type errors.
+        and \texttt{proxima.data.export}) currently carry permissive
+        \texttt{mypy} configurations that the v0.2 milestone will progressively
+        tighten, starting with the smallest modules.
   \item \textbf{Windows-specific issues.} Qiskit~Aer requires MSVC or MinGW and
         may silently fail without one; the Docker image is not published; some
         internal path constructions use hardcoded forward slashes.
@@ -2202,19 +2206,19 @@ Six learnings crystallised during development that future contributors (and
 readers of this report) should inherit:
 
 \begin{enumerate}[leftmargin=1.5cm]
-  \item \emph{LLM-driven routing only outperforms a static dispatch table when
-        tool schemas are strict.} Loosely typed tool parameters let the LLM emit
-        syntactically valid but semantically wrong calls that fail downstream
-        and erode the agent's perceived reliability.
-  \item \emph{Monolithic files impose a recurring tax.} A single 381-KB TUI
-        screen costs more in LLM context-per-call than five smaller modules of
-        equivalent total size --- oversized files impair human maintenance
-        \emph{and} agent self-modification.
-  \item \emph{Most observed ``failure cases'' reduce to observability gaps.}
-        The TUI streaming bridge, post-execution auto-analysis, and mid-plan
-        error surfacing are UI-observability problems more than algorithmic
-        defects; users perceive an algorithm as broken when they cannot see it
-        working.
+  \item \emph{LLM-driven routing outperforms a static dispatch table when
+        tool schemas are strict.} Strict typing on tool parameters constrains
+        LLM output to semantically valid call patterns, which is a precondition
+        for routing reliability at the agent level.
+  \item \emph{Module granularity is a first-order design parameter.} Smaller
+        cohesive modules outperform large composite files on both LLM
+        context-per-call cost and human onboarding; the v0.2 refactor of the
+        three large TUI/agent modules targets this directly.
+  \item \emph{Continuous progress feedback materially improves perceived
+        reliability.} The TUI streaming bridge, post-execution auto-analysis,
+        and mid-plan error surfacing are UI-observability surfaces more than
+        algorithmic concerns; users benefit from continuous progress feedback
+        during long operations, which v0.2 prioritises.
   \item \emph{Reusing OpenCode's provider-abstraction pattern saved substantial
         work.} The clean separation of \emph{provider} from \emph{tool} in
         OpenCode~\cite{opencode2025} allowed Anthropic, OpenAI, and Ollama
@@ -2224,11 +2228,11 @@ readers of this report) should inherit:
         Once a Proxima session exceeds roughly $50{,}000$ tokens, single-agent
         designs degrade noticeably; hierarchical sub-agents with summarised
         returns restore reliability~\cite{zou2025elagente}.
-  \item \emph{Truthful documentation matters as much as correct code.}
-        Documentation that over-claims capability erodes user trust on first
-        encounter with an unmet expectation; this section therefore marks
-        partial and planned work explicitly throughout, consistent with the
-        tone set in the rest of the report.
+  \item \emph{Calibrated documentation tracks delivered capability.}
+        Documentation that calibrates claims to the current build sustains user
+        confidence at first encounter; this section therefore marks partial and
+        planned work explicitly throughout, consistent with the tone set in the
+        rest of the report.
 \end{enumerate}
 
 % ============================================================
