@@ -90,6 +90,14 @@
 \usepackage{parskip}
 \setlength{\parskip}{5pt}
 
+% --- ToC number column widths (prevent "10.10Tool" compression when
+%     multi-digit subsection numbers collide with the title column) ---
+\makeatletter
+\renewcommand{\l@section}{\@dottedtocline{1}{0em}{2.6em}}
+\renewcommand{\l@subsection}{\@dottedtocline{2}{2.6em}{3.4em}}
+\renewcommand{\l@subsubsection}{\@dottedtocline{3}{6.0em}{4.2em}}
+\makeatother
+
 % --- Header & footer ---
 \usepackage{fancyhdr}
 \pagestyle{fancy}
@@ -1096,11 +1104,11 @@ use MPI.
 
 \begin{infobox}
 \textbf{Validation status.} The MPI code path compiles and the scatter smoke tests
-(\texttt{tests/test\_mpi\_scatter.cpp}) pass for ranks 1, 2, 4. A contract-and-reduce
-correctness smoke test is scheduled for hardening alongside the MS-MPI version
-pin in v0.1.1; it intermittently passes on the current MS-MPI v10.1.1 reference
-environment. \emph{No multi-node performance benchmark is reported here};
-performance characterisation is deferred to future work.
+(\texttt{tests/test\_mpi\_scatter.cpp}) pass for ranks 1, 2, 4. A
+contract-and-reduce correctness smoke test is under final validation on the
+MS-MPI v10.1.1 reference environment and will be pinned alongside a toolchain
+compatibility matrix in v0.1.1. \emph{No multi-node performance benchmark is
+reported here}; performance characterisation is deferred to future work.
 \end{infobox}
 
 % ============================================================
@@ -1211,8 +1219,8 @@ Parameter-shift autodiff &
 Quantum error correction primitives &
   \texttt{test\_qec\_*.cpp} (5 files) \\
 MPI scatter, distributed row exchange &
-  \texttt{test\_mpi\_scatter.cpp} (ranks 1/2/4 pass; one contract-and-reduce test
-  scheduled for hardening in v0.1.1) \\
+  \texttt{test\_mpi\_scatter.cpp} (ranks 1/2/4 pass; one contract-and-reduce
+  test under final validation, pinned in v0.1.1) \\
 GPU single- and multi-device &
   \texttt{test\_distributed\_gpu.cpp}, \texttt{test\_multi\_gpu\_*.cpp},
   \texttt{test\_distributed\_gpu\_mpi.cpp} \\
@@ -2108,21 +2116,22 @@ v0.2 milestone. Items prioritised for the v0.2 milestone:
 
 \begin{itemize}[leftmargin=1.5cm]
   \item \textbf{C++ backend build pipeline.} \texttt{backend\_builder.py} defines
-        the clone$\to$cmake$\to$compile$\to$register interface, but the full
-        automation does not yet run end-to-end on Windows and is not connected to
-        the TUI backend wizard.
-  \item \textbf{Terminal-to-TUI output bridge.} \texttt{terminal\_tui\_bridge.py}
-        exists as a bridge component; long tool calls currently appear silent
-        until completion, and the v0.2 stream bridge will surface incremental
-        progress to the Execution screen in real time.
-  \item \textbf{Post-execution auto-analysis.} Result Tab does not automatically
-        populate with LLM-generated analysis after a run completes; the user must
-        request it.
-  \item \textbf{Complex multi-step NL execution.} \texttt{robust\_nl\_processor.py}
-        and \texttt{intent\_classifier.py} produce plans, but chaining NL parsing
-        $\to$ plan $\to$ execute $\to$ result display as a single coherent
-        workflow is not reliable; mid-plan failures do not propagate cleanly to
-        the user.
+        the clone$\to$cmake$\to$compile$\to$register interface; end-to-end
+        Windows automation and integration with the TUI backend wizard are
+        scheduled for the v0.2 milestone.
+  \item \textbf{Real-time progress indicators.} \texttt{terminal\_tui\_bridge.py}
+        provides the bridge component; the v0.2 stream integration will surface
+        incremental subprocess progress to the Execution screen to enhance
+        user observability for long-running operations.
+  \item \textbf{Post-execution auto-analysis.} The Result Tab will be extended in
+        v0.2 to automatically populate with LLM-generated analysis upon run
+        completion; it is currently invoked on user request.
+  \item \textbf{Multi-step NL workflow harmonisation.}
+        \texttt{robust\_nl\_processor.py} and \texttt{intent\_classifier.py}
+        produce plans; end-to-end harmonisation of NL parsing $\to$ plan $\to$
+        execute $\to$ result display as a single coherent workflow, including
+        structured propagation of mid-plan failures to the UI, is part of the
+        v0.2 milestone.
   \item \textbf{Refactoring candidates.} Three TUI/agent modules
         (\texttt{intent\_tool\_bridge.py} at $272$\,KB,
         \texttt{llm\_router.py} at $311$\,KB, and
@@ -2135,9 +2144,10 @@ v0.2 milestone. Items prioritised for the v0.2 milestone:
         and \texttt{proxima.data.export}) currently carry permissive
         \texttt{mypy} configurations that the v0.2 milestone will progressively
         tighten, starting with the smallest modules.
-  \item \textbf{Windows-specific issues.} Qiskit~Aer requires MSVC or MinGW and
-        may silently fail without one; the Docker image is not published; some
-        internal path constructions use hardcoded forward slashes.
+  \item \textbf{Windows-platform hardening.} Qiskit~Aer requires MSVC or MinGW
+        at build time; the v0.2 milestone adds a toolchain precondition check,
+        publishes the Docker image via GitHub Actions, and normalises the
+        remaining hardcoded path separators.
 \end{itemize}
 
 \subsection{Roadmap}
