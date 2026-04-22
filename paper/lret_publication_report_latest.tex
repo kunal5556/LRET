@@ -124,6 +124,9 @@
 % --- Graphics ---
 \usepackage{graphicx}
 \graphicspath{{./}{../results/pub_full_lret_vs_cirq_r2/}{../}}
+% Prefer PNG over PDF when same-basename variants exist across graphicspath
+% directories (prevents the benchmark PDF in results/ from shadowing the PNG).
+\DeclareGraphicsExtensions{.png,.pdf,.jpg,.jpeg}
 
 % --- Directory tree (for Proxima module map) ---
 \usepackage{dirtree}
@@ -1312,9 +1315,9 @@ $N$ & LRET backend & LRET time (ms) & Cirq time (ms) & Speedup & Fidelity & Trac
 \end{tabular}
 \end{table}
 
-\begin{figure}[!h]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=\textwidth,keepaspectratio]{lret_vs_cirq_20260410_000926}
+\includegraphics[width=\textwidth,keepaspectratio]{lret_vs_cirq_20260410_000926.png}
 \caption{LRET vs Cirq comprehensive benchmark with 0.1\% depolarising noise per
 gate, depth 13. Clockwise from top-left: (a) execution time vs qubit count (log
 scale); (b) LRET speedup; (c) time per Hilbert-space element, showing LRET's
