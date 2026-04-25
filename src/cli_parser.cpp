@@ -85,6 +85,7 @@ std::string parallel_mode_to_string(ParallelMode mode) {
         case ParallelMode::COLUMN:     return "column";
         case ParallelMode::BATCH:      return "batch";
         case ParallelMode::HYBRID:     return "hybrid";
+        case ParallelMode::LAYER_PARALLEL: return "layer-parallel";
         case ParallelMode::COMPARE:    return "compare";
         case ParallelMode::MPI_ROW:    return "mpi-row";
         case ParallelMode::MPI_COLUMN: return "mpi-column";
@@ -104,6 +105,7 @@ ParallelMode string_to_parallel_mode(const std::string& str) {
     if (lower == "column")     return ParallelMode::COLUMN;
     if (lower == "batch")      return ParallelMode::BATCH;
     if (lower == "hybrid")     return ParallelMode::HYBRID;
+    if (lower == "layer-parallel" || lower == "layer_parallel" || lower == "layer") return ParallelMode::LAYER_PARALLEL;
     if (lower == "compare")    return ParallelMode::COMPARE;
     if (lower == "mpi-row" || lower == "mpi_row")       return ParallelMode::MPI_ROW;
     if (lower == "mpi-column" || lower == "mpi_column") return ParallelMode::MPI_COLUMN;

@@ -223,14 +223,33 @@ JsonCircuitSpec parse_circuit_json(const nlohmann::json& j) {
                     MatrixXcd K(rows, cols);
                     for (size_t r = 0; r < rows; ++r) {
                         for (size_t c = 0; c < cols; ++c) {
-                            K(static_cast<Eigen::Index>(r), static_cast<Eigen::Index>(c)) = 
+                            K(static_cast<Eigen::Index>(r), static_cast<Eigen::Index>(c)) =
                                 Complex(real_data[r][c], imag_data[r][c]);
                         }
                     }
                     op.kraus_matrices.push_back(K);
                 }
             }
-            
+
+            // Handle single-qubit depolarizing channel: {"name":"DEPOLARIZE", "wires":[q], "params":[p]}
+            // Builds the 4 Kraus operators for a depolarizing channel with probability p.
+            //   K0 = sqrt(1-p) * I,  K1 = sqrt(p/3) * X,  K2 = sqrt(p/3) * Y,  K3 = sqrt(p/3) * Z.
+            if (to_upper_copy(op.name) == "DEPOLARIZE") {
+                if (op.params.empty()) {
+                    throw std::invalid_argument("DEPOLARIZE requires params=[probability]");
+                }
+                double p = op.params[0];
+                op.is_channel = true;
+                Matrix2cd I2; I2 << 1, 0, 0, 1;
+                Matrix2cd X2; X2 << 0, 1, 1, 0;
+                Matrix2cd Y2; Y2 << 0, Complex(0, -1), Complex(0, 1), 0;
+                Matrix2cd Z2; Z2 << 1, 0, 0, -1;
+                op.kraus_matrices.push_back(std::sqrt(1.0 - p) * MatrixXcd(I2));
+                op.kraus_matrices.push_back(std::sqrt(p / 3.0) * MatrixXcd(X2));
+                op.kraus_matrices.push_back(std::sqrt(p / 3.0) * MatrixXcd(Y2));
+                op.kraus_matrices.push_back(std::sqrt(p / 3.0) * MatrixXcd(Z2));
+            }
+
             spec.operations.push_back(std::move(op));
         }
     }

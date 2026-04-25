@@ -915,18 +915,19 @@ int sample_measurement_outcome(const std::array<double, 2>& probs, double random
 // Batched Gate Application
 //==============================================================================
 
-MatrixXcd apply_gates_batched(const MatrixXcd& L, const std::vector<GateOp>& gates, 
+MatrixXcd apply_gates_batched(const MatrixXcd& L, const std::vector<GateOp>& gates,
                                size_t num_qubits, size_t batch_size) {
     if (gates.empty()) return L;
-    
+    (void)batch_size;
+
     MatrixXcd result = L;
-    
+
     // Apply gates sequentially using optimized direct method
     // (batching with full matrix combination is now slower than direct application)
     for (const auto& gate_op : gates) {
         result = apply_gate_to_L(result, gate_op, num_qubits);
     }
-    
+
     return result;
 }
 

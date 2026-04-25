@@ -34,8 +34,9 @@ enum class ParallelMode {
     SEQUENTIAL, // No parallelism
     ROW,        // Row-wise parallel
     COLUMN,     // Column-wise parallel
-    BATCH,      // Gate batching
+    BATCH,      // Gate batching (with fusion within the batch)
     HYBRID,     // Row + batch combined
+    LAYER_PARALLEL, // Disjoint-qubit layer scheduling (PDF-spec HYBRID)
     COMPARE,    // Run all and compare
     MPI_ROW,    // MPI row-wise distribution (Phase 3)
     MPI_COLUMN, // MPI column-wise distribution (Phase 3)

@@ -795,6 +795,16 @@ MatrixXcd run_column_parallel(
     return L;
 }
 
+// BATCH: collects consecutive unitaries into fixed-size batches, fuses same-qubit
+// single-qubit gates within each batch, then applies the fused gates. Noise flushes
+// the pending batch, applies noise, then truncates — identical truncation cadence
+// to other modes (truncation only on noise). The meaningful distinction from
+// SEQUENTIAL is the intra-batch fusion (multiple consecutive single-qubit gates on
+// the same target collapse to one matrix multiplication).
+//
+// batch_size controls the maximum pending-unitary count before a forced flush.
+// A larger batch_size increases the fusion window, but also delays gate application
+// (irrelevant for correctness because truncation is decoupled from batch flushes).
 MatrixXcd run_batch_parallel(
     const MatrixXcd& L_init,
     const QuantumSequence& sequence,
@@ -802,11 +812,44 @@ MatrixXcd run_batch_parallel(
     size_t batch_size,
     const SimConfig& config
 ) {
-    return run_simulation_optimized(
-        L_init, sequence, num_qubits,
-        batch_size, config.do_truncation,
-        config.verbose, config.truncation_threshold
-    );
+    MatrixXcd L = L_init;
+    std::vector<GateOp> gate_buffer;
+
+    if (batch_size == 0) {
+        batch_size = auto_select_batch_size(num_qubits);
+    }
+
+    auto flush_batch = [&]() {
+        if (gate_buffer.empty()) return;
+        auto fused = fuse_single_qubit_gates(gate_buffer);
+        for (const auto& fg : fused) {
+            L = parallel_ops::apply_fused_gate(L, fg, num_qubits);
+        }
+        gate_buffer.clear();
+    };
+
+    for (const auto& op : sequence.operations) {
+        if (std::holds_alternative<GateOp>(op)) {
+            gate_buffer.push_back(std::get<GateOp>(op));
+            if (gate_buffer.size() >= batch_size) {
+                flush_batch();
+            }
+        } else if (std::holds_alternative<NoiseOp>(op)) {
+            flush_batch();
+            const auto& noise = std::get<NoiseOp>(op);
+            L = apply_noise_to_L(L, noise, num_qubits);
+            if (config.do_truncation && L.cols() > 1) {
+                L = truncate_L(L, config.truncation_threshold);
+            }
+        }
+    }
+    flush_batch();
+
+    if (config.do_truncation && L.cols() > 1) {
+        L = truncate_L(L, config.truncation_threshold);
+    }
+
+    return L;
 }
 
 // HYBRID: Adaptive mode that combines row AND column parallelism WITH gate fusion
@@ -938,7 +981,75 @@ MatrixXcd run_hybrid(
     if (config.verbose) {
         std::cout << "Hybrid: completed " << step << " ops, final rank=" << L.cols() << std::endl;
     }
-    
+
+    return L;
+}
+
+// LAYER_PARALLEL: implements the PDF-spec "HYBRID" strategy.
+//
+// Key distinction from run_hybrid:
+//   - Between noise ops, we collect pending unitary gates into a buffer, then
+//     build *explicit layers of disjoint-qubit gates* via build_parallel_layers().
+//   - Gates within a layer commute (disjoint qubit sets), so their application
+//     order within the layer does not change the final state.
+//   - Noise and truncation are emitted at layer-sequence boundaries (same as all
+//     other modes), so rank control is preserved.
+//
+// Per-gate execution currently reuses parallel_ops::apply_fused_gate(), which
+// uses row-level OpenMP for large problems. True cross-gate OpenMP parallelism
+// within a single layer is not attempted here because gates on distinct qubits
+// still read/write overlapping L rows (a gate on qubit q rewrites ALL rows of L,
+// just with different pair patterns). A naive #pragma omp parallel for over
+// layer.size() would introduce read-modify-write races on the shared L matrix.
+// The honest speedup from layer structure on CPU comes from improved fusion
+// locality and from exposing structure for downstream Kronecker-product fusion.
+MatrixXcd run_layer_parallel(
+    const MatrixXcd& L_init,
+    const QuantumSequence& sequence,
+    size_t num_qubits,
+    const SimConfig& config
+) {
+    MatrixXcd L = L_init;
+    std::vector<GateOp> gate_buffer;
+
+    auto flush_layers = [&]() {
+        if (gate_buffer.empty()) return;
+
+        // Fuse consecutive single-qubit gates on the same target (same as ROW/HYBRID).
+        auto fused_gates = fuse_single_qubit_gates(gate_buffer);
+
+        // Build explicit layers of disjoint-qubit fused gates.
+        auto layers = build_fused_parallel_layers(fused_gates);
+
+        // Apply each layer's gates sequentially with intra-gate parallelism.
+        // See comment above for why we don't parallelize across gates in a layer.
+        for (const auto& layer : layers) {
+            for (const auto& fg : layer) {
+                L = parallel_ops::apply_fused_gate(L, fg, num_qubits);
+            }
+        }
+
+        gate_buffer.clear();
+    };
+
+    for (const auto& op : sequence.operations) {
+        if (std::holds_alternative<GateOp>(op)) {
+            gate_buffer.push_back(std::get<GateOp>(op));
+        } else if (std::holds_alternative<NoiseOp>(op)) {
+            flush_layers();
+            const auto& noise = std::get<NoiseOp>(op);
+            L = apply_noise_to_L(L, noise, num_qubits);
+            if (config.do_truncation && L.cols() > 1) {
+                L = truncate_L(L, config.truncation_threshold);
+            }
+        }
+    }
+    flush_layers();
+
+    if (config.do_truncation && L.cols() > 1) {
+        L = truncate_L(L, config.truncation_threshold);
+    }
+
     return L;
 }
 
@@ -1168,6 +1279,9 @@ ModeResult run_with_mode(
             case ParallelMode::HYBRID:
                 L_final = modes::run_hybrid(L_init, sequence, num_qubits, batch_size, config);
                 break;
+            case ParallelMode::LAYER_PARALLEL:
+                L_final = modes::run_layer_parallel(L_init, sequence, num_qubits, config);
+                break;
             case ParallelMode::MPI_ROW: {
                 MPIConfig mpi_cfg;
                 mpi_cfg.distribution = MPIDistribution::ROW_WISE;
@@ -1306,6 +1420,9 @@ ModeResult run_optimized(
             case ParallelMode::HYBRID:
                 L_final = modes::run_hybrid(L_init, sequence, num_qubits, batch_size, config);
                 break;
+            case ParallelMode::LAYER_PARALLEL:
+                L_final = modes::run_layer_parallel(L_init, sequence, num_qubits, config);
+                break;
             case ParallelMode::AUTO:
             default:
                 mode = auto_select_mode(num_qubits, sequence.depth, L_init.cols());
@@ -1339,7 +1456,8 @@ std::vector<ModeResult> run_all_modes_comparison(
         ParallelMode::ROW,
         ParallelMode::COLUMN,
         ParallelMode::BATCH,
-        ParallelMode::HYBRID
+        ParallelMode::HYBRID,
+        ParallelMode::LAYER_PARALLEL
     };
     
     for (auto mode : modes_to_test) {

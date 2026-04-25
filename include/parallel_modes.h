@@ -151,6 +151,16 @@ MatrixXcd run_hybrid(
     const SimConfig& config
 );
 
+// Layer-parallel: groups gates into disjoint-qubit layers via build_parallel_layers()
+// and applies them per-layer. Implements the PDF spec's "HYBRID" (disjoint-qubit
+// scheduling). Per-gate execution reuses the row-parallel intra-gate primitive.
+MatrixXcd run_layer_parallel(
+    const MatrixXcd& L_init,
+    const QuantumSequence& sequence,
+    size_t num_qubits,
+    const SimConfig& config
+);
+
 }  // namespace modes
 
 // Gate application with different parallelization strategies

@@ -571,8 +571,19 @@ def lret_state_from_cpp(cpp_result, n_qubits):
 
 
 def run_lret_cpp(circuit_layers, n_qubits, noise_prob, epsilon=1e-4,
-                 timeout_s=3600.0, export_state=True):
+                 timeout_s=3600.0, export_state=True,
+                 parallel_mode=None, num_threads=0):
     """Run LRET via the C++ quantum_sim.exe subprocess.
+
+    Parameters
+    ----------
+    parallel_mode : Optional[str]
+        One of 'sequential', 'row', 'column', 'batch', 'hybrid',
+        'layer-parallel', 'auto'. If None, the C++ backend's AUTO heuristic
+        picks a mode. Passing an explicit mode forces the subprocess path.
+    num_threads : int
+        OpenMP thread count. 0 = let OpenMP choose. Non-zero values force the
+        subprocess path and set OMP_NUM_THREADS for the child process.
 
     Returns: (L_or_None, elapsed_ms, final_rank)
       - L is None if export_state=False (just timing/rank).
@@ -593,9 +604,15 @@ def run_lret_cpp(circuit_layers, n_qubits, noise_prob, epsilon=1e-4,
         },
     }
 
+    # If parallel_mode or thread count is explicitly requested, we go through
+    # the subprocess path (native in-process binding can't honor CLI flags).
+    use_native = (parallel_mode is None) and (num_threads == 0)
+
     t0 = time.perf_counter()
     result = simulate_json(circuit_json, export_state=export_state,
-                           use_native=True, timeout=timeout_s)
+                           use_native=use_native, timeout=timeout_s,
+                           parallel_mode=parallel_mode,
+                           num_threads=int(num_threads))
     elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
     if result.get('status') != 'success':

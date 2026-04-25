@@ -97,6 +97,8 @@ def simulate_json(
     export_state: bool = False,
     use_native: bool = True,
     timeout: float = 600.0,
+    parallel_mode: Optional[str] = None,
+    num_threads: int = 0,
 ) -> Dict[str, Any]:
     """Run a quantum circuit through QLRET and return results.
 
@@ -134,8 +136,13 @@ def simulate_json(
     QLRETError
         If simulation fails.
     """
-    # Try native bindings first
-    if use_native:
+    # If parallel_mode or explicit num_threads is requested, the native in-process
+    # binding cannot honor those flags (they're CLI-level options), so we must use
+    # the subprocess backend.
+    force_subprocess = (parallel_mode is not None) or (num_threads > 0)
+
+    # Try native bindings first (unless we need CLI flags)
+    if use_native and not force_subprocess:
         native = _get_native_module()
         if native is not None:
             return _simulate_native(native, circuit, export_state)
@@ -143,7 +150,10 @@ def simulate_json(
     # Try subprocess backend
     exe = _find_executable()
     if exe is not None:
-        return _simulate_subprocess(circuit, export_state, timeout=timeout)
+        return _simulate_subprocess(
+            circuit, export_state, timeout=timeout,
+            parallel_mode=parallel_mode, num_threads=num_threads,
+        )
 
     # No backend available
     raise QLRETError(
@@ -159,7 +169,11 @@ def simulate_json(
 
 
 def _simulate_subprocess(
-    circuit: Dict[str, Any], export_state: bool, timeout: float = 600.0
+    circuit: Dict[str, Any],
+    export_state: bool,
+    timeout: float = 600.0,
+    parallel_mode: Optional[str] = None,
+    num_threads: int = 0,
 ) -> Dict[str, Any]:
     """Execute via CLI subprocess."""
     exe = _find_executable()
@@ -183,12 +197,23 @@ def _simulate_subprocess(
         cmd = [exe, "--input-json", input_path, "--output-json", output_path]
         if export_state:
             cmd.append("--export-json-state")
+        if parallel_mode is not None:
+            cmd.extend(["--mode", str(parallel_mode)])
+        if num_threads > 0:
+            cmd.extend(["--threads", str(int(num_threads))])
+
+        # Thread env override so OpenMP honors the request even if --threads
+        # is ignored by a specific code path.
+        child_env = os.environ.copy()
+        if num_threads > 0:
+            child_env["OMP_NUM_THREADS"] = str(int(num_threads))
 
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
             timeout=timeout,
+            env=child_env,
         )
 
         if result.returncode != 0:
