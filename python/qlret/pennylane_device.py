@@ -292,12 +292,35 @@ class QLRETDevice(Device):
         wires: Union[int, Sequence[int]],
         shots: Optional[int] = None,
         epsilon: float = 1e-4,
+        parallel_mode: Optional[str] = None,
+        num_threads: int = 0,
         **kwargs: Any,
     ) -> None:
+        """Initialize the QLRET device.
+
+        Parameters
+        ----------
+        wires : int or Sequence[int]
+            Number of wires (qubits) or list of wire labels.
+        shots : Optional[int]
+            Number of shots for sampling. None for analytic mode.
+        epsilon : float
+            Truncation threshold for low-rank compression.
+        parallel_mode : Optional[str]
+            Parallel execution strategy. One of 'auto', 'sequential', 'row',
+            'column', 'batch', 'hybrid', 'layer-parallel'. None means use the
+            C++ backend's AUTO heuristic. Forces the subprocess backend.
+        num_threads : int
+            OpenMP thread count for the subprocess backend. 0 = use all cores.
+            Setting this to a non-zero value forces the subprocess backend
+            and propagates OMP_NUM_THREADS to the child process.
+        """
         _require_pennylane()
         # PennyLane 0.43+ has different Device initialization
         super().__init__(wires=wires, shots=shots)
         self.epsilon = epsilon
+        self.parallel_mode = parallel_mode
+        self.num_threads = int(num_threads)
         self._kwargs = kwargs
         self._num_wires = len(self.wires) if hasattr(self.wires, '__len__') else self.wires
 
@@ -445,9 +468,15 @@ class QLRETDevice(Device):
         # Build JSON circuit
         circuit_json = self._tape_to_json(tape)
         
-        # Run simulation
+        # Run simulation. parallel_mode/num_threads force the subprocess backend
+        # so the CLI flags are honored; native in-process bindings do not expose them.
         try:
-            result = simulate_json(circuit_json, export_state=False)
+            result = simulate_json(
+                circuit_json,
+                export_state=False,
+                parallel_mode=self.parallel_mode,
+                num_threads=self.num_threads,
+            )
         except QLRETError as e:
             raise QLRETDeviceError(f"Simulation failed: {e}") from e
 
