@@ -1,0 +1,287 @@
+[
+  {
+    "mode": "sequential",
+    "n_qubits": 8,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 42692.98555000023,
+    "time_std": 281.680950001828,
+    "times": [
+      42974.66650000206,
+      42411.3045999984
+    ],
+    "rank": 107,
+    "status": "success",
+    "memory_mb": 0.438272,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 42860.4502
+  },
+  {
+    "mode": "row",
+    "n_qubits": 8,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 42458.471899997676,
+    "time_std": 11.581200000364333,
+    "times": [
+      42470.05309999804,
+      42446.89069999731
+    ],
+    "rank": 107,
+    "status": "success",
+    "memory_mb": 0.438272,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 42381.5712
+  },
+  {
+    "mode": "column",
+    "n_qubits": 8,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 42609.533400000146,
+    "time_std": 22.738999998182408,
+    "times": [
+      42632.27239999833,
+      42586.79440000196
+    ],
+    "rank": 107,
+    "status": "success",
+    "memory_mb": 0.438272,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 42550.0071
+  },
+  {
+    "mode": "batch",
+    "n_qubits": 8,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 42366.74674999995,
+    "time_std": 231.44124999998894,
+    "times": [
+      42598.18799999994,
+      42135.30549999996
+    ],
+    "rank": 107,
+    "status": "success",
+    "memory_mb": 0.438272,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 42541.2478
+  },
+  {
+    "mode": "hybrid",
+    "n_qubits": 8,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 41678.63319999924,
+    "time_std": 384.9480999979278,
+    "times": [
+      41293.68510000131,
+      42063.58129999717
+    ],
+    "rank": 107,
+    "status": "success",
+    "memory_mb": 0.438272,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 41241.7042
+  },
+  {
+    "mode": "cirq",
+    "n_qubits": 8,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 867.7356000007421,
+    "time_std": 3.648800000519259,
+    "times": [
+      871.3844000012614,
+      864.0868000002229
+    ],
+    "rank": 256,
+    "status": "completed",
+    "memory_mb": 1.048576,
+    "trace": "1.0",
+    "purity": "0.33629996",
+    "execution_time_ms": null
+  },
+  {
+    "mode": "sequential",
+    "n_qubits": 12,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 969204.1222500047,
+    "time_std": 606.6429499987862,
+    "times": [
+      968597.479300006,
+      969810.7652000035
+    ],
+    "rank": 298,
+    "status": "success",
+    "memory_mb": 19.529728,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 968515.3949
+  },
+  {
+    "mode": "row",
+    "n_qubits": 12,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 960198.1443999975,
+    "time_std": 6267.061999998987,
+    "times": [
+      953931.0823999986,
+      966465.2063999965
+    ],
+    "rank": 298,
+    "status": "success",
+    "memory_mb": 19.529728,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 953852.1676
+  },
+  {
+    "mode": "column",
+    "n_qubits": 12,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 919982.9042000019,
+    "time_std": 3217.437900002522,
+    "times": [
+      923200.3421000044,
+      916765.4662999994
+    ],
+    "rank": 298,
+    "status": "success",
+    "memory_mb": 19.529728,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 923134.7211
+  },
+  {
+    "mode": "batch",
+    "n_qubits": 12,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 931574.5380000008,
+    "time_std": 2168.8993999996455,
+    "times": [
+      929405.6386000011,
+      933743.4374000004
+    ],
+    "rank": 298,
+    "status": "success",
+    "memory_mb": 19.529728,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 929307.4299
+  },
+  {
+    "mode": "hybrid",
+    "n_qubits": 12,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 925008.922500001,
+    "time_std": 6447.859800002305,
+    "times": [
+      918561.0626999987,
+      931456.7823000033
+    ],
+    "rank": 298,
+    "status": "success",
+    "memory_mb": 19.529728,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 918478.6262
+  },
+  {
+    "mode": "cirq",
+    "n_qubits": 12,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 505839.0696999959,
+    "time_std": 1607.9360999974597,
+    "times": [
+      507447.00579999335,
+      504231.13359999843
+    ],
+    "rank": 4096,
+    "status": "completed",
+    "memory_mb": 268.435456,
+    "trace": "1.0",
+    "purity": "0.18646386",
+    "execution_time_ms": null
+  },
+  {
+    "mode": "sequential",
+    "n_qubits": 16,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 31809033.783400003,
+    "time_std": 81981.3480999954,
+    "times": [
+      31727052.435300007,
+      31891015.1315
+    ],
+    "rank": 589,
+    "status": "success",
+    "memory_mb": 617.611264,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 31726698.2246
+  },
+  {
+    "mode": "row",
+    "n_qubits": 16,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 31607962.078250006,
+    "time_std": 18380.527149993926,
+    "times": [
+      31626342.6054,
+      31589581.551100012
+    ],
+    "rank": 589,
+    "status": "success",
+    "memory_mb": 617.611264,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 31625964.7608
+  },
+  {
+    "mode": "column",
+    "n_qubits": 16,
+    "depth": 15,
+    "noise_prob": 0.005,
+    "epsilon": 1e-05,
+    "time_mean": 31570445.876200013,
+    "time_std": 65618.97229999863,
+    "times": [
+      31504826.903900016,
+      31636064.848500013
+    ],
+    "rank": 589,
+    "status": "success",
+    "memory_mb": 617.611264,
+    "trace": null,
+    "purity": null,
+    "execution_time_ms": 31504445.1735
+  }
+]
