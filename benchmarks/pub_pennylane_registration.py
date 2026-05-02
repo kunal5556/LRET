@@ -238,16 +238,54 @@ def _save_run_state(path, last_completed):
         pass
 
 
+def _load_resume_rows(resume_csv_path):
+    """Load existing CSV and return (rows, done_keys).
+
+    done_keys is a set of (algo, n, mode) tuples for rows with status='ok'.
+    Failed/OOM rows are NOT included in done_keys so they get re-tried.
+    """
+    if not resume_csv_path or not os.path.exists(resume_csv_path):
+        return [], set()
+    rows = []
+    done_keys = set()
+    with open(resume_csv_path, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            # Coerce numeric fields back to float/int for plot compatibility
+            for k in ('lret_mean_ms', 'lret_std_ms', 'lret_median_ms', 'lret_min_ms',
+                     'comp_mean_ms', 'comp_std_ms', 'time_ratio', 'lret_peak_mb',
+                     'comp_peak_mb', 'memory_ratio', 'accuracy_ratio'):
+                v = row.get(k, '')
+                try:
+                    row[k] = float(v) if v not in ('', 'nan', 'NaN') else float('nan')
+                except ValueError:
+                    row[k] = float('nan')
+            for k in ('n_qubits', 'trials', 'n_epochs'):
+                try:
+                    row[k] = int(row[k]) if row.get(k, '') != '' else 0
+                except ValueError:
+                    pass
+            rows.append(row)
+            if row.get('status') == 'ok':
+                done_keys.add((row['algo'], int(row['n_qubits']), row['mode']))
+    return rows, done_keys
+
+
 # ──────────────────────────────────────────────────────────────
 # Main run
 # ──────────────────────────────────────────────────────────────
 
 def run(output_dir='results/pub_pennylane_reg', quick=False,
-        algos_filter=None, qubits_filter=None, modes_filter=None):
+        algos_filter=None, qubits_filter=None, modes_filter=None,
+        resume_csv=None):
     if not PENNYLANE_AVAILABLE:
         raise RuntimeError("PennyLane not installed.")
     if not QLRET_AVAILABLE:
         raise RuntimeError("qlret.mixed device not installed; run `pip install -e python/[pennylane]`")
+
+    resumed_rows, done_keys = _load_resume_rows(resume_csv)
+    if resume_csv:
+        print(f'  resume : {resume_csv}  ({len(resumed_rows)} rows loaded, {len(done_keys)} completed cells skipped)')
 
     qubit_range = QUBIT_RANGE_QUICK if quick else QUBIT_RANGE_FULL
     if qubits_filter:
@@ -281,19 +319,35 @@ def run(output_dir='results/pub_pennylane_reg', quick=False,
     print(f'  algos/ : {algos_dir}/')
     print()
 
-    all_rows = []
+    all_rows = list(resumed_rows)
+    if all_rows:
+        # Persist the resumed rows into the new summary CSV at startup so a
+        # subsequent crash leaves a CSV that includes them.
+        _write_csv(summary_csv, all_rows)
     n_done = 0
     n_ok = 0
+    n_skipped = 0
 
     for algo in algos:
         cap = ALGORITHM_N_CAP.get(algo, 16)
         competitor, noisy = ALGORITHM_DEVICE_MAP[algo]
-        algo_rows = []
+        # Pre-populate algo_rows with already-completed rows for this algo so the
+        # per-algo CSV is also up to date with prior data.
+        algo_rows = [r for r in resumed_rows if r['algo'] == algo]
         algo_csv = os.path.join(algos_dir, f'{algo}_{stamp}.csv')
+        if algo_rows:
+            _write_csv(algo_csv, algo_rows)
 
         for n in qubit_range:
             if n > cap:
                 continue
+
+            # Skip completely-done (algo, n) — every required mode already in done_keys.
+            modes_to_run = [m for m in modes if (algo, n, m) not in done_keys]
+            if not modes_to_run:
+                n_skipped += len(modes)
+                continue
+
             n_trials = n_trials_for(n)
 
             # Competitor: run once per (algo, n) — mode-agnostic.
@@ -314,6 +368,9 @@ def run(output_dir='results/pub_pennylane_reg', quick=False,
                 comp_times = []
 
             for mode in modes:
+                if (algo, n, mode) in done_keys:
+                    n_skipped += 1
+                    continue
                 row = {
                     'algo': algo, 'n_qubits': n, 'mode': mode,
                     'competitor': competitor, 'noisy': noisy,
@@ -378,7 +435,9 @@ def run(output_dir='results/pub_pennylane_reg', quick=False,
         print(f'    -- {algo} done ({len(algo_rows)} rows) -->'
               f' {algo_csv}')
 
-    print(f'\n[Done] {n_done} rows, {n_ok} ok, {n_done - n_ok} failed/OOM.')
+    print(f'\n[Done] {n_done} new rows ({n_ok} ok, {n_done - n_ok} failed/OOM); '
+          f'{n_skipped} cells skipped (already in resume CSV); '
+          f'{len(all_rows)} total rows in summary.')
     print(f'  summary CSV: {summary_csv}')
     if MATPLOTLIB_AVAILABLE and all_rows:
         try:
@@ -468,15 +527,20 @@ def main():
     parser.add_argument('--algos', default='')
     parser.add_argument('--qubits', default='')
     parser.add_argument('--modes', default='')
+    parser.add_argument('--resume-csv', default='',
+                        help='Path to a previous run\'s summary CSV. Rows with '
+                             'status=ok are kept; their (algo,n,mode) keys are '
+                             'skipped this run.')
     args = parser.parse_args()
 
     algos_filter = [a.strip() for a in args.algos.split(',') if a.strip()] or None
     qubits_filter = [q.strip() for q in args.qubits.split(',') if q.strip()] or None
     modes_filter = [m.strip() for m in args.modes.split(',') if m.strip()] or None
+    resume_csv = args.resume_csv.strip() or None
 
     run(output_dir=args.output_dir, quick=args.quick,
         algos_filter=algos_filter, qubits_filter=qubits_filter,
-        modes_filter=modes_filter)
+        modes_filter=modes_filter, resume_csv=resume_csv)
 
 
 if __name__ == '__main__':
