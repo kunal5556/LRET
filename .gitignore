@@ -1,7 +1,11 @@
 # Build directory
 build/
 build_test/
+build_tests/
 cmake-build-*/
+
+# Claude Code local settings (per-machine, contains personal paths)
+.claude/
 
 # Cache and temporary
 .cache/
