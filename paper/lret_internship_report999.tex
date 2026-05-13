@@ -121,6 +121,11 @@
   skipbelow=8pt,
 ]{infobox}
 
+% --- URL / path line-breaking ---
+% \nolinkurl{...} renders in \ttfamily and breaks at / . - _ characters,
+% preventing long file paths from overflowing the text column.
+\urlstyle{tt}
+
 % --- Graphics ---
 \usepackage{graphicx}
 \graphicspath{{./}{../results/pub_full_lret_vs_cirq_r2/}{../}}
@@ -202,7 +207,7 @@ $\ge 0.986$; it completes circuits at $N=16,18$ where the Cirq density-matrix re
 exceeds available RAM (68.7\,GB and 1099.5\,GB required, respectively). Final ranks
 stay at or below 152 even at $N=18$ ($0.058\%$ of the full Hilbert dimension), empirically
 confirming the low-rank assumption of~\cite{chen2021lret}. All other implementation
-subsystems (MPI, GPU, additional parallel modes, QEC, autodiff) have been verified with
+subsystems (MPI, GPU, additional parallel modes, autodiff) have been verified with
 smoke and unit tests but are not benchmarked in this report; their performance
 characterisation is explicitly deferred to future work. We conclude with the Proxima
 AI orchestration system, a Python agent-framework layer that manages the full
@@ -279,8 +284,8 @@ material with explicit per-equation attribution to the source paper.
         comparison against Cirq's density-matrix simulator~\cite{cirq} on $N=4,\ldots,20$
         qubits with depolarising noise $p=10^{-3}$, depth $13$, and three trials per
         point, fully specified and reproducible from the script
-        \texttt{benchmarks/pub\_lret\_vs\_cirq.py} and the data file
-        \texttt{results/pub\_full\_lret\_vs\_cirq\_r2/lret\_vs\_cirq\_20260410\_000926.csv}.
+        \nolinkurl{benchmarks/pub_lret_vs_cirq.py} and the data file
+        \nolinkurl{results/pub_full_lret_vs_cirq_r2/lret_vs_cirq_20260410_000926.csv}.
   \item \textbf{Ecosystem integration scaffolding} (\S\ref{sec:future}). In-progress
         PennyLane device plugin~\cite{bergholm2018pennylane}, Qiskit
         provider~\cite{javadi2024qiskit}, Cirq backend~\cite{cirq}, and parameter-shift
@@ -637,7 +642,6 @@ flags~\cite{cmake}.
 \texttt{include/autodiff.h}          & Parameter-shift gradient computation \\
 \texttt{include/mpi\_parallel.h}     & MPI distributed simulation \\
 \texttt{include/gpu\_simulator.h}    & CUDA / cuQuantum GPU acceleration \\
-\texttt{include/qec\_*.h}            & Quantum error correction modules (8 headers) \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1181,7 +1185,8 @@ RDMA when available. The \texttt{USE\_NCCL=ON} CMake flag enables this path.
 
 \begin{infobox}
 \textbf{Validation status.} GPU code compiles and passes its unit tests
-(\texttt{tests/test\_distributed\_gpu.cpp}, \texttt{tests/test\_multi\_gpu\_*.cpp}) on
+(\nolinkurl{tests/test_distributed_gpu.cpp},
+\nolinkurl{tests/test_multi_gpu_*.cpp}) on
 a CUDA-capable host. \emph{No GPU performance benchmark is reported here.}
 Empirical characterisation of the cuQuantum and custom-CUDA paths is deferred to
 future work, where a captured end-to-end GPU benchmark run will accompany the
@@ -1213,27 +1218,30 @@ integration, executed via pytest).
 \textbf{Category} & \textbf{Covered by} \\
 \midrule
 Single- and two-qubit gates, Kraus noise &
-  \texttt{test\_advanced\_noise.cpp}, \texttt{test\_leakage\_measurement.cpp} \\
+  \nolinkurl{test_advanced_noise.cpp}, \nolinkurl{test_leakage_measurement.cpp} \\
 LRET truncation, orthonormalisation &
-  \texttt{test\_checkpoint.cpp} (round-trip), \texttt{python/tests/test\_qlret\_device.py} \\
+  \nolinkurl{test_checkpoint.cpp} (round-trip),
+  \nolinkurl{python/tests/test_qlret_device.py} \\
 Parameter-shift autodiff &
-  \texttt{test\_autodiff.cpp}, \texttt{test\_autodiff\_multi.cpp},
-  \texttt{test\_autodiff\_multi\_gpu.cpp} \\
-Quantum error correction primitives &
-  \texttt{test\_qec\_*.cpp} (5 files) \\
+  \nolinkurl{test_autodiff.cpp}, \nolinkurl{test_autodiff_multi.cpp},
+  \nolinkurl{test_autodiff_multi_gpu.cpp} \\
 MPI scatter, distributed row exchange &
   \texttt{test\_mpi\_scatter.cpp} (ranks 1/2/4 pass; one contract-and-reduce
   test under final validation, pinned in v0.1.1) \\
 GPU single- and multi-device &
-  \texttt{test\_distributed\_gpu.cpp}, \texttt{test\_multi\_gpu\_*.cpp},
-  \texttt{test\_distributed\_gpu\_mpi.cpp} \\
+  \nolinkurl{test_distributed_gpu.cpp}, \nolinkurl{test_multi_gpu_*.cpp},
+  \nolinkurl{test_distributed_gpu_mpi.cpp} \\
 Matrix completion, low-rank reconstruction &
   \texttt{test\_matrix\_completion.cpp} \\
 Python package (CLI, JSON API, PennyLane, JAX, PyTorch) &
-  \texttt{python/tests/test\_qlret\_device.py}, \texttt{test\_jax\_interface.py},
-  \texttt{test\_pytorch\_interface.py}, \texttt{test\_ml\_integration.py},
-  \texttt{integration/test\_cli\_regression.py}, \texttt{integration/test\_json\_execution.py},
-  \texttt{integration/test\_pennylane\_device.py}, \texttt{integration/test\_docker\_runtime.py} \\
+  \nolinkurl{python/tests/test_qlret_device.py},
+  \nolinkurl{test_jax_interface.py},
+  \nolinkurl{test_pytorch_interface.py},
+  \nolinkurl{test_ml_integration.py},
+  \nolinkurl{integration/test_cli_regression.py},
+  \nolinkurl{integration/test_json_execution.py},
+  \nolinkurl{integration/test_pennylane_device.py},
+  \nolinkurl{integration/test_docker_runtime.py} \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1246,9 +1254,9 @@ and interface stability but not performance.
 
 We compared LRET against Cirq's \texttt{DensityMatrixSimulator}~\cite{cirq} under a
 common circuit and noise model. The benchmark script is
-\texttt{benchmarks/pub\_lret\_vs\_cirq.py} on the branch
+\nolinkurl{benchmarks/pub_lret_vs_cirq.py} on the branch
 \texttt{claude/frosty-banzai}; its full output is saved to
-\texttt{results/pub\_full\_lret\_vs\_cirq\_r2/lret\_vs\_cirq\_20260410\_000926.csv}.
+\nolinkurl{results/pub_full_lret_vs_cirq_r2/lret_vs_cirq_20260410_000926.csv}.
 
 \subsubsection*{Experimental setup}
 
@@ -1286,7 +1294,7 @@ common circuit and noise model. The benchmark script is
 
 Table~\ref{tab:bench} and Figure~\ref{fig:bench} report the raw CSV data. All values
 are taken directly from
-\texttt{results/pub\_full\_lret\_vs\_cirq\_r2/lret\_vs\_cirq\_20260410\_000926.csv};
+\nolinkurl{results/pub_full_lret_vs_cirq_r2/lret_vs_cirq_20260410_000926.csv};
 no post-processing beyond formatting for the table.
 
 \begin{table}[!h]
@@ -2277,7 +2285,7 @@ $p=10^{-3}$ depolarising noise, LRET reaches a $59.1\times$ speedup at $N=14$ wi
 state fidelity $\ge 0.986$, and continues to execute at $N=16, 18$ where the
 full-density-matrix reference exceeds host memory. Final ranks stay at or below
 $0.058\%$ of the Hilbert dimension at $N=18$, supporting the low-rank assumption
-of~\cite{chen2021lret}. All other subsystems (MPI, GPU, QEC, autodiff) are verified
+of~\cite{chen2021lret}. All other subsystems (MPI, GPU, autodiff) are verified
 at the smoke-test level only; performance characterisation of these paths is
 deferred to future work, as are broader circuit families, higher noise rates, and
 multi-node scaling studies.
@@ -2331,32 +2339,6 @@ OpenCode~\cite{opencode2025} (MIT).
   P.~Krantz, M.~Kjaergaard, F.~Yan, T.~P.~Orlando, S.~Gustavsson, W.~D.~Oliver.
   \textit{A quantum engineer's guide to superconducting qubits}.
   Appl.\ Phys.\ Rev.\ \textbf{6}, 021318 (2019).
-
-\bibitem{mcewen2021leakage}
-  M.~McEwen \textit{et al.}
-  \textit{Removing leakage-induced correlated errors in superconducting quantum
-  error correction}.
-  Nature Communications \textbf{12}, 1761 (2021).
-
-\bibitem{miao2023leakage}
-  K.~C.~Miao \textit{et al.}
-  \textit{Overcoming leakage in quantum error correction}.
-  Nature Physics \textbf{19}, 1780--1786 (2023).
-
-\bibitem{gottesman1997}
-  D.~Gottesman.
-  \textit{Stabilizer Codes and Quantum Error Correction}.
-  Ph.D.\ thesis, Caltech (1997). arXiv:quant-ph/9705052.
-
-\bibitem{aaronson2004chpf}
-  S.~Aaronson, D.~Gottesman.
-  \textit{Improved simulation of stabilizer circuits}.
-  Phys.\ Rev.\ A \textbf{70}, 052328 (2004).
-
-\bibitem{zhang2017correlated}
-  J.~Zhang \textit{et al.}
-  \textit{Correlated quantum errors and their impact on quantum error correction}.
-  Phys.\ Rev.\ Lett.\ \textbf{118}, 230502 (2017).
 
 \bibitem{clader2021}
   B.~D.~Clader \textit{et al.}
